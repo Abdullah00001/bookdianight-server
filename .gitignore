@@ -1,0 +1,31 @@
+node_modules/
+.env
+.env.local
+.env.production
+
+# Server Service
+./server/.env
+./server/.env.development
+./server/.env.production
+./server/node_modules
+./server/dist
+./server/*.log
+./server/logs
+
+# Worker Service
+./worker/.env
+./worker/.env.development
+./worker/.env.production
+./worker/node_modules
+./worker/dist
+./worker/*.log
+./worker/logs
+
+# Scheduler Service
+./scheduler/.env
+./scheduler/.env.development
+./scheduler/.env.production
+./scheduler/node_modules
+./scheduler/dist
+./scheduler/*.log
+./scheduler/logs

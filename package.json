@@ -1,0 +1,9 @@
+{
+  "name": "bookdianight-server",
+  "version": "1.0.0",
+  "description": "An club and event management application server.",
+  "scripts": {},
+  "dependencies": {
+    "typescript": "^7.0.2"
+  }
+}

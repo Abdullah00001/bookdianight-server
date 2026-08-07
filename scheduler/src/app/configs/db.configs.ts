@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 import logger from '@/app/configs/logger.configs';
 
@@ -10,10 +10,10 @@ const prisma = new PrismaClient({
   ],
 });
 
-prisma.$on('error', (e: Prisma.LogEvent) =>
+prisma.$on('error', (e: any) =>
   logger.error(`[Prisma] ${e.message}`)
 );
-prisma.$on('warn', (e: Prisma.LogEvent) =>
+prisma.$on('warn', (e: any) =>
   logger.warn(`[Prisma] ${e.message}`)
 );
 

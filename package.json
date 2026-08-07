@@ -1,9 +1,24 @@
 {
   "name": "bookdianight-server",
   "version": "1.0.0",
-  "description": "An club and event management application server.",
-  "scripts": {},
+  "description": "And Club And Event Management Application",
+  "directories": {
+    "doc": "docs",
+    "scripts": "scripts"
+  },
+  "scripts": {
+    
+  },
   "dependencies": {
-    "typescript": "^7.0.2"
-  }
+    "@prisma/client": "^6.19.2",
+    "prisma": "^6.19.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Abdullah00001/bookdianight-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Abdullah00001/bookdianight-server/issues"
+  },
+  "homepage": "https://github.com/Abdullah00001/bookdianight-server#readme"
 }

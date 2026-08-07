@@ -100,3 +100,39 @@ If you are tasked with adding a new microservice:
 3. Add the service to `docker-compose.yaml`.
 4. Ensure the service mounts the shared `prisma` directory as a volume (`- ./prisma:/app/prisma`).
 5. Update `scripts/prisma-sync.sh` to include a sync command for your new container!
+
+---
+
+## 5. Git Workflow & Commits
+
+To maintain a clean and understandable history, this repository follows strict standard practices for branching and committing.
+
+### Branching Strategy
+- **Never push directly to `main`.**
+- For any new feature, bug fix, or chore, **create a new branch** from `main`.
+  - Use descriptive branch names: `feature/add-login`, `bugfix/fix-cron-timezone`, `chore/update-deps`.
+- When your work is complete, open a **Pull Request (PR)** against `main`.
+- Follow standard PR practices: leave descriptive comments explaining your changes, and request a review before merging.
+
+### Conventional Commits
+We strictly adhere to the [Conventional Commits](https://www.conventionalcommits.org/) specification. This helps us automatically generate changelogs and understand the project history at a glance.
+
+**Format:**
+```
+<type>(<optional scope>): <description>
+```
+
+**Common Types:**
+- `feat`: A new feature
+- `fix`: A bug fix
+- `chore`: Routine tasks, maintenance, or dependency updates (no production code changes)
+- `docs`: Documentation only changes
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+
+**Examples:**
+- `feat(scheduler): add email notification job`
+- `fix(auth): resolve token expiration issue`
+- `chore(deps): update prisma to version 6`
+- `docs(readme): add instructions for new service`
+
+Always use the imperative mood in your commit message descriptions (e.g., "change message" instead of "changed message").

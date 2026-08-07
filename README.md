@@ -23,6 +23,8 @@ If you are a new developer setting up the project for the first time, please ref
 
 👉 **[Developer Workflow & Onboarding Guide](./docs/developer-workflow.md)**
 
+👉 **[Production Deployment & CI/CD Guide](./docs/production-deployment.md)**
+
 ## 🛠 Useful Scripts
 
 We have custom root-level scripts to seamlessly manage our Prisma schema across Docker containers:

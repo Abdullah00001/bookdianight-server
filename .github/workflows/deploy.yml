@@ -47,6 +47,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             cd /opt/bookdianight-server
             # Make sure we pull the latest images
             docker compose pull

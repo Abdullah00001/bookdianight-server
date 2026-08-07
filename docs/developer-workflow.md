@@ -1,0 +1,102 @@
+# Developer Workflow & Onboarding
+
+Welcome to the BookdiaNight Server project! This document outlines how to get up and running with the codebase as a new developer.
+
+## Architecture Overview
+
+This project is a multi-service Node.js architecture with a single shared database. Services (like `scheduler`) run in their own Docker containers. We use **Prisma** for our ORM. All shared definitions (like the Prisma schema) and orchestration scripts live at the **root** of the project.
+
+---
+
+## 1. Initial Setup (After Cloning)
+
+Once you have cloned the repository to your local machine, follow these steps to set up your environment:
+
+### Prerequisites
+- [Docker & Docker Compose](https://docs.docker.com/get-docker/) installed.
+- [Node.js](https://nodejs.org/en/) (v22 recommended) installed locally for running root scripts.
+
+### Setup Steps
+1. **Install Root Dependencies**
+   Open a terminal at the root of the project and run:
+   ```bash
+   npm install
+   ```
+   *(This installs the Prisma CLI and other shared dependencies required to manage the database schema.)*
+
+2. **Configure Environment Variables**
+   Copy the example environment file to create your local configuration:
+   ```bash
+   cp .env.example .env
+   ```
+   *Note: Do not modify `.env.example` with personal credentials. The default values in `.env.example` are pre-configured to work perfectly with the local Docker containers.*
+
+---
+
+## 2. Starting the Project
+
+We run all services, including our Postgres database and Redis, via Docker Compose.
+
+1. **Build and Start the Stack**
+   From the root directory, run:
+   ```bash
+   docker compose up -d --build
+   ```
+   *This command will download the necessary images, build the custom service images (e.g., the scheduler), and start them in the background (`-d`).*
+
+2. **Verify Containers are Running**
+   You can check the status of your containers using:
+   ```bash
+   docker compose ps
+   ```
+   *Ensure that `bookdianight-postgres`, `bookdianight-redis`, and `bookdianight-scheduler` are marked as healthy/running.*
+
+---
+
+## 3. Database Management: Migrate & Sync
+
+Because the database runs in a container but we author our schema on the host machine, we have a custom two-step workflow for Prisma:
+
+### Step A: Migrate the Database
+Whenever you first clone the project, or whenever you change the `prisma/schema.prisma` file, you need to push those changes to the database.
+
+From the root directory, run:
+```bash
+npm run prisma:migrate
+```
+*What this does:* Connects to the local Postgres container (via port `5440`) and runs `npx prisma migrate dev`. It ensures your database schema is up-to-date and generates the Prisma client locally at the root.
+
+### Step B: Sync the Containers
+Our Node.js services run in Alpine Linux containers, which require a different Prisma query engine binary than your host machine (Mac/Windows/Ubuntu).
+
+After migrating, **you must sync the changes to the running containers**:
+```bash
+npm run prisma:sync
+```
+*What this does:* This script securely execs into the running Docker containers (like `bookdianight-scheduler`) and runs `npx prisma generate` from *inside* the container, ensuring the container has the correct binary for Alpine Linux.
+
+> [!IMPORTANT]
+> **Always run both commands sequentially whenever the schema changes!**
+> 1. `npm run prisma:migrate`
+> 2. `npm run prisma:sync`
+
+---
+
+## 4. Development Workflow
+
+Once the project is running and the database is synced, you are ready to develop!
+
+- **Hot Reloading:** The services (like `scheduler`) are configured with `nodemon` and `tsx`. Changes made to `scheduler/src/**/*.ts` will automatically trigger a reload inside the Docker container.
+- **Viewing Logs:** To watch the live logs for a specific service:
+  ```bash
+  docker compose logs -f scheduler
+  ```
+- **Redis UI:** We have included a Redis UI in the docker-compose stack. You can access it in your browser at `http://localhost:8083` (Credentials: admin / admin).
+
+### Adding a New Service
+If you are tasked with adding a new microservice:
+1. Create a new folder at the root (e.g., `./notifications`).
+2. Add a `Dockerfile.dev` inside it (you can copy the one from `scheduler` as a template).
+3. Add the service to `docker-compose.yaml`.
+4. Ensure the service mounts the shared `prisma` directory as a volume (`- ./prisma:/app/prisma`).
+5. Update `scripts/prisma-sync.sh` to include a sync command for your new container!

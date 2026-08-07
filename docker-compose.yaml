@@ -37,7 +37,7 @@ services:
       - postgres
   redis-ui:
     image: rediscommander/redis-commander:latest
-    container_name: event_management_redis_ui_container
+    container_name: bookdianight-redis-ui
     environment:
       # Format: connectionName:host:port:dbIndex:password
       - REDIS_HOSTS=local:redis:6379:0:myStrongPassword
@@ -56,8 +56,12 @@ services:
     container_name: bookdianight-scheduler
     build:
       context: .
-      dockerfile: "./scheduler/Dockerfile.dev",
-      env_file: "./env"
+      dockerfile: "./scheduler/Dockerfile.dev"
+    env_file: ".env"
+    environment:
+      - DATABASE_URL=postgresql://postgres:myStrongPassword@postgres:5432/bookdianight?schema=public
+    volumes:
+      - ./prisma:/app/prisma
     networks:
       - bookdianight-network
     depends_on:

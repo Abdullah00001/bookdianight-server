@@ -6,7 +6,7 @@
   "scripts": {
     "build": "bash scripts/build.sh",
     "test": "echo \"No tests written yet\" && exit 0",
-    "dev": "nodemon",
+    "dev": "npx prisma generate && nodemon",
     "start": "node ./dist/index.js",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.{ts,js}\" --quiet"

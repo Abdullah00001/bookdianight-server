@@ -175,10 +175,10 @@ Always use the imperative mood in your commit message descriptions (e.g., "chang
 
 New to the project? Here are the most common issues you might run into and how to solve them in seconds:
 
-### "PrismaClient did not initialize yet" Crash Loop
-**Symptom:** When you run `docker compose up -d --build`, you check the logs (`docker compose logs -f worker`) and see nodemon crashing with `Error: @prisma/client did not initialize yet`.
-**Cause:** The containers boot up instantly, but the Prisma binary hasn't been generated inside them yet.
-**Fix:** Run `npm run prisma:sync`. Once that finishes, simply restart the containers (`docker compose restart`) or save a file to trigger nodemon to reload. It will boot perfectly!
+### "PrismaClient did not initialize yet" Crash
+**Symptom:** You changed `schema.prisma` locally and nodemon crashed inside the container with `Error: @prisma/client did not initialize yet`.
+**Cause:** When you update your schema, the container needs to generate its Alpine-specific Prisma binary again. (Note: On a fresh `docker compose up`, this happens automatically now!).
+**Fix:** Run `npm run prisma:sync`. Once that finishes, nodemon will automatically recover or you can just save a file to trigger a reload.
 
 ### ESLint / Prettier failing on commit
 **Symptom:** You try to `git commit` and Husky blocks it due to linting errors.

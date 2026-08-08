@@ -7,6 +7,8 @@ import { connectDatabase, disconnectDatabase } from '@/app/configs/db.configs';
 import { connectRedis, disconnectRedis } from '@/app/configs/redis.configs';
 import { initializeFirebase } from '@/app/configs/firebase.configs';
 
+import { loadAllWorkers } from '@/app/queues';
+
 // ─────────────────────────────────────────────────────────────
 // Registry — add every new Worker instance here
 // ─────────────────────────────────────────────────────────────
@@ -75,7 +77,7 @@ const start = async (): Promise<void> => {
   await connectRedis();
   await connectDatabase();
   initializeFirebase();
-  allWorkers = [];
+  allWorkers = loadAllWorkers();
   logger.info(
     `${TAG} Ready — ${allWorkers.length} worker(s) active — listening for jobs`
   );

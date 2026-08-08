@@ -32,7 +32,8 @@ Once you have cloned the repository to your local machine, follow these steps to
    ```bash
    cp .env.example .env
    ```
-   *Note: Do not modify `.env.example` with personal credentials. The default values in `.env.example` are pre-configured to work perfectly with the local Docker containers.*
+   > [!IMPORTANT]
+   > **Third-Party Credentials:** The default values in `.env.example` are pre-configured to work perfectly with the local Docker containers (like Postgres and Redis). However, you **must** update the `SMTP_*` and `FIREBASE_*` variables with valid credentials or placeholders, otherwise the `worker` service will throw an error and crash on startup.
 
 ---
 
@@ -103,6 +104,13 @@ If you need to add a new scheduled task to the scheduler service:
 2. This will automatically generate a correctly-typed boilerplate in `scheduler/src/app/jobs/<job-name>/`.
 3. Add your logic to the `.tasks.ts` file. The scheduler will automatically discover and register your job on startup!
 
+### Adding a New Queue & Job (Worker)
+If you need to process tasks offloaded by BullMQ (e.g., sending push notifications, emails), use the worker service:
+1. To create a new queue, run `npm run create:queue <queue-name>` from the root (e.g., `npm run create:queue email`). This scaffolds the queue, typed interfaces, and the worker.
+2. To add a job to that queue, run `npm run create:queue-job <queue-name> <job-name>` (e.g., `npm run create:queue-job email send-welcome`).
+3. This generates an isolated, fully typed job file inside the queue's `jobs/` directory. The queue's worker will dynamically auto-discover it!
+*Note: The worker service enforces strict typing. The `any` type is completely prohibited.*
+
 ### Adding a New Service
 If you are tasked with adding a new microservice:
 1. Create a new folder at the root (e.g., `./notifications`).
@@ -156,8 +164,26 @@ We strictly adhere to the [Conventional Commits](https://www.conventionalcommits
 
 **Examples:**
 - `feat(scheduler): add email notification job`
-- `fix(auth): resolve token expiration issue`
+- `fix(worker): resolve redis connection drop`
 - `chore(deps): update prisma to version 6`
-- `docs(readme): add instructions for new service`
 
 Always use the imperative mood in your commit message descriptions (e.g., "change message" instead of "changed message").
+
+---
+
+## 7. Troubleshooting & Common Friction Points
+
+New to the project? Here are the most common issues you might run into and how to solve them in seconds:
+
+### "PrismaClient did not initialize yet" Crash Loop
+**Symptom:** When you run `docker compose up -d --build`, you check the logs (`docker compose logs -f worker`) and see nodemon crashing with `Error: @prisma/client did not initialize yet`.
+**Cause:** The containers boot up instantly, but the Prisma binary hasn't been generated inside them yet.
+**Fix:** Run `npm run prisma:sync`. Once that finishes, simply restart the containers (`docker compose restart`) or save a file to trigger nodemon to reload. It will boot perfectly!
+
+### ESLint / Prettier failing on commit
+**Symptom:** You try to `git commit` and Husky blocks it due to linting errors.
+**Fix:** Run `npm run format` and `npm run lint` in the respective service directories (e.g., `cd worker && npm run format`). Note that we enforce strict typing (no `any` allowed!).
+
+### Ports already in use
+**Symptom:** Docker fails to bind to ports `5440` (Postgres), `6382` (Redis), or `8083` (Redis UI).
+**Fix:** Ensure you don't have local instances of Postgres or Redis running on your host machine occupying those specific mapping ports. If necessary, stop them or change the host mappings in `docker-compose.yaml` (do NOT change the internal container ports).

@@ -30,6 +30,7 @@ If you are a new developer setting up the project for the first time, please ref
 
 ## 🛠 Useful Scripts
 
+### Database & Prisma
 We have custom root-level scripts to seamlessly manage our Prisma schema across Docker containers:
 
 - `npm run prisma:migrate`: Connects to the local database container and applies any schema changes.
@@ -37,6 +38,13 @@ We have custom root-level scripts to seamlessly manage our Prisma schema across 
 - `npm run prisma:sync`: Execs into the running Docker containers and generates the Alpine-compatible Prisma client for each microservice.
 
 > **Note:** Whenever you change `prisma/schema.prisma`, always run `npm run prisma:migrate` followed by `npm run prisma:sync`!
+
+### Code Generators
+We utilize automated generation scripts to eliminate boilerplate and enforce strict typing:
+
+- `npm run create:job <job_name>`: Scaffolds a new scheduled cron job in the `scheduler` service.
+- `npm run create:queue <queue_name>`: Scaffolds a complete dynamic queue module inside the `worker` service.
+- `npm run create:queue-job <queue_name> <job_name>`: Generates a perfectly typed job handler for an existing queue in the `worker` service.
 
 ## 📦 Services Overview
 

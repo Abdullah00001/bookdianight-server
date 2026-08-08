@@ -15,6 +15,10 @@ export type TEnv = {
   FIREBASE_CLIENT_X509_CERT_URL: string;
   FIREBASE_UNIVERSE_DOMAIN: string;
   FIREBASE_CLIENT_EMAIL: string;
+  SMTP_HOST: string;
+  SMTP_PORT: number;
+  SMTP_USER: string;
+  SMTP_PASS: string;
 };
 
 export type TMailOption = {

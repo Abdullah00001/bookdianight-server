@@ -10,8 +10,8 @@ const prisma = new PrismaClient({
   ],
 });
 
-prisma.$on('error', (e: any) => logger.error(`[Prisma] ${e.message}`));
-prisma.$on('warn', (e: any) => logger.warn(`[Prisma] ${e.message}`));
+prisma.$on('error', (e: Error) => logger.error(`[Prisma] ${e.message}`));
+prisma.$on('warn', (e: Error) => logger.warn(`[Prisma] ${e.message}`));
 
 export const connectDatabase = async (): Promise<void> => {
   await prisma.$connect();

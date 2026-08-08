@@ -38,11 +38,45 @@ npm run lint
 - `format`: formats the source code.
 - `lint`: checks for lint issues.
 
-## Development Notes
-
 - The service is meant to stay running continuously to process incoming queues.
 - It depends on **Redis** for the `BullMQ` queues and **PostgreSQL** for runtime state and record updates.
 - It utilizes `dumb-init` in Docker to ensure graceful shutdown signals (SIGINT/SIGTERM) are properly caught so that active jobs aren't corrupted mid-process.
+- **Strict Typing:** We enforce explicit typing across this microservice. `any` types are strictly forbidden. All BullMQ jobs must utilize `IJobHandler<T>` with an explicit data interface.
+
+## Dynamic Queue Architecture
+
+This service uses an automated discovery system. At startup, the root `worker/src/index.ts` automatically discovers, imports, and launches all worker modules present in `worker/src/app/queues/`. You do not need to manually register workers in a giant array or write massive switch-case statements for job handling. 
+
+### Adding a New Queue
+
+To scaffold a completely typed, robust queue, run from the **root of the project**:
+
+```bash
+npm run create:queue <queue_name>
+```
+
+This will automatically create a folder in `worker/src/app/queues/<queue_name>` containing:
+- The BullMQ queue instance (`.queue.ts`).
+- The BullMQ worker wrapper with dynamic job discovery (`.workers.ts`).
+- A dedicated types file for your data payload interfaces (`.types.ts`).
+- An initial example job.
+
+### Adding a Job to a Queue
+
+Instead of monolithic switch statements, every job belongs in its own file under the target queue's `jobs/` directory.
+
+To auto-generate a properly typed job, run from the **root of the project**:
+
+```bash
+npm run create:queue-job <queue_name> <job_name>
+```
+
+Example:
+```bash
+npm run create:queue-job email send-welcome
+```
+
+This generates `send-welcome.job.ts` and automatically enforces the explicit payload type definition. The queue's worker will automatically discover this job at boot time based on its `name` property!
 
 ## Useful Commands
 

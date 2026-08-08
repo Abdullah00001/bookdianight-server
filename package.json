@@ -11,7 +11,9 @@
     "prisma:generate": "bash scripts/prisma-generate.sh",
     "prisma:sync": "bash scripts/prisma-sync.sh",
     "prepare": "husky",
-    "create:job": "bash scheduler/scripts/create-job.sh"
+    "create:job": "bash scheduler/scripts/create-job.sh",
+    "create:queue": "bash worker/scripts/create-queue.sh",
+    "create:queue-job": "bash worker/scripts/create-queue-job.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

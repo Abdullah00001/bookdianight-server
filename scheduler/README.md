@@ -22,6 +22,7 @@ From this folder, you can run:
 
 ```bash
 npm run build
+npm run test
 npm run start
 npm run dev
 npm run format
@@ -30,11 +31,24 @@ npm run lint
 
 ### Script details
 
-- `build`: creates a production build
-- `start`: runs the compiled scheduler service
-- `dev`: starts the service in development mode with nodemon
-- `format`: formats the source code
-- `lint`: checks for lint issues
+- `build`: creates a production build. *Note: strictly enforces linting and testing via `scripts/build.sh` before compiling.*
+- `test`: placeholder for testing.
+- `start`: runs the compiled scheduler service.
+- `dev`: starts the service in development mode with nodemon.
+- `format`: formats the source code.
+- `lint`: checks for lint issues.
+
+## Adding New Jobs
+
+The scheduler uses a **dynamic registry** for node-cron jobs. You do not need to manually import or register new jobs. 
+
+To create a new background job, run the following command from the **project root**:
+
+```bash
+npm run create:job my-new-job
+```
+
+This will automatically generate a fully-typed boilerplate module in `src/app/jobs/my-new-job/` containing `.types.ts` and `.tasks.ts`. The scheduler will automatically discover and execute it based on the schedule provided.
 
 ## Development Notes
 
@@ -45,7 +59,7 @@ npm run lint
 ## Useful Commands
 
 ```bash
-docker compose logs -f corn
-docker compose restart corn
-docker compose exec corn sh
+docker compose logs -f scheduler
+docker compose restart scheduler
+docker compose exec scheduler sh
 ```

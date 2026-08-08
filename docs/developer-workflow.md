@@ -93,6 +93,12 @@ Once the project is running and the database is synced, you are ready to develop
   ```
 - **Redis UI:** We have included a Redis UI in the docker-compose stack. You can access it in your browser at `http://localhost:8083` (Credentials: admin / admin).
 
+### Adding a New Background Job (Scheduler)
+If you need to add a new scheduled task to the scheduler service:
+1. Run `npm run create:job <job-name>` from the root (e.g., `npm run create:job generate-reports`).
+2. This will automatically generate a correctly-typed boilerplate in `scheduler/src/app/jobs/<job-name>/`.
+3. Add your logic to the `.tasks.ts` file. The scheduler will automatically discover and register your job on startup!
+
 ### Adding a New Service
 If you are tasked with adding a new microservice:
 1. Create a new folder at the root (e.g., `./notifications`).
@@ -103,7 +109,22 @@ If you are tasked with adding a new microservice:
 
 ---
 
-## 5. Git Workflow & Commits
+## 5. Code Quality & CI Pipeline
+
+To ensure the codebase remains clean and stable, we enforce strict code quality checks:
+
+### Local Tooling
+- **ESLint & Prettier:** The project is configured with strict linting (`eslint.config.mjs`) and formatting (`.prettierrc`) at the root.
+- **Husky & Lint-Staged:** Whenever you attempt to `git commit`, Husky intercepts it and runs ESLint and Prettier *only on your staged files*. If there are syntax errors or linting violations, the commit will be blocked.
+
+### Continuous Integration (CI)
+We have a two-step GitHub Actions pipeline:
+1. **CI Pipeline (`ci.yaml`):** Runs automatically on every push or PR to `main`. It installs dependencies, lints the code, runs tests, and compiles the TypeScript using the strict `scripts/build.sh` script.
+2. **Delivery Pipeline (`deploy.yaml`):** Runs *only* when a new Git tag (e.g., `v1.0.0`) is published. It builds the Docker images and pushes them to Docker Hub.
+
+---
+
+## 6. Git Workflow & Commits
 
 To maintain a clean and understandable history, this repository follows strict standard practices for branching and committing.
 

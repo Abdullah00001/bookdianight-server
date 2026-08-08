@@ -52,7 +52,7 @@ We run all services, including our Postgres database and Redis, via Docker Compo
    ```bash
    docker compose ps
    ```
-   *Ensure that `bookdianight-postgres`, `bookdianight-redis`, and `bookdianight-scheduler` are marked as healthy/running.*
+   *Ensure that `bookdianight-postgres`, `bookdianight-redis`, `bookdianight-scheduler`, and `bookdianight-worker` are marked as healthy/running.*
 
 ---
 
@@ -89,10 +89,11 @@ npm run prisma:sync
 
 Once the project is running and the database is synced, you are ready to develop!
 
-- **Hot Reloading:** The services (like `scheduler`) are configured with `nodemon` and `tsx`. Changes made to `scheduler/src/**/*.ts` will automatically trigger a reload inside the Docker container.
+- **Hot Reloading:** The services (like `scheduler` and `worker`) are configured with `nodemon` and `tsx`. Changes made to `scheduler/src/**/*.ts` or `worker/src/**/*.ts` will automatically trigger a reload inside the Docker container.
 - **Viewing Logs:** To watch the live logs for a specific service:
   ```bash
   docker compose logs -f scheduler
+  docker compose logs -f worker
   ```
 - **Redis UI:** We have included a Redis UI in the docker-compose stack. You can access it in your browser at `http://localhost:8083` (Credentials: admin / admin).
 

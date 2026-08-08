@@ -41,4 +41,5 @@ We have custom root-level scripts to seamlessly manage our Prisma schema across 
 ## 📦 Services Overview
 
 - **`scheduler`**: A Node.js background service responsible for executing cron jobs, delayed tasks, and polling via `node-cron` and `BullMQ`.
+- **`worker`**: A Node.js service dedicated to processing background jobs from `BullMQ`, executing heavy computations, sending Firebase push notifications, and performing email tasks.
 - *(Add new services here as the project grows!)*

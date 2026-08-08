@@ -6,7 +6,8 @@ echo "Syncing generated Prisma client to running Docker services..."
 echo "Syncing bookdianight-scheduler..."
 docker exec bookdianight-scheduler npx prisma generate
 
-# When you add more services, append them here. Example:
-# docker exec bookdianight-server npx prisma generate
+# Sync worker container
+echo "Syncing bookdianight-worker..."
+docker exec bookdianight-worker npx prisma generate
 
 echo "Prisma sync complete!"

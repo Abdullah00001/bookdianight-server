@@ -65,7 +65,20 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
-
+  worker:
+    image: ${DOCKER_USERNAME}/bookdianight-worker:latest
+    container_name: bookdianight-worker
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
+    networks:
+      - bookdianight-network
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 networks:
   bookdianight-network:
     driver: bridge

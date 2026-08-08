@@ -4,6 +4,9 @@ Welcome to the **BookdiaNight Server** project! This repository contains the bac
 
 It is designed using a **multi-service architecture** powered by Docker, sharing a central PostgreSQL database and a Redis instance for caching and job queues.
 
+> [!WARNING]
+> **This is a highly Docker-centric project.**
+> Do not attempt to run this project or its services directly on your local host using local dependencies. You must **always** use Docker Compose to run this project. Please strictly follow the instructions to set up your environment.
 ## 🏗 Architecture & Tech Stack
 
 - **Node.js & TypeScript** (executed via `tsx` for fast development)

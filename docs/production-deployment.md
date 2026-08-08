@@ -2,6 +2,9 @@
 
 This document outlines the entire production infrastructure, CI/CD pipeline, and step-by-step instructions on how to set up the VPS, manage GitHub Secrets, and deploy new releases for the BookdiaNight server architecture.
 
+> [!WARNING]
+> **This is a highly Docker-heavy project.**
+> Do not attempt to run this project or install local service dependencies on your host machine to run services natively. The environment is strictly containerized. Always follow the instructions below and run the project using Docker Compose.
 ## 1. Architecture Overview
 We use an **Image-Centric Deployment Strategy**. 
 - The VPS **does not** contain any source code.

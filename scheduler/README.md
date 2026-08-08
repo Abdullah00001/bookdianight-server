@@ -3,11 +3,8 @@
 The `scheduler` service handles scheduled and recurring background tasks.
 
 > [!WARNING]
-> **This project is strictly Docker-centric.**
-> Run the scheduler only through Docker Compose.
-> Do not start Redis, MongoDB, or the scheduler process directly on the host.
-
-> Docker-first note: this service should be started through the root Docker Compose setup so it can use the shared Redis and MongoDB containers correctly.
+> **This is a highly Docker-heavy project.**
+> Do not attempt to run this project or install local service dependencies on your host machine to run services natively. The environment is strictly containerized. Always follow the instructions below and run the project using Docker Compose.
 
 ## Responsibilities
 

@@ -6,6 +6,9 @@ Welcome to the BookdiaNight Server project! This document outlines how to get up
 
 This project is a multi-service Node.js architecture with a single shared database. Services (like `scheduler`) run in their own Docker containers. We use **Prisma** for our ORM. All shared definitions (like the Prisma schema) and orchestration scripts live at the **root** of the project.
 
+> [!WARNING]
+> **This is a highly Docker-heavy project.**
+> Do not attempt to run this project or install local service dependencies on your host machine to run services natively. The environment is strictly containerized. Always follow the instructions below and run the project using Docker Compose.
 ---
 
 ## 1. Initial Setup (After Cloning)

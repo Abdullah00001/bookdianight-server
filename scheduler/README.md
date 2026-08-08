@@ -11,7 +11,7 @@ The `scheduler` service handles scheduled and recurring background tasks.
 - scheduler startup and lifecycle management
 - registration of recurring jobs
 - periodic maintenance and scheduled workflows
-- Redis and MongoDB access for job coordination
+- Redis and PostgreSQL access for job coordination
 
 ## Scripts
 
@@ -50,7 +50,7 @@ This will automatically generate a fully-typed boilerplate module in `src/app/jo
 ## Development Notes
 
 - The service is meant to stay running continuously when scheduled workflows are needed.
-- It depends on Redis and MongoDB for runtime state and coordination.
+- It depends on Redis and PostgreSQL for runtime state and coordination.
 - It mirrors the worker startup pattern so that background jobs can be managed consistently.
 
 ## Useful Commands

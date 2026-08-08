@@ -10,7 +10,8 @@
     "prisma:migrate": "bash scripts/prisma-migrate.sh",
     "prisma:generate": "bash scripts/prisma-generate.sh",
     "prisma:sync": "bash scripts/prisma-sync.sh",
-    "prepare": "husky"
+    "prepare": "husky",
+    "create:job": "bash scheduler/scripts/create-job.sh"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

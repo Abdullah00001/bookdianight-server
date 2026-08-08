@@ -17,6 +17,7 @@ export default tseslint.config(
       parser: tseslint.parser,
       parserOptions: {
         project: ['./scheduler/tsconfig.json'],
+        typescript: require('@typescript/typescript6'),
         sourceType: 'module',
         ecmaVersion: 2021,
       },

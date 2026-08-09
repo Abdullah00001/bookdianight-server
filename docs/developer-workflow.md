@@ -111,6 +111,12 @@ If you need to process tasks offloaded by BullMQ (e.g., sending push notificatio
 3. This generates an isolated, fully typed job file inside the queue's `jobs/` directory. The queue's worker will dynamically auto-discover it!
 *Note: The worker service enforces strict typing. The `any` type is completely prohibited.*
 
+### Adding a New API Module & Endpoint (Server)
+If you need to build new backend API features, use our automated code generators to eliminate boilerplate and instantly register your routes:
+1. To create a completely new API version, run `npm run create:version` (e.g. `v2`). This automatically creates the routing structure and wires it into the main Express application.
+2. To create a new module, run `npm run create:module <module-name>` (e.g. `user`). This scaffolds all 8 module files (controllers, services, middlewares, routes, etc.) and auto-registers the module into your selected API version.
+3. To add a new route endpoint inside your module, run `npm run create:endpoint`. It interactively prompts you for the HTTP method, path, and status code, and then instantly generates a perfectly-typed `asyncHandler` Controller, a paired Service, and auto-wires the Express router!
+
 ### Adding a New Service
 If you are tasked with adding a new microservice:
 1. Create a new folder at the root (e.g., `./notifications`).

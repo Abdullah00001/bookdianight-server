@@ -79,6 +79,22 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+  server:
+    image: ${DOCKER_USERNAME}/bookdianight-server:latest
+    container_name: bookdianight-server
+    env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
+    ports:
+      - 8080:8080
+    networks:
+      - bookdianight-network
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
 networks:
   bookdianight-network:
     driver: bridge

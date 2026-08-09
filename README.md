@@ -42,9 +42,17 @@ We have custom root-level scripts to seamlessly manage our Prisma schema across 
 ### Code Generators
 We utilize automated generation scripts to eliminate boilerplate and enforce strict typing:
 
+**Background Workers & Schedulers:**
 - `npm run create:job <job_name>`: Scaffolds a new scheduled cron job in the `scheduler` service.
 - `npm run create:queue <queue_name>`: Scaffolds a complete dynamic queue module inside the `worker` service.
 - `npm run create:queue-job <queue_name> <job_name>`: Generates a perfectly typed job handler for an existing queue in the `worker` service.
+
+**Server API Automation:**
+- `npm run create:module <module_name>`: Scaffolds a full 8-file API module in `server` and interactively auto-registers its routes into your desired API version.
+- `npm run create:endpoint`: Interactively generates a complete controller, service, and auto-registers the route on a specific module.
+- `npm run create:version <version_name>`: Initializes a completely new API version (e.g. `v2`), mapping it globally across your `const.ts`, `app.ts`, and `routes/v2/index.ts`.
+- `npm run add:route <module_names>`: Batch registers existing API modules into a specific API version interactively.
+- `npm run remove:route <module_names>`: Batch unregisters existing API modules from a specific API version.
 
 ## 📦 Services Overview
 

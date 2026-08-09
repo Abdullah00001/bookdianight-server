@@ -13,7 +13,12 @@
     "prepare": "husky",
     "create:job": "bash scheduler/scripts/create-job.sh",
     "create:queue": "bash worker/scripts/create-queue.sh",
-    "create:queue-job": "bash worker/scripts/create-queue-job.sh"
+    "create:queue-job": "bash worker/scripts/create-queue-job.sh",
+    "create:module": "node server/scripts/create-module.js",
+    "create:version": "node server/scripts/create-version.js",
+    "add:route": "node server/scripts/add-route.js",
+    "remove:route": "node server/scripts/remove-route.js",
+    "create:endpoint": "node server/scripts/create-endpoint.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",

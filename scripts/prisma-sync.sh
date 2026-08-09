@@ -10,4 +10,8 @@ docker exec bookdianight-scheduler npx prisma generate
 echo "Syncing bookdianight-worker..."
 docker exec bookdianight-worker npx prisma generate
 
+# Sync server container
+echo "Syncing bookdianight-server..."
+docker exec bookdianight-server npx prisma generate
+
 echo "Prisma sync complete!"

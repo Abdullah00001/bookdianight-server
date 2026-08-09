@@ -48,6 +48,6 @@ We utilize automated generation scripts to eliminate boilerplate and enforce str
 
 ## 📦 Services Overview
 
+- **`server`**: A Node.js Express API service serving as the primary backend for the BookdiaNight application.
 - **`scheduler`**: A Node.js background service responsible for executing cron jobs, delayed tasks, and polling via `node-cron` and `BullMQ`.
 - **`worker`**: A Node.js service dedicated to processing background jobs from `BullMQ`, executing heavy computations, sending Firebase push notifications, and performing email tasks.
-- *(Add new services here as the project grows!)*

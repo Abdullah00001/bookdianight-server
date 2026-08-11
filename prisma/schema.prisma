@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -46,7 +43,7 @@ enum NotificationType {
   NEW_CLUB
   PAYMENT_SUCCESS
   BOOKING_CONFIRMED
-  PAYMENT_RECEIEVED
+  PAYMENT_RECEIVED
 }
 
 enum Gender {
@@ -56,7 +53,7 @@ enum Gender {
 }
 
 enum EventStatus {
-  UPCOMMING
+  UPCOMING
   ONGOING
   COMPLETED
   CANCELED
@@ -68,177 +65,205 @@ enum LegalContentType {
   PRIVACY_AND_POLICY
 }
 
-model User{
-  id             String       @id @default(uuid())
-  name           String
-  email          String       @unique
-  phoneNumber    String       @unique
-  accountStatus  AccountStatus @default(ACTIVE)
-  accountRole    AccountRole  @default(USER)
-  isVerified     Boolean      @default(false)
-  password       String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+model User {
+  id            String        @id @default(uuid())
+  name          String
+  email         String        @unique
+  phoneNumber   String        @unique
+  accountStatus AccountStatus @default(ACTIVE)
+  accountRole   AccountRole   @default(USER)
+  isVerified    Boolean       @default(false)
+  password      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   // Back Relations
-  profile        Profile
-  device         Device[]
-  notification   Notification[]
-  club           Club[]
-  clubReview     ClubReview[]
-  event          Event[]
-  wishlists      Wishlist[]
+  profile      Profile?
+  devices      Device[]
+  notifications Notification[]
+  clubs        Club[]
+  clubReviews  ClubReview[]
+  events       Event[]
+  wishlists    Wishlist[]
+
+  @@index([accountRole])
+  @@index([accountStatus])
 }
 
 model Profile {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  location       String?
-  dateOfBirth    DateTime?
-  gender         Gender?
-  profileAvatar  String?
-  profileCover   String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location      String?
+  dateOfBirth   DateTime?
+  gender        Gender?
+  profileAvatar String?
+  profileCover  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Device {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  fcmToken       String?      @unique
-  platform       Platform
-  authProvider   AuthProvider
-  isActive       Boolean      @default(true)
-  isLogout       Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id           String       @id @default(uuid())
+  userId       String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fcmToken     String?      @unique
+  platform     Platform
+  authProvider AuthProvider
+  isActive     Boolean      @default(true)
+  isLogout     Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([userId])
 }
 
 model Notification {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  notificationType NotificationType
-  notificationTitle          String
-  notificationDescription        String
-  isRead         Boolean      @default(false)
-  metaData       Json?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                     String           @id @default(uuid())
+  userId                 String
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationType       NotificationType
+  notificationTitle      String
+  notificationDescription String
+  isRead                 Boolean          @default(false)
+  metaData               Json?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  @@index([userId, isRead])
+  @@index([createdAt])
 }
 
 model LegalContent {
-  id             String       @id @default(uuid())
+  id               String           @id @default(uuid())
   legalContentType LegalContentType
-  content        String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  content          String
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([legalContentType])
 }
 
 model ApplicationCharge {
-  id             String       @id @default(uuid())
-  serviceType    Service
-  chargePercentange         Float
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                String   @id @default(uuid())
+  serviceType       Service
+  chargePercentage  Float
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([serviceType])
 }
 
 model Club {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  name           String
-  description    String
-  thumbnail      String
-  images         String[]
-  dressCode      String
-  reoccure       Boolean      @default(false)
-  lat            Float
-  lng            Float
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String
+  thumbnail   String
+  images      String[]
+  dressCode   String
+  isRecurring Boolean  @default(false)
+  lat         Float
+  lng         Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Back Relations
-  reviews         ClubReview[]
+  reviews          ClubReview[]
   clubOpeningHours ClubOpeningHour[]
   clubPackages     ClubPackage[]
   wishlists        Wishlist[]
+
+  @@index([userId])
+  @@index([lat, lng])
 }
 
 model ClubReview {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  clubId         String       @unique
-  club           Club         @relation(fields: [clubId], references: [id])
-  rating         Float
-  review         String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  rating    Float
+  review    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clubId]) // one review per user per club
+  @@index([clubId])
 }
 
 model ClubOpeningHour {
-  id             String       @id @default(uuid())
-  clubId         String       @unique
-  club           Club         @relation(fields: [clubId], references: [id])
-  dayOfWeek      Int          // 0-6, where 0 is Sunday and 6 is Saturday
-  openTime       String       // "HH:mm" format
-  closeTime      String       // "HH:mm" format
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id        String   @id @default(uuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0-6, where 0 is Sunday and 6 is Saturday
+  openTime  String   // "HH:mm" format
+  closeTime String   // "HH:mm" format
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clubId, dayOfWeek]) // one row per club per day
 }
 
 model ClubPackage {
-  id             String       @id @default(uuid())
-  clubId         String       @unique
-  club           Club         @relation(fields: [clubId], references: [id])
-  name           String
-  capacity       Int
-  price          Float
-  currency       String
-  features       String[]
-  isVip          Boolean      @default(false)
-  isActive       Boolean      @default(true)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id        String   @id @default(uuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  name      String
+  capacity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  currency  String
+  features  String[]
+  isVip     Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clubId])
 }
 
-
 model Event {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  eventName      String
+  id               String      @id @default(uuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventName        String
   eventDescription String
-  thumbnail      String
-  images         String[]
-  eventStatus    EventStatus  @default(UPCOMMING)
-  lat            Float
-  lng            Float
-  startAt        DateTime
-  endAt          DateTime
-  dressCode      String
-  eventPrice     Float
-  currency       String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  thumbnail        String
+  images           String[]
+  eventStatus      EventStatus @default(UPCOMING)
+  lat              Float
+  lng              Float
+  startAt          DateTime
+  endAt            DateTime
+  dressCode        String
+  eventPrice       Decimal     @db.Decimal(10, 2)
+  currency         String
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   // Back Relations
-  wishlists      Wishlist[]
+  wishlists Wishlist[]
+
+  @@index([userId])
+  @@index([eventStatus, startAt])
+  @@index([lat, lng])
 }
 
 model Wishlist {
-  id             String       @id @default(uuid())
-  userId         String       @unique
-  user           User         @relation(fields: [userId], references: [id])
-  eventId        String?       @unique
-  event          Event        @relation(fields: [eventId], references: [id])
-  clubId         String?       @unique
-  club           Club         @relation(fields: [clubId], references: [id])
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  clubId    String?
+  club      Club?    @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, eventId])
+  @@unique([userId, clubId])
   @@index([userId])
   @@index([eventId])
   @@index([clubId])

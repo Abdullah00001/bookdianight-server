@@ -3,11 +3,13 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  extensions = [postgis]
 }
 
 enum AccountStatus {
@@ -124,7 +126,7 @@ model Notification {
   user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   notificationType       NotificationType
   notificationTitle      String
-  notificationDescription String
+  notificationDescription String?
   isRead                 Boolean          @default(false)
   metaData               Json?
   createdAt              DateTime         @default(now())
@@ -159,13 +161,14 @@ model Club {
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
-  description String
+  description String?
   thumbnail   String
   images      String[]
   dressCode   String
   isRecurring Boolean  @default(false)
   lat         Float
   lng         Float
+  geog        Unsupported("geography(Point, 4326)")?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -177,6 +180,7 @@ model Club {
 
   @@index([userId])
   @@index([lat, lng])
+  @@index([geog], type: Gist)
 }
 
 model ClubReview {
@@ -195,33 +199,38 @@ model ClubReview {
 }
 
 model ClubOpeningHour {
-  id        String   @id @default(uuid())
-  clubId    String
-  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  dayOfWeek Int      // 0-6, where 0 is Sunday and 6 is Saturday
-  openTime  String   // "HH:mm" format
-  closeTime String   // "HH:mm" format
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(uuid())
+  clubId         String
+  club           Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  dayOfWeek      Int       // 0-6, where 0 is Sunday and 6 is Saturday
+  isClosed       Boolean   @default(false)
+  openTime       DateTime? @db.Time(0)  // null when isClosed = true
+  closeTime      DateTime? @db.Time(0)  // null when isClosed = true
+  closesNextDay  Boolean   @default(false) // true when closeTime is past midnight (e.g. open 22:00, close 02:00)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([clubId, dayOfWeek]) // one row per club per day
 }
 
 model ClubPackage {
-  id        String   @id @default(uuid())
-  clubId    String
-  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  name      String
-  capacity  Int
-  price     Decimal  @db.Decimal(10, 2)
-  currency  String
-  features  String[]
-  isVip     Boolean  @default(false)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  clubId      String
+  club        Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  capacity    Int
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String
+  features    String[]
+  sortOrder   Int      @default(0) // controls display order within a club, lower shows first
+  isVip       Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@index([clubId])
+  @@unique([clubId, name])            // no duplicate package names per club
+  @@index([clubId, isActive, sortOrder])
 }
 
 model Event {
@@ -229,12 +238,13 @@ model Event {
   userId           String
   user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   eventName        String
-  eventDescription String
+  eventDescription String?
   thumbnail        String
   images           String[]
   eventStatus      EventStatus @default(UPCOMING)
   lat              Float
   lng              Float
+  geog             Unsupported("geography(Point, 4326)")?
   startAt          DateTime
   endAt            DateTime
   dressCode        String
@@ -249,6 +259,7 @@ model Event {
   @@index([userId])
   @@index([eventStatus, startAt])
   @@index([lat, lng])
+  @@index([geog], type: Gist)
 }
 
 model Wishlist {

@@ -21,15 +21,225 @@ enum AccountStatus {
 
 enum AccountRole {
   USER
-  ADMIN 
+  ADMIN
+  CLUB_OWNER
+}
+
+enum Platform {
+  GOOGLE
+  APPLE
+}
+
+enum Service {
+  EVENT
+  CLUB
+}
+
+enum AuthProvider {
+  MANUAL
+  GOOGLE
+  APPLE
+}
+
+enum NotificationType {
+  NEW_EVENT
+  NEW_CLUB
+  PAYMENT_SUCCESS
+  BOOKING_CONFIRMED
+  PAYMENT_RECEIEVED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EventStatus {
+  UPCOMMING
+  ONGOING
+  COMPLETED
+  CANCELED
+}
+
+enum LegalContentType {
+  ABOUT_US
+  TERMS_AND_CONDITION
+  PRIVACY_AND_POLICY
 }
 
 model User{
   id             String       @id @default(uuid())
+  name           String
   email          String       @unique
   phoneNumber    String       @unique
   accountStatus  AccountStatus @default(ACTIVE)
   accountRole    AccountRole  @default(USER)
+  isVerified     Boolean      @default(false)
+  password       String?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+
+  // Back Relations
+  profile        Profile
+  device         Device[]
+  notification   Notification[]
+  club           Club[]
+  clubReview     ClubReview[]
+  event          Event[]
+  wishlists      Wishlist[]
+}
+
+model Profile {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  location       String?
+  dateOfBirth    DateTime?
+  gender         Gender?
+  profileAvatar  String?
+  profileCover   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Device {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  fcmToken       String?      @unique
+  platform       Platform
+  authProvider   AuthProvider
+  isActive       Boolean      @default(true)
+  isLogout       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Notification {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  notificationType NotificationType
+  notificationTitle          String
+  notificationDescription        String
+  isRead         Boolean      @default(false)
+  metaData       Json?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model LegalContent {
+  id             String       @id @default(uuid())
+  legalContentType LegalContentType
+  content        String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model ApplicationCharge {
+  id             String       @id @default(uuid())
+  serviceType    Service
+  chargePercentange         Float
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Club {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  name           String
+  description    String
+  thumbnail      String
+  images         String[]
+  dressCode      String
+  reoccure       Boolean      @default(false)
+  lat            Float
+  lng            Float
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Back Relations
+  reviews         ClubReview[]
+  clubOpeningHours ClubOpeningHour[]
+  clubPackages     ClubPackage[]
+  wishlists        Wishlist[]
+}
+
+model ClubReview {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  clubId         String       @unique
+  club           Club         @relation(fields: [clubId], references: [id])
+  rating         Float
+  review         String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model ClubOpeningHour {
+  id             String       @id @default(uuid())
+  clubId         String       @unique
+  club           Club         @relation(fields: [clubId], references: [id])
+  dayOfWeek      Int          // 0-6, where 0 is Sunday and 6 is Saturday
+  openTime       String       // "HH:mm" format
+  closeTime      String       // "HH:mm" format
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model ClubPackage {
+  id             String       @id @default(uuid())
+  clubId         String       @unique
+  club           Club         @relation(fields: [clubId], references: [id])
+  name           String
+  capacity       Int
+  price          Float
+  currency       String
+  features       String[]
+  isVip          Boolean      @default(false)
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+
+model Event {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  eventName      String
+  eventDescription String
+  thumbnail      String
+  images         String[]
+  eventStatus    EventStatus  @default(UPCOMMING)
+  lat            Float
+  lng            Float
+  startAt        DateTime
+  endAt          DateTime
+  dressCode      String
+  eventPrice     Float
+  currency       String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Back Relations
+  wishlists      Wishlist[]
+}
+
+model Wishlist {
+  id             String       @id @default(uuid())
+  userId         String       @unique
+  user           User         @relation(fields: [userId], references: [id])
+  eventId        String?       @unique
+  event          Event        @relation(fields: [eventId], references: [id])
+  clubId         String?       @unique
+  club           Club         @relation(fields: [clubId], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  @@index([userId])
+  @@index([eventId])
+  @@index([clubId])
 }

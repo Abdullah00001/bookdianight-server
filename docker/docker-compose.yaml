@@ -86,7 +86,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
     ports:
-      - 8080:8080
+      - 5000:5000
     networks:
       - bookdianight-network
     depends_on:

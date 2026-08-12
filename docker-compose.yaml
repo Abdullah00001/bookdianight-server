@@ -1,7 +1,7 @@
 services:
   # External Dependency
   postgres:
-    image: postgres:16
+    image: postgis/postgis:16-3.4
     container_name: bookdianight-postgres
     environment:
       POSTGRES_USER: postgres

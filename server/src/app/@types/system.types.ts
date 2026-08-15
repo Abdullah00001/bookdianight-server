@@ -4,7 +4,7 @@ export type TEnv = {
   REDIS_HOST: string;
   REDIS_PASSWORD: string;
   REDIS_PORT: number;
-  PORT:number,
+  PORT: number;
   S3_ACCESS_KEY: string;
   S3_SECRET_KEY: string;
   S3_REGION: string;
@@ -15,4 +15,16 @@ export type TEnv = {
   OTP_HASH_SECRET: string;
 };
 
-
+/**
+ * Options for generating an OTP.
+ */
+export interface OTPOptions {
+  /** Include digits (0-9). */
+  digits: boolean;
+  /** Include lowercase letters (a-z). */
+  lowerCaseAlphabets: boolean;
+  /** Include uppercase letters (A-Z). */
+  upperCaseAlphabets: boolean;
+  /** Include special characters (e.g., !@#$%^&*). */
+  specialChars: boolean;
+}

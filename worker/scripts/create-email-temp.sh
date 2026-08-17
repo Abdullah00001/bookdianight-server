@@ -1,13 +1,15 @@
 #!/bin/bash
 set -e
 
-# Ensure a template name was provided
 if [ -z "$1" ]; then
-  echo "❌ Error: Please provide a template name (e.g., npm run create:emailTemp welcomeEmail)"
-  exit 1
+  read -p "📝 Enter the template name (e.g., welcomeEmail): " TEMP_NAME
+  if [ -z "$TEMP_NAME" ]; then
+    echo "❌ Error: Template name cannot be empty."
+    exit 1
+  fi
+else
+  TEMP_NAME=$1
 fi
-
-TEMP_NAME=$1
 TEMP_DIR="worker/src/app/templates"
 TEMP_FILE="$TEMP_DIR/$TEMP_NAME.template.ts"
 
@@ -22,9 +24,9 @@ fi
 
 # Create the template file
 cat > "$TEMP_FILE" <<EOF
-const $TEMP_NAME = \`\`;
+const ${TEMP_NAME}Template = \`\`;
 
-export default $TEMP_NAME;
+export default ${TEMP_NAME}Template;
 EOF
 
 echo "✅ Successfully created email template '$TEMP_NAME'!"

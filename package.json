@@ -14,6 +14,7 @@
     "create:job": "bash scheduler/scripts/create-job.sh",
     "create:queue": "bash worker/scripts/create-queue.sh",
     "create:queue-job": "bash worker/scripts/create-queue-job.sh",
+    "create:emailTemp": "bash worker/scripts/create-email-temp.sh",
     "create:module": "node server/scripts/create-module.js",
     "create:version": "node server/scripts/create-version.js",
     "add:route": "node server/scripts/add-route.js",

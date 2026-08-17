@@ -9,7 +9,6 @@ export const signupController = asyncHandler(
     const traceId = getTraceId();
     const payload = req.body as TSignupPayload;
     await signupService({ payload });
-
     res.status(201).json({
       success: true,
       message:

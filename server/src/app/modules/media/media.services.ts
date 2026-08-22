@@ -1,17 +1,12 @@
-import { singleUploadToS3 } from '@/app/utils/s3.utils';
+import { singleDeleteToS3, singleUploadToS3 } from '@/app/utils/s3.utils';
+import { extractS3KeyFromUrl } from '@/app/utils/system.utils';
 import { v4 as uuidv4 } from 'uuid';
 
 export const uploadMediaService = async ({
   files,
 }: {
   files: Express.Multer.File[];
-}): Promise<
-  {
-    originalName: string;
-    url: string;
-    key: string;
-  }[]
-> => {
+}): Promise<string[]> => {
   try {
     const uploadPromises = files.map(async (file) => {
       // Generate a unique S3 key
@@ -24,15 +19,25 @@ export const uploadMediaService = async ({
         mimeType: file.mimetype,
       });
 
-      return {
-        originalName: file.originalname,
-        url,
-        key: key,
-      };
+      return url;
     });
 
     const results = await Promise.all(uploadPromises);
     return results;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const removeMediaService = async ({
+  urls,
+}: {
+  urls: string[];
+}): Promise<void> => {
+  try {
+    const keys = urls.map((url) => extractS3KeyFromUrl(url as string));
+    await Promise.all(keys.map((key) => singleDeleteToS3({ key })));
+    return;
   } catch (error) {
     throw error;
   }

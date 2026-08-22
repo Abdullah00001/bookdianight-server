@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import { uploadMediaService } from '@/app/modules/media/media.services';
+import {
+  uploadMediaService,
+  removeMediaService,
+} from '@/app/modules/media/media.services';
+import { TDeleteMedia } from './media.schema';
 
 export const uploadMediaController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -12,6 +16,21 @@ export const uploadMediaController = asyncHandler(
       success: true,
       message: 'Media uploads successful',
       data,
+      traceId,
+    });
+    return;
+  }
+);
+
+export const removeMediaController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const { urls } = req.body as TDeleteMedia;
+    await removeMediaService({ urls });
+
+    res.status(200).json({
+      success: true,
+      message: 'Media items delatation successful!',
       traceId,
     });
     return;

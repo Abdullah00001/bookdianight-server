@@ -1,4 +1,5 @@
 import path from 'path';
+import { AsyncResource } from 'async_hooks';
 
 import { NextFunction, Request, Response } from 'express';
 import multer, { diskStorage, FileFilterCallback, MulterError } from 'multer';
@@ -87,9 +88,9 @@ const attachmentBaseUpload = multer({
   fileFilter: attachmentFileFilter,
 });
 
-// ============================================================================
+// =====================================
 // UPLOAD FIELDS MIDDLEWARE
-// ============================================================================
+// =====================================
 export interface MulterFiles {
   [fieldname: string]: Express.Multer.File[];
 }
@@ -127,6 +128,10 @@ export const uploadFields = (
   requireAtLeastOneFile: boolean = false
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    // Snapshot the current async context (e.g. AsyncLocalStorage-based trace
+    // context) so it survives into multer's internal fs/stream callback.
+    const asyncResource = new AsyncResource('uploadFields');
+
     // Store config for error handler
     req.fieldConfig = fieldsConfig;
     const traceId = getTraceId();
@@ -135,25 +140,29 @@ export const uploadFields = (
       maxCount: field.maxCount,
     }));
 
-    baseUpload.fields(multerFields)(req, res, (err: any) => {
-      if (err) return next(err);
+    baseUpload.fields(multerFields)(
+      req,
+      res,
+      asyncResource.bind((err: any) => {
+        if (err) return next(err);
 
-      const files = req.files as MulterFiles;
-      const hasAnyFile = files && Object.keys(files).length > 0;
+        const files = req.files as MulterFiles;
+        const hasAnyFile = files && Object.keys(files).length > 0;
 
-      // Only enforce "at least one file" if explicitly required
-      if (requireAtLeastOneFile && !hasAnyFile) {
-        return res.status(400).json({
-          success: false,
-          status: 400,
-          message: 'At least one file must be uploaded.',
-          traceId,
-        });
-      }
+        // Only enforce "at least one file" if explicitly required
+        if (requireAtLeastOneFile && !hasAnyFile) {
+          return res.status(400).json({
+            success: false,
+            status: 400,
+            message: 'At least one file must be uploaded.',
+            traceId,
+          });
+        }
 
-      // No files uploaded → text-only request, always fine
-      next();
-    });
+        // No files uploaded → text-only request, always fine
+        next();
+      })
+    );
   };
 };
 
@@ -167,45 +176,57 @@ export const uploadArray = (
   required: boolean = false
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    const asyncResource = new AsyncResource('uploadArray');
+
     req.fileLimit = maxCount;
     req.fieldName = fieldName;
     req.fileRequired = required;
-    baseUpload.array(fieldName, maxCount)(req, res, (err: unknown) => {
-      if (err) return next(err);
+    baseUpload.array(fieldName, maxCount)(
+      req,
+      res,
+      asyncResource.bind((err: unknown) => {
+        if (err) return next(err);
 
-      const files = req.files as Express.Multer.File[] | undefined;
-      const hasFiles = files && files.length > 0;
+        const files = req.files as Express.Multer.File[] | undefined;
+        const hasFiles = files && files.length > 0;
 
-      if (required && !hasFiles) {
-        return next(
-          Object.assign(new Error(`'${fieldName}' file is required.`), {
-            code: 'LIMIT_FILE_REQUIRED',
-            field: fieldName,
-          })
-        );
-      }
-      next();
-    });
+        if (required && !hasFiles) {
+          return next(
+            Object.assign(new Error(`'${fieldName}' file is required.`), {
+              code: 'LIMIT_FILE_REQUIRED',
+              field: fieldName,
+            })
+          );
+        }
+        next();
+      })
+    );
   };
 };
 
 export const uploadSingle = (fieldName: string, required: boolean = false) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    const asyncResource = new AsyncResource('uploadSingle');
+
     req.fileLimit = 1;
     req.fieldName = fieldName;
-    baseUpload.single(fieldName)(req, res, (err: unknown) => {
-      if (err) return next(err);
+    baseUpload.single(fieldName)(
+      req,
+      res,
+      asyncResource.bind((err: unknown) => {
+        if (err) return next(err);
 
-      if (required && !req.file) {
-        return next(
-          Object.assign(new Error(`'${fieldName}' file is required.`), {
-            code: 'LIMIT_FILE_REQUIRED',
-            field: fieldName,
-          })
-        );
-      }
-      next();
-    });
+        if (required && !req.file) {
+          return next(
+            Object.assign(new Error(`'${fieldName}' file is required.`), {
+              code: 'LIMIT_FILE_REQUIRED',
+              field: fieldName,
+            })
+          );
+        }
+        next();
+      })
+    );
   };
 };
 
@@ -214,21 +235,27 @@ export const uploadAttachmentSingle = (
   required: boolean = false
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    const asyncResource = new AsyncResource('uploadAttachmentSingle');
+
     req.fileLimit = 1;
     req.fieldName = fieldName;
-    attachmentBaseUpload.single(fieldName)(req, res, (err: unknown) => {
-      if (err) return next(err);
+    attachmentBaseUpload.single(fieldName)(
+      req,
+      res,
+      asyncResource.bind((err: unknown) => {
+        if (err) return next(err);
 
-      if (required && !req.file) {
-        return next(
-          Object.assign(new Error(`'${fieldName}' attachment is required.`), {
-            code: 'LIMIT_FILE_REQUIRED',
-            field: fieldName,
-          })
-        );
-      }
-      next();
-    });
+        if (required && !req.file) {
+          return next(
+            Object.assign(new Error(`'${fieldName}' attachment is required.`), {
+              code: 'LIMIT_FILE_REQUIRED',
+              field: fieldName,
+            })
+          );
+        }
+        next();
+      })
+    );
   };
 };
 
@@ -238,13 +265,15 @@ export const uploadAttachmentArray = (
   required: boolean = false
 ) => {
   return (req: Request, res: Response, next: NextFunction) => {
+    const asyncResource = new AsyncResource('uploadAttachmentArray');
+
     req.fileLimit = maxCount;
     req.fieldName = fieldName;
     req.fileRequired = required;
     attachmentBaseUpload.array(fieldName, maxCount)(
       req,
       res,
-      (err: unknown) => {
+      asyncResource.bind((err: unknown) => {
         if (err) return next(err);
 
         const files = req.files as Express.Multer.File[] | undefined;
@@ -262,7 +291,7 @@ export const uploadAttachmentArray = (
           );
         }
         next();
-      }
+      })
     );
   };
 };

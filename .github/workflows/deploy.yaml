@@ -21,8 +21,23 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
+      - name: Extract metadata (tags, labels) for Server
+        id: meta-server
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/bookdianight-server
+
+      - name: Build and push Server Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./server/Dockerfile
+          push: true
+          tags: ${{ steps.meta-server.outputs.tags }},${{ secrets.DOCKER_USERNAME }}/bookdianight-server:latest
+          labels: ${{ steps.meta-server.outputs.labels }}
+
+      - name: Extract metadata (tags, labels) for Scheduler
+        id: meta-scheduler
         uses: docker/metadata-action@v5
         with:
           images: ${{ secrets.DOCKER_USERNAME }}/bookdianight-scheduler
@@ -33,8 +48,23 @@ jobs:
           context: .
           file: ./scheduler/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }},${{ secrets.DOCKER_USERNAME }}/bookdianight-scheduler:latest
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ steps.meta-scheduler.outputs.tags }},${{ secrets.DOCKER_USERNAME }}/bookdianight-scheduler:latest
+          labels: ${{ steps.meta-scheduler.outputs.labels }}
+
+      - name: Extract metadata (tags, labels) for Worker
+        id: meta-worker
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKER_USERNAME }}/bookdianight-worker
+
+      - name: Build and push Worker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./worker/Dockerfile
+          push: true
+          tags: ${{ steps.meta-worker.outputs.tags }},${{ secrets.DOCKER_USERNAME }}/bookdianight-worker:latest
+          labels: ${{ steps.meta-worker.outputs.labels }}
 
   deploy-to-vps:
     needs: build-and-push

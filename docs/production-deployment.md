@@ -88,11 +88,11 @@ To deploy a new version to production, simply create a new Git tag that starts w
 
 ### What happens in the background?
 1. **GitHub Action Triggers:** The workflow detects the new `v*` tag.
-2. **Build Stage:** It checks out the code, logs into Docker Hub, and uses `scheduler/Dockerfile` to build a production-ready image.
-3. **Push Stage:** The image is pushed to Docker Hub as `<username>/bookdianight-scheduler:latest` and `<username>/bookdianight-scheduler:v1.0.3`.
+2. **Build Stage:** It checks out the code, logs into Docker Hub, and builds production-ready images for the `server`, `scheduler`, and `worker` components.
+3. **Push Stage:** The images are pushed to Docker Hub as `<username>/bookdianight-{service}:latest` and `<username>/bookdianight-{service}:v*`.
 4. **Deploy Stage:** 
    - GitHub Actions connects to the VPS via SSH.
-   - It runs `docker compose pull` to grab the fresh images.
+   - It runs `docker compose pull` to grab the fresh images for all services.
    - It runs `docker compose up -d` to restart the stack.
    - The `migrator` service starts first, running Prisma migrations.
-   - Once migrations succeed, the actual services (like `scheduler`) start using the newly migrated schema.
+   - Once migrations succeed, the actual services (`server`, `worker`, `scheduler`) start using the newly migrated schema.

@@ -7,7 +7,7 @@
   "type": "commonjs",
   "main": "./dist/server.js",
   "scripts": {
-    "build": "bash scripts/build.sh",
+    "build": "sh scripts/build.sh",
     "test": "echo \"No tests written yet\" && exit 0",
     "dev": "npx prisma generate && nodemon",
     "start": "node ./dist/server.js",

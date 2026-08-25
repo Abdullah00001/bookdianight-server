@@ -4,7 +4,7 @@
   "description": "The Scheduler Service of the application",
   "main": "./dist/index.js",
   "scripts": {
-    "build": "bash scripts/build.sh",
+    "build": "sh scripts/build.sh",
     "test": "echo \"No tests written yet\" && exit 0",
     "start": "node ./dist/index.js",
     "dev": "npx prisma generate && nodemon",

@@ -33,13 +33,13 @@ Once you have cloned the repository to your local machine, follow these steps to
    cp .env.example .env
    ```
    > [!IMPORTANT]
-   > **Third-Party Credentials:** The default values in `.env.example` are pre-configured to work perfectly with the local Docker containers (like Postgres and Redis). However, you **must** update the `SMTP_*` and `FIREBASE_*` variables with valid credentials or placeholders, otherwise the `worker` service will throw an error and crash on startup.
+   > **Third-Party Credentials:** The default values in `.env.example` are pre-configured to work perfectly with the local Docker containers (like PostGIS and Redis). However, you **must** update the `SMTP_*` and `FIREBASE_*` variables with valid credentials or placeholders, otherwise the `worker` service will throw an error and crash on startup.
 
 ---
 
 ## 2. Starting the Project
 
-We run all services, including our Postgres database and Redis, via Docker Compose.
+We run all services, including our PostGIS database and Redis, via Docker Compose.
 
 1. **Build and Start the Stack**
    From the root directory, run:
@@ -68,7 +68,7 @@ From the root directory, run:
 ```bash
 npm run prisma:migrate
 ```
-*What this does:* Connects to the local Postgres container (via port `5440`) and runs `npx prisma migrate dev`. It ensures your database schema is up-to-date and generates the Prisma client locally at the root.
+*What this does:* Connects to the local PostGIS container (via port `5440`) and runs `npx prisma migrate dev`. It ensures your database schema is up-to-date and generates the Prisma client locally at the root.
 
 ### Step B: Sync the Containers
 Our Node.js services run in Alpine Linux containers, which require a different Prisma query engine binary than your host machine (Mac/Windows/Ubuntu).
@@ -197,5 +197,10 @@ New to the project? Here are the most common issues you might run into and how t
 **Fix:** Run `npm run format` and `npm run lint` in the respective service directories (e.g., `cd worker && npm run format`). Note that we enforce strict typing (no `any` allowed!).
 
 ### Ports already in use
-**Symptom:** Docker fails to bind to ports `5440` (Postgres), `6382` (Redis), or `8083` (Redis UI).
+**Symptom:** Docker fails to bind to ports `5440` (PostGIS), `6382` (Redis), or `8083` (Redis UI).
 **Fix:** Ensure you don't have local instances of Postgres or Redis running on your host machine occupying those specific mapping ports. If necessary, stop them or change the host mappings in `docker-compose.yaml` (do NOT change the internal container ports).
+
+### PrismaConfigEnvError: Missing required environment variable: DATABASE_URL
+**Symptom:** You try to manually run `npm run build` inside `scheduler/`, `worker/`, or `server/` locally and it crashes complaining about a missing `DATABASE_URL`.
+**Cause:** Our `prisma.config.ts` requires a database URL to parse the configuration when running `npx prisma generate` during the build step.
+**Fix:** Provide a dummy variable when running the build manually: `export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"` then run `npm run build`. Note that the CI/CD pipeline does this automatically!

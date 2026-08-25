@@ -2,7 +2,7 @@
 
 Welcome to the **BookdiaNight Server** project! This repository contains the backend infrastructure for the BookdiaNight application. 
 
-It is designed using a **multi-service architecture** powered by Docker, sharing a central PostgreSQL database and a Redis instance for caching and job queues.
+It is designed using a **multi-service architecture** powered by Docker, sharing a central PostGIS database (PostgreSQL with geospatial extensions) and a Redis instance for caching and job queues.
 
 > [!WARNING]
 > **This is a highly Docker-centric project.**
@@ -11,7 +11,7 @@ It is designed using a **multi-service architecture** powered by Docker, sharing
 
 - **Node.js & TypeScript** (executed via `tsx` for fast development)
 - **Docker & Docker Compose** for local orchestration and containerization
-- **PostgreSQL** as the primary relational database
+- **PostGIS** as the primary relational database (requires the `postgis/postgis` Docker image)
 - **Redis** for pub/sub, caching, and background job queues (via BullMQ)
 - **Prisma ORM** for type-safe database access
 

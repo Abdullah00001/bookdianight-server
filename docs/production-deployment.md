@@ -57,7 +57,7 @@ You need to prepare the VPS directory where the deployment will run.
      POSTGRES_DB=bookdianight
      REDIS_PASSWORD=your_secure_password
      # Prisma connection string matching the credentials above:
-     DATABASE_URL=postgresql://postgres:your_secure_password@postgres:5432/bookdianight?schema=public
+     DATABASE_URL=postgresql://postgres:your_secure_password@postgis:5432/bookdianight?schema=public
      ```
 
 ## 3. GitHub Secrets Configuration
@@ -74,17 +74,39 @@ In your GitHub repository, go to **Settings > Secrets and variables > Actions** 
 ## 4. How to Deploy Updates
 The CI/CD pipeline is fully automated via GitHub Actions (`.github/workflows/deploy.yml`).
 
-To deploy a new version to production, simply create a new Git tag that starts with `v` and push it:
+To deploy a new version to production, you must merge your changes into `main` and push a new Git tag that starts with `v` (e.g., `v1.0.12`).
 
-1. Commit your changes locally.
-2. Create an annotated tag:
+### Standard Deployment Workflow
+
+If you are working on the `development` branch and are ready to deploy to production, follow these exact steps:
+
+1. **Commit and Push your development work:**
    ```bash
-   git tag -a v1.0.3 -m "Release version 1.0.3"
+   git add .
+   git commit -m "feat: added new feature"
+   git push origin development
    ```
-3. Push the tag to GitHub:
+
+2. **Switch to the main branch and merge:**
    ```bash
-   git push origin main --tags
+   git switch main
+   git pull origin main
+   git merge development
    ```
+
+3. **Bump the version and create the tag:**
+   Instead of manually tagging, use the built-in NPM command which automatically updates your `package.json` version and creates an annotated git tag simultaneously:
+   ```bash
+   npm version patch -m "chore: release %s"
+   ```
+   *(Note: You can replace `patch` with a specific version like `1.0.12` or `minor` / `major`)*
+
+4. **Push the code and the tags to trigger the pipeline:**
+   ```bash
+   git push origin main --follow-tags
+   ```
+
+Once pushed, GitHub Actions will detect the new `v*` tag and instantly begin deploying the new version directly to your production VPS!
 
 ### What happens in the background?
 1. **GitHub Action Triggers:** The workflow detects the new `v*` tag.

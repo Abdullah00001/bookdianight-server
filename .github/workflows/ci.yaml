@@ -12,6 +12,8 @@ jobs:
   integration:
     name: Build & Test
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
 
     steps:
       - name: Checkout Code
@@ -30,19 +32,22 @@ jobs:
         run: |
           cd scheduler
           npm install
-          npx prisma generate --schema=../prisma/schema.prisma
+          cp -r ../prisma ./
+          npx prisma generate
           npm run build
 
       - name: Build Worker Service
         run: |
           cd worker
           npm install
-          npx prisma generate --schema=../prisma/schema.prisma
+          cp -r ../prisma ./
+          npx prisma generate
           npm run build
 
       - name: Build Server Service
         run: |
           cd server
           npm install
-          npx prisma generate --schema=../prisma/schema.prisma
+          cp -r ../prisma ./
+          npx prisma generate
           npm run build

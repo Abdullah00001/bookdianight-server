@@ -60,3 +60,56 @@ We utilize automated generation scripts to eliminate boilerplate and enforce str
 - **`server`**: A Node.js Express API service serving as the primary backend for the BookdiaNight application.
 - **`scheduler`**: A Node.js background service responsible for executing cron jobs, delayed tasks, and polling via `node-cron` and `BullMQ`.
 - **`worker`**: A Node.js service dedicated to processing background jobs from `BullMQ`, executing heavy computations, sending Firebase push notifications, and performing email tasks.
+
+## 📂 Project Structure
+
+```text
+.
+├── docker
+│   └── docker-compose.yaml
+├── docs
+│   ├── developer-workflow.md
+│   └── production-deployment.md
+├── prisma
+│   ├── migrations
+│   └── schema.prisma
+├── scheduler
+│   ├── scripts
+│   ├── src
+│   ├── Dockerfile
+│   ├── Dockerfile.dev
+│   ├── nodemon.json
+│   ├── package.json
+│   └── tsconfig.json
+├── scripts
+│   ├── prisma-generate.sh
+│   ├── prisma-migrate.sh
+│   └── prisma-sync.sh
+├── server
+│   ├── public
+│   ├── scripts
+│   ├── src
+│   ├── Dockerfile
+│   ├── Dockerfile.dev
+│   ├── nodemon.json
+│   ├── package.json
+│   └── tsconfig.json
+├── worker
+│   ├── scripts
+│   ├── src
+│   ├── Dockerfile
+│   ├── Dockerfile.dev
+│   ├── nodemon.json
+│   ├── package.json
+│   └── tsconfig.json
+├── docker-compose.yaml
+├── eslint.config.mjs
+├── .eslintignore
+├── .gitignore
+├── package.json
+├── package-lock.json
+├── .prettierignore
+├── .prettierrc
+├── prisma.config.ts
+└── README.md
+```

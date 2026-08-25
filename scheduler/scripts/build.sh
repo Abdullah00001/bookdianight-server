@@ -8,6 +8,7 @@ echo "🧪 Running Tests..."
 npm run test
 
 echo "🏗️ Compiling TypeScript..."
-npx tsc && npx tsc-alias
+npx tsc
+npx tsc-alias
 
 echo "✅ Build successful! 🎉"

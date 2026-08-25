@@ -23,11 +23,23 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install Root Dependencies
         run: npm ci --legacy-peer-deps
 
       - name: Build Scheduler Service
-        # The build.sh script already includes linting, testing, and typescript compilation
         run: |
           cd scheduler
+          npm install
+          npm run build
+
+      - name: Build Worker Service
+        run: |
+          cd worker
+          npm install
+          npm run build
+
+      - name: Build Server Service
+        run: |
+          cd server
+          npm install
           npm run build

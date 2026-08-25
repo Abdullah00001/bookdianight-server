@@ -150,3 +150,37 @@ docker-compose.yaml
 /generated/prisma
 
 scratch_ssh.py
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Ansible
+*.retry
+*.vault_pass
+.ansible/
+
+# AWS
+.aws/
+.elasticbeanstalk/
+.sam/
+aws-credentials.json
+
+# Secrets
+*.pem
+*.key
+
+# OS
+.DS_Store
+Thumbs.db

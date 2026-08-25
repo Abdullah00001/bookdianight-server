@@ -148,3 +148,5 @@ docker-compose.yaml
 /src/generated/prisma
 /src/app/schemas
 /generated/prisma
+
+scratch_ssh.py

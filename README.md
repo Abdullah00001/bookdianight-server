@@ -44,8 +44,9 @@ We utilize automated generation scripts to eliminate boilerplate and enforce str
 
 **Background Workers & Schedulers:**
 - `npm run create:job <job_name>`: Scaffolds a new scheduled cron job in the `scheduler` service.
-- `npm run create:queue <queue_name>`: Scaffolds a complete dynamic queue module inside the `worker` service.
+- `npm run create:queue <queue_name>`: Scaffolds a complete dynamic queue module inside the `worker` service, and automatically mirrors the queue definitions to the `server` and `scheduler` so they can instantly produce jobs!
 - `npm run create:queue-job <queue_name> <job_name>`: Generates a perfectly typed job handler for an existing queue in the `worker` service.
+- `npm run create:emailTemp <template_name>`: Interactively scaffolds a new email template string export in the `worker/src/app/templates/` directory.
 
 **Server API Automation:**
 - `npm run create:module <module_name>`: Scaffolds a full 8-file API module in `server` and interactively auto-registers its routes into your desired API version.

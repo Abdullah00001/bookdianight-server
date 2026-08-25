@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import logger from '@/app/configs/logger.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { unlink } from 'fs/promises';
+import { OTPOptions } from '@/app/@types/system.types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -239,4 +240,49 @@ export async function unlinkFile({
     if (error instanceof Error) throw error;
     throw new Error('Unknown Error Occurred In File Unlink Utility');
   }
+}
+
+/**
+ * Generates a cryptographically secure random OTP string.
+ *
+ * @param length - Desired length of the OTP (positive integer).
+ * @param options - Character-set options.
+ * @returns The generated OTP string.
+ * @throws {Error} If length is invalid or no character set is selected.
+ */
+export function generate(length: number, options: OTPOptions): string {
+  // Validate length
+  if (!Number.isInteger(length) || length <= 0) {
+    throw new Error('Length must be a positive integer.');
+  }
+
+  // Build the character pool
+  const digitChars = '0123456789';
+  const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
+  const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+  let pool = '';
+  if (options.digits) pool += digitChars;
+  if (options.lowerCaseAlphabets) pool += lowerChars;
+  if (options.upperCaseAlphabets) pool += upperChars;
+  if (options.specialChars) pool += specialChars;
+
+  if (pool.length === 0) {
+    throw new Error('At least one character set must be enabled.');
+  }
+
+  // Use Web Crypto API (available in browsers and Node.js 15+)
+  // In Node.js, you may need to use `globalThis.crypto` or `require('crypto').webcrypto`
+  const randomValues = new Uint32Array(length);
+  crypto.getRandomValues(randomValues);
+
+  const poolSize = pool.length;
+  let otp = '';
+  for (let i = 0; i < length; i++) {
+    const index = randomValues[i] % poolSize;
+    otp += pool[index];
+  }
+
+  return otp;
 }

@@ -106,10 +106,16 @@ If you need to add a new scheduled task to the scheduler service:
 
 ### Adding a New Queue & Job (Worker)
 If you need to process tasks offloaded by BullMQ (e.g., sending push notifications, emails), use the worker service:
-1. To create a new queue, run `npm run create:queue <queue-name>` from the root (e.g., `npm run create:queue email`). This scaffolds the queue, typed interfaces, and the worker.
+1. To create a new queue, run `npm run create:queue <queue-name>` from the root (e.g., `npm run create:queue email`). This scaffolds the queue, typed interfaces, and the worker. It also automatically mirrors the queue definition to the `server` and `scheduler` so they can easily produce jobs!
 2. To add a job to that queue, run `npm run create:queue-job <queue-name> <job-name>` (e.g., `npm run create:queue-job email send-welcome`).
 3. This generates an isolated, fully typed job file inside the queue's `jobs/` directory. The queue's worker will dynamically auto-discover it!
 *Note: The worker service enforces strict typing. The `any` type is completely prohibited.*
+
+### Adding an Email Template (Worker)
+If you need to create a new HTML email template string:
+1. Run `npm run create:emailTemp` from the root.
+2. It will prompt you for the template name (e.g., `welcomeEmail`).
+3. It will automatically generate a perfectly formatted template file at `worker/src/app/templates/welcomeEmail.template.ts`.
 
 ### Adding a New API Module & Endpoint (Server)
 If you need to build new backend API features, use our automated code generators to eliminate boilerplate and instantly register your routes:

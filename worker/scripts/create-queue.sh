@@ -90,7 +90,6 @@ export const create${QUEUE_PASCAL}Worker = (): Worker => {
         throw error;
       }
     },
-    },
     { connection: getRedisClient() as unknown as import('bullmq').ConnectionOptions }
   );
 
@@ -110,28 +109,29 @@ export const create${QUEUE_PASCAL}Worker = (): Worker => {
 };
 EOF
 
-# 4. Generate a placeholder job to demonstrate how to use it
-JOB_NAME="example"
-JOB_PASCAL=\$(echo "\$JOB_NAME" | awk -F- '{for(i=1;i<=NF;i++) \$i=toupper(substr(\$i,1,1)) tolower(substr(\$i,2))}1' OFS="")
 
-cat > "$JOBS_DIR/$JOB_NAME.job.ts" <<EOF
-import { Job } from 'bullmq';
-import { IJobHandler } from '@/app/@types/queue.types';
-import { I${QUEUE_PASCAL}JobData } from '../${QUEUE_NAME}.types';
+# 5. Mirror the queue interface to the Server and Scheduler so they can produce jobs
+SERVER_QUEUE_DIR="server/src/app/queues/$QUEUE_NAME"
+SCHEDULER_QUEUE_DIR="scheduler/src/app/queues/$QUEUE_NAME"
 
-const handler: IJobHandler<I${QUEUE_PASCAL}JobData> = {
-  name: '${JOB_NAME}',
-  handler: async (data: I${QUEUE_PASCAL}JobData, job: Job) => {
-    // Write your processing logic here
-    console.log(\`Executing \${job.name} with data:\`, data);
-  }
-};
+mkdir -p "$SERVER_QUEUE_DIR"
+mkdir -p "$SCHEDULER_QUEUE_DIR"
 
-export default handler;
-EOF
+# Copy queue instances so producers can enqueue jobs
+cp "$QUEUE_DIR/$QUEUE_NAME.queue.ts" "$SERVER_QUEUE_DIR/"
+cp "$QUEUE_DIR/$QUEUE_NAME.queue.ts" "$SCHEDULER_QUEUE_DIR/"
+
+# Ensure the server and scheduler have the queue.configs.ts file to support the queue definitions
+if [ ! -f "server/src/app/configs/queue.configs.ts" ]; then
+  cp "worker/src/app/configs/queue.configs.ts" "server/src/app/configs/queue.configs.ts"
+fi
+if [ ! -f "scheduler/src/app/configs/queue.configs.ts" ]; then
+  cp "worker/src/app/configs/queue.configs.ts" "scheduler/src/app/configs/queue.configs.ts"
+fi
 
 echo "✅ Successfully created queue module '$QUEUE_NAME' in $QUEUE_DIR!"
 echo "   - $QUEUE_DIR/$QUEUE_NAME.queue.ts"
 echo "   - $QUEUE_DIR/$QUEUE_NAME.workers.ts"
 echo "   - $QUEUE_DIR/$QUEUE_NAME.types.ts"
-echo "   - $JOBS_DIR/$JOB_NAME.job.ts (Example handler)"
+
+echo "✅ Mirrored queue definition into server and scheduler!"

@@ -1,6 +1,10 @@
 import { Router } from 'express';
+import authRoutes from '@/app/modules/auth/auth.routes';
+import mediaRoutes from '@/app/modules/media/media.routes';
 
 const routes: Router[] = [
+  mediaRoutes,
+  authRoutes,
  
 ];
 

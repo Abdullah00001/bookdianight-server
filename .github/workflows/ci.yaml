@@ -30,16 +30,19 @@ jobs:
         run: |
           cd scheduler
           npm install
+          npx prisma generate
           npm run build
 
       - name: Build Worker Service
         run: |
           cd worker
           npm install
+          npx prisma generate
           npm run build
 
       - name: Build Server Service
         run: |
           cd server
           npm install
+          npx prisma generate
           npm run build

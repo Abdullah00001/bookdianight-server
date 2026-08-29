@@ -19,6 +19,7 @@ export type TEnv = {
   SMTP_PORT: number;
   SMTP_USER: string;
   SMTP_PASS: string;
+  S3_PUBLIC_URL: string;
 };
 
 export type TMailOption = {

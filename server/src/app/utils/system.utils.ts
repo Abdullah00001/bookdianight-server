@@ -189,9 +189,15 @@ export const validateReqQuery =
   };
 
 export function extractS3KeyFromUrl(url: string): string {
-  // Extract key from URL: https://bucket.s3.region.amazonaws.com/avatars/userId/timestamp.png
-  const urlParts = url.split('.amazonaws.com/');
-  return urlParts[1];
+  try {
+    const parsedUrl = new URL(url);
+    // Return the pathname without the leading slash to get the exact S3 object key
+    // This safely works for both old AWS URLs and new DO Spaces URLs
+    return parsedUrl.pathname.substring(1);
+  } catch (error) {
+    // Fallback if the URL is invalid or malformed
+    return url;
+  }
 }
 
 export function timeToMinutes(time: string): number {

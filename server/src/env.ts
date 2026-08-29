@@ -15,5 +15,7 @@ export const env: TEnv = {
   S3_SECRET_KEY: getEnv('S3_SECRET_KEY'),
   S3_REGION: getEnv('S3_REGION'),
   S3_BUCKET_NAME: getEnv('S3_BUCKET_NAME'),
+  S3_ENDPOINT: getEnv('S3_ENDPOINT'),
+  S3_PUBLIC_URL: getEnv('S3_PUBLIC_URL'),
   OTP_HASH_SECRET: getEnv('OTP_HASH_SECRET'),
 };

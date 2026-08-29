@@ -1,3 +1,5 @@
+import { env } from '@/env';
+
 const signupSuccessTemplate = `
 <!DOCTYPE html>
 <html lang="en">
@@ -15,7 +17,7 @@ const signupSuccessTemplate = `
           <!-- Header -->
           <tr>
             <td align="center" style="padding:32px 24px 16px 24px;">
-              <img src="https://nazmulhasan.s3.us-east-1.amazonaws.com/attachments/50525ece-7156-4455-a6bb-f0c2f825a1c7-1787806422985.png" alt="Bookdianight" width="140" style="display:block;" />
+              <img src="${env.S3_PUBLIC_URL}/attachments/50525ece-7156-4455-a6bb-f0c2f825a1c7-1787806422985.png" alt="Bookdianight" width="140" style="display:block;" />
             </td>
           </tr>
  

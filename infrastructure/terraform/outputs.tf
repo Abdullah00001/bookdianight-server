@@ -1,49 +1,65 @@
 output "vpc_id" {
-  description = "The ID of the VPC"
-  value       = aws_vpc.main.id
+  description = "The ID of the DigitalOcean VPC"
+  value       = digitalocean_vpc.main.id
 }
 
-output "public_subnet_1a_id" {
-  description = "The ID of the public subnet in eu-south-1a"
-  value       = aws_subnet.public_1a.id
+output "ssh_key_id" {
+  description = "The ID of the uploaded SSH key"
+  value       = digitalocean_ssh_key.admin.id
 }
 
-output "public_subnet_1b_id" {
-  description = "The ID of the public subnet in eu-south-1b"
-  value       = aws_subnet.public_1b.id
+output "firewall_id" {
+  description = "The ID of the Cloud Firewall"
+  value       = digitalocean_firewall.app_firewall.id
+}
+output "droplet_id" {
+  description = "The ID of the Droplet"
+  value       = digitalocean_droplet.app_server.id
 }
 
-output "private_subnet_1a_id" {
-  description = "The ID of the private subnet in eu-south-1a"
-  value       = aws_subnet.private_1a.id
+output "spaces_bucket_name" {
+  description = "The name of the DigitalOcean Spaces bucket"
+  value       = digitalocean_spaces_bucket.storage.name
 }
 
-output "private_subnet_1b_id" {
-  description = "The ID of the private subnet in eu-south-1b"
-  value       = aws_subnet.private_1b.id
+output "spaces_bucket_endpoint" {
+  description = "The endpoint URL for the DigitalOcean Spaces bucket"
+  value       = digitalocean_spaces_bucket.storage.endpoint
 }
 
-output "ec2_sg_id" {
-  description = "The ID of the EC2 security group"
-  value       = aws_security_group.ec2.id
+output "spaces_bucket_fqdn" {
+  description = "The fully qualified domain name of the bucket"
+  value       = digitalocean_spaces_bucket.storage.bucket_domain_name
 }
 
-output "rds_sg_id" {
-  description = "The ID of the RDS security group"
-  value       = aws_security_group.rds.id
+output "spaces_cdn_endpoint" {
+  description = "The CDN endpoint for the Spaces bucket"
+  value       = digitalocean_cdn.storage_cdn.endpoint
 }
 
-output "redis_sg_id" {
-  description = "The ID of the Redis security group"
-  value       = aws_security_group.redis.id
+output "droplet_ipv4" {
+  description = "The IPv4 address of the Droplet"
+  value       = digitalocean_droplet.app_server.ipv4_address
 }
 
-output "ec2_instance_id" {
-  description = "The ID of the EC2 instance"
-  value       = aws_instance.app_server.id
+output "reserved_ip" {
+  description = "The reserved IP assigned to the Droplet"
+  value       = digitalocean_reserved_ip.app_ip.ip_address
 }
 
-output "ec2_public_ip" {
-  description = "The public Elastic IP address of the EC2 instance"
-  value       = aws_eip.app_eip.public_ip
+output "registry_endpoint" {
+  description = "The endpoint of the Container Registry"
+  value       = digitalocean_container_registry.bookdianight.server_url
+}
+
+output "postgres_private_uri" {
+  description = "The private connection URI for the Managed PostgreSQL cluster"
+  value       = digitalocean_database_cluster.postgres.private_uri
+  sensitive   = true
+}
+
+output "redis_private_uri" {
+  description = "The private connection URI for the Managed Redis cluster"
+  value       = digitalocean_database_cluster.redis.private_uri
+  sensitive   = true
 }

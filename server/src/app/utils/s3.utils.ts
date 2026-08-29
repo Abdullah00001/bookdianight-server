@@ -8,7 +8,7 @@ import { env } from '@/env';
 import { unlinkFile } from '@/app/utils/system.utils';
 
 const bucketName = env.S3_BUCKET_NAME;
-const regionName = env.S3_REGION;
+
 
 
 export async function singleUploadToS3({
@@ -32,7 +32,7 @@ export async function singleUploadToS3({
     await s3Client.send(command);
     stream.destroy();
     await unlinkFile({ filePath });
-    return `https://${bucketName}.s3.${regionName}.amazonaws.com/${key}`;
+    return `${env.S3_PUBLIC_URL}/${key}`;
   } catch (error) {
     await unlinkFile({ filePath });
     if (error instanceof Error) throw error;

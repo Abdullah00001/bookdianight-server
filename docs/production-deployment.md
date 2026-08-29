@@ -8,7 +8,7 @@ This document outlines the entire production infrastructure, CI/CD pipeline, and
 ## 1. Architecture Overview
 We use an **Image-Centric Deployment Strategy**. 
 - The VPS **does not** contain any source code.
-- GitHub Actions automatically builds the Docker images and pushes them to Docker Hub.
+- GitHub Actions automatically builds the Docker images and pushes them to DigitalOcean Container Registry.
 - The VPS only pulls the pre-built images and runs them using a production `docker-compose.yaml` file.
 - **Database Migrations:** We utilize an "Init Container" pattern (Option B). A temporary migration container runs the `npx prisma migrate deploy` command before the main services start, ensuring the database schema is always up to date.
 
@@ -51,7 +51,7 @@ You need to prepare the VPS directory where the deployment will run.
    - On the VPS, run: `nano .env`
    - Add the necessary variables. For example:
      ```env
-     DOCKER_USERNAME=your_dockerhub_username
+     DOCKER_USERNAME=registry.digitalocean.com/bookdianight-registry
      POSTGRES_USER=postgres
      POSTGRES_PASSWORD=your_secure_password
      POSTGRES_DB=bookdianight
@@ -65,11 +65,11 @@ In your GitHub repository, go to **Settings > Secrets and variables > Actions** 
 
 | Secret Name | Description | Example |
 |---|---|---|
-| `DOCKER_USERNAME` | Your Docker Hub username. | `johndoe` |
-| `DOCKER_PASSWORD` | Your Docker Hub password or Access Token. | `dckr_pat_xxxxxxx` |
-| `VPS_HOST` | The public IP address of your VPS. | `159.65.30.35` |
-| `VPS_USERNAME` | The SSH user on your VPS. | `developer` |
-| `VPS_SSH_KEY` | The raw contents of the private key you generated (`cat ~/.ssh/gh_deploy_key`). | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
+| `DIGITALOCEAN_ACCESS_TOKEN` | Your DigitalOcean API token for the runner to authenticate with doctl. | `dop_v1_xxxxxxx` |
+| `DO_REGISTRY_TOKEN` | Your DigitalOcean Registry Token for the Droplet to pull images. | `dop_v1_xxxxxxx` |
+| `DO_DROPLET_HOST` | The public IP address of your DigitalOcean Droplet. | `159.65.30.35` |
+| `DO_DROPLET_USER` | The SSH user on your Droplet. | `root` or `developer` |
+| `DO_SSH_PRIVATE_KEY` | The raw contents of the private key you generated (`cat ~/.ssh/gh_deploy_key`). | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 
 ## 4. How to Deploy Updates
 The CI/CD pipeline is fully automated via GitHub Actions (`.github/workflows/deploy.yml`).
@@ -110,8 +110,8 @@ Once pushed, GitHub Actions will detect the new `v*` tag and instantly begin dep
 
 ### What happens in the background?
 1. **GitHub Action Triggers:** The workflow detects the new `v*` tag.
-2. **Build Stage:** It checks out the code, logs into Docker Hub, and builds production-ready images for the `server`, `scheduler`, and `worker` components.
-3. **Push Stage:** The images are pushed to Docker Hub as `<username>/bookdianight-{service}:latest` and `<username>/bookdianight-{service}:v*`.
+2. **Build Stage:** It checks out the code, logs into DigitalOcean Container Registry via `doctl`, and builds production-ready images for the `server`, `scheduler`, and `worker` components.
+3. **Push Stage:** The images are pushed to DO Registry as `registry.digitalocean.com/bookdianight-registry/bookdianight-{service}:latest` and `...:v*`.
 4. **Deploy Stage:** 
    - GitHub Actions connects to the VPS via SSH.
    - It runs `docker compose pull` to grab the fresh images for all services.

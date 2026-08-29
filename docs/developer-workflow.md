@@ -144,7 +144,7 @@ To ensure the codebase remains clean and stable, we enforce strict code quality 
 ### Continuous Integration (CI)
 We have a two-step GitHub Actions pipeline:
 1. **CI Pipeline (`ci.yaml`):** Runs automatically on every push or PR to `main`. It installs dependencies, lints the code, runs tests, and compiles the TypeScript using the strict `scripts/build.sh` script.
-2. **Delivery Pipeline (`deploy.yaml`):** Runs *only* when a new Git tag (e.g., `v1.0.0`) is published. It builds the Docker images and pushes them to Docker Hub.
+2. **Delivery Pipeline (`deploy.yaml`):** Runs *only* when a new Git tag (e.g., `v1.0.0`) is published. It builds the Docker images and pushes them to DigitalOcean Container Registry.
 
 ---
 

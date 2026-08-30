@@ -1,1 +1,262 @@
-# Main Ansible Playbook
+---
+- name: Provision BookDiaNight Production Server
+  hosts: production
+  become: yes
+  vars:
+    swap_file_size_mb: 2048
+    deploy_user: deploy
+    app_dir: /opt/bookdianight-server
+
+  tasks:
+    - name: Ensure system is updated and required packages are installed
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - acl
+        state: present
+        update_cache: yes
+
+    - name: Check if swap exists
+      command: swapon --show
+      register: swap_status
+      changed_when: false
+
+    - name: Create swap file
+      command: fallocate -l {{ swap_file_size_mb }}M /swapfile
+      when: swap_status.stdout == ""
+
+    - name: Set swap file permissions
+      file:
+        path: /swapfile
+        mode: '0600'
+      when: swap_status.stdout == ""
+
+    - name: Format swap file
+      command: mkswap /swapfile
+      when: swap_status.stdout == ""
+
+    - name: Enable swap
+      command: swapon /swapfile
+      when: swap_status.stdout == ""
+
+    - name: Add swap to fstab
+      mount:
+        name: none
+        src: /swapfile
+        fstype: swap
+        opts: sw
+        passno: '0'
+        dump: '0'
+        state: present
+
+    - name: Ensure deploy user exists with bash shell
+      user:
+        name: '{{ deploy_user }}'
+        shell: /bin/bash
+        state: present
+
+    - name: Ensure sudo access for deploy user without password (to prevent lockout)
+      copy:
+        content: "{{ deploy_user }} ALL=(ALL) NOPASSWD: ALL\n"
+        dest: '/etc/sudoers.d/{{ deploy_user }}'
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Disable root SSH login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+      notify: restart ssh
+
+    - name: Disable global SSH password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: restart ssh
+
+    - name: Configure SSH Match blocks for admin and deploy users
+      blockinfile:
+        path: /etc/ssh/sshd_config
+        block: |
+          Match User admin
+              PasswordAuthentication yes
+          Match User {{ deploy_user }}
+              PasswordAuthentication no
+              PubkeyAuthentication yes
+        insertafter: EOF
+      notify: restart ssh
+
+    - name: Add Docker GPG apt Key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker Repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu noble stable
+        state: present
+
+    - name: Install Docker and Docker Compose
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker service is running and enabled
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Ensure deploy user is in the docker group
+      user:
+        name: '{{ deploy_user }}'
+        groups: docker
+        append: yes
+
+    - name: Configure Docker daemon for JSON log rotation
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "20m",
+              "max-file": "3"
+            }
+          }
+        mode: '0644'
+      notify: restart docker
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Check if Let's Encrypt certificate exists
+      stat:
+        path: /etc/letsencrypt/live/api.bookdianight.com/fullchain.pem
+      register: letsencrypt_cert
+
+    - name: Configure Nginx reverse proxy (HTTP-only) for initial setup
+      copy:
+        dest: /etc/nginx/sites-available/bookdianight
+        content: |
+          server {
+              listen 80;
+              server_name api.bookdianight.com;
+
+              location / {
+                  proxy_pass http://127.0.0.1:5000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+          }
+        mode: '0644'
+      when: not letsencrypt_cert.stat.exists
+      notify: restart nginx
+
+    - name: Configure Nginx reverse proxy (HTTPS enabled)
+      copy:
+        dest: /etc/nginx/sites-available/bookdianight
+        content: |
+          server {
+              server_name api.bookdianight.com;
+
+              location / {
+                  proxy_pass http://127.0.0.1:5000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_cache_bypass $http_upgrade;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+              }
+
+              listen 443 ssl; # managed by Ansible/Certbot
+              ssl_certificate /etc/letsencrypt/live/api.bookdianight.com/fullchain.pem;
+              ssl_certificate_key /etc/letsencrypt/live/api.bookdianight.com/privkey.pem;
+              include /etc/letsencrypt/options-ssl-nginx.conf;
+              ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+          }
+
+          server {
+              if ($host = api.bookdianight.com) {
+                  return 301 https://$host$request_uri;
+              }
+              listen 80;
+              server_name api.bookdianight.com;
+              return 404;
+          }
+        mode: '0644'
+      when: letsencrypt_cert.stat.exists
+      notify: restart nginx
+
+    - name: Enable Nginx configuration
+      file:
+        src: /etc/nginx/sites-available/bookdianight
+        dest: /etc/nginx/sites-enabled/bookdianight
+        state: link
+      notify: restart nginx
+
+    - name: Remove default Nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: restart nginx
+
+    - name: Ensure Nginx is running and enabled
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Prepare application deployment directory
+      file:
+        path: '{{ app_dir }}'
+        state: directory
+        owner: '{{ deploy_user }}'
+        group: '{{ deploy_user }}'
+        mode: '0750'
+
+    - name: Ensure production .env file exists with restrictive permissions
+      file:
+        path: '{{ app_dir }}/.env'
+        state: touch
+        owner: '{{ deploy_user }}'
+        group: '{{ deploy_user }}'
+        mode: '0600'
+      # Do not overwrite contents if it already exists, just touch/permissions
+
+  handlers:
+    - name: restart ssh
+      systemd:
+        name: ssh
+        state: restarted
+
+    - name: restart docker
+      systemd:
+        name: docker
+        state: restarted
+
+    - name: restart nginx
+      systemd:
+        name: nginx
+        state: restarted

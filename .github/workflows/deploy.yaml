@@ -72,20 +72,33 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy docker-compose.yaml to Droplet
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ vars.DO_DROPLET_HOST }}
+          username: ${{ vars.DO_DROPLET_USER }}
+          key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          source: "docker/docker-compose.yaml"
+          target: "/opt/bookdianight-server"
+          strip_components: 1
+
       - name: Execute deployment on DigitalOcean Droplet
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.DO_DROPLET_HOST }}
-          username: ${{ secrets.DO_DROPLET_USER }}
+          host: ${{ vars.DO_DROPLET_HOST }}
+          username: ${{ vars.DO_DROPLET_USER }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
             export DOCKER_USERNAME=registry.digitalocean.com/bookdianight-registry
             # Authenticate the droplet to DigitalOcean Container Registry securely
-            echo "${{ secrets.DO_REGISTRY_TOKEN }}" | docker login registry.digitalocean.com -u _ --password-stdin
+            echo "${{ secrets.DO_REGISTRY_TOKEN }}" | docker login registry.digitalocean.com -u "${{ vars.DO_ACCOUNT_EMAIL }}" --password-stdin
             
             cd /opt/bookdianight-server
             # Make sure we pull the latest images
             docker compose pull
-            # Start the stack (this triggers the migrator, then the scheduler)
+            # Start the stack
             docker compose up -d
 

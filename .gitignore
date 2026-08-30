@@ -201,3 +201,7 @@ Thumbs.db
 .vscode/
 !.vscode/extensions.json
 .idea/
+# Sensitive Terraform output and plan files
+**/tf_output.json
+**/*.tfplan
+**/tfplan

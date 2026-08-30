@@ -10,6 +10,7 @@ export const initializeRedis = () => {
       host: env.REDIS_HOST,
       password: env.REDIS_PASSWORD,
       port: env.REDIS_PORT || 6379,
+      tls: env.NODE_ENV === 'production' ? {} : undefined,
       maxRetriesPerRequest: null,
       lazyConnect: true,
     });

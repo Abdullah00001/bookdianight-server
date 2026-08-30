@@ -56,8 +56,8 @@ You need to prepare the VPS directory where the deployment will run.
      POSTGRES_PASSWORD=your_secure_password
      POSTGRES_DB=bookdianight
      REDIS_PASSWORD=your_secure_password
-     # Prisma connection string matching the credentials above:
-     DATABASE_URL=postgresql://postgres:your_secure_password@postgis:5432/bookdianight?schema=public
+     # Prisma connection string pointing to the DigitalOcean Managed PostgreSQL cluster:
+     DATABASE_URL="postgresql://doadmin:your_secure_password@private-your-cluster.db.ondigitalocean.com:25060/bookdianight?sslmode=require"
      ```
 
 ## 3. GitHub Secrets Configuration
@@ -115,6 +115,7 @@ Once pushed, GitHub Actions will detect the new `v*` tag and instantly begin dep
 4. **Deploy Stage:** 
    - GitHub Actions connects to the VPS via SSH.
    - It runs `docker compose pull` to grab the fresh images for all services.
-   - It runs `docker compose up -d` to restart the stack.
-   - The `migrator` service starts first, running Prisma migrations.
-   - Once migrations succeed, the actual services (`server`, `worker`, `scheduler`) start using the newly migrated schema.
+   - It runs `docker compose up -d` to start the stack.
+   - The `db-migrator` service runs first as a one-shot container using the `bookdianight-server` image to execute `npx prisma migrate deploy` using the production `.env`.
+   - If the migration exits successfully (exit 0), the actual services (`server`, `worker`, `scheduler`) start sequentially using the newly migrated schema.
+   - If the migration fails (non-zero exit), the deployment is halted, and the application services will not start, protecting the environment from schema mismatches.

@@ -1,104 +1,44 @@
 services:
-  postgres:
-    image: postgis/postgis:16-3.4
-    container_name: bookdianight-postgres
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myStrongPassword}
-      POSTGRES_DB: ${POSTGRES_DB:-bookdianight}
-    ports:
-      - 5440:5432
-    networks:
-      - bookdianight-network
-    volumes:
-      - bookdianight-postgres-volume:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
-  redis:
-    image: redis:latest
-    container_name: bookdianight-redis
-    command: redis-server --requirepass ${REDIS_PASSWORD:-myStrongPassword}
-    ports:
-      - 6382:6379
-    networks:
-      - bookdianight-network
-    volumes:
-      - bookdianight-redis-volume:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-myStrongPassword}", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    depends_on:
-      - postgres
-
-  # Option B: Dedicated Migrator Container
-  migrator:
-    image: ${DOCKER_USERNAME}/bookdianight-scheduler:latest
-    container_name: bookdianight-migrator
-    command: npx prisma migrate deploy
+  db-migrator:
+    image: ${DOCKER_USERNAME}/bookdianight-server:latest
+    container_name: bookdianight-db-migrator
     env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
+    command: ["npx", "prisma", "migrate", "deploy"]
     networks:
       - bookdianight-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  # Core Scheduler Service
+    restart: "no"
   scheduler:
     image: ${DOCKER_USERNAME}/bookdianight-scheduler:latest
     container_name: bookdianight-scheduler
     env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
     networks:
       - bookdianight-network
     depends_on:
-      migrator:
+      db-migrator:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
   worker:
     image: ${DOCKER_USERNAME}/bookdianight-worker:latest
     container_name: bookdianight-worker
     env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
     networks:
       - bookdianight-network
     depends_on:
-      migrator:
+      db-migrator:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
   server:
     image: ${DOCKER_USERNAME}/bookdianight-server:latest
     container_name: bookdianight-server
     env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-myStrongPassword}@postgres:5432/${POSTGRES_DB:-bookdianight}?schema=public
     ports:
       - 5000:5000
     networks:
       - bookdianight-network
     depends_on:
-      migrator:
+      db-migrator:
         condition: service_completed_successfully
-      redis:
-        condition: service_healthy
     restart: unless-stopped
 networks:
   bookdianight-network:
     driver: bridge
-
-volumes:
-  bookdianight-postgres-volume:
-  bookdianight-redis-volume:

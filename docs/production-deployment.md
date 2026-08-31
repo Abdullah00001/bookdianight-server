@@ -1,122 +1,110 @@
-# Production Deployment & CI/CD Guide
+# Infrastructure & CI/CD Pipeline
 
-This document outlines the entire production infrastructure, CI/CD pipeline, and step-by-step instructions on how to set up the VPS, manage GitHub Secrets, and deploy new releases for the BookdiaNight server architecture.
+## 1. DigitalOcean Infrastructure Overview
+
+The BookDiaNight production environment operates entirely within DigitalOcean.
+
+- **Droplet (Ubuntu)**: The foundational compute node running the Docker Engine, Nginx, and the BullMQ/Express Node.js containers.
+- **Cloud Firewall**: An external, stateful firewall completely shielding the Droplet.
+- **Container Registry (DOCR)**: A private, secure repository hosting the immutable `bookdianight-server`, `worker`, and `scheduler` Docker images.
+- **Managed PostgreSQL**: The highly-available database cluster. Backups and PITR (Point-in-Time Recovery) are natively handled by DO.
+- **Managed Valkey (Redis)**: The in-memory cache and queue backend.
+- **Spaces**: S3-compatible Object Storage for media uploads.
+
+---
+
+## 2. Infrastructure as Code (IaC)
+
+### Terraform
+Terraform is strictly responsible for provisioning the *permanent* cloud infrastructure:
+- Droplet creation.
+- DO Spaces Bucket & CDN.
+- Project & Tag assignments.
+- The base DO Cloud Firewall (opening `80`/`443` and permanently restricting `22` to the admin's static IP).
+
+> [!CAUTION]
+> **What Terraform Intentionally DOES NOT Own**
+> Terraform does **not** manage the temporary GitHub Actions runner `/32` firewall rule. If you run `terraform apply` *during* an active GitHub Actions deployment, Terraform's state reconciliation will fight the CI pipeline and aggressively revoke the runner's SSH access, immediately breaking the deployment.
+
+### Ansible
+Ansible is strictly responsible for *server configuration*, not application deployment.
+- Installs Docker and Docker Compose.
+- Creates the `deploy` user and configures passwordless `sudo` and SSH key constraints.
+- Disables Root SSH and global password authentication.
+- Configures Docker JSON log rotation (`daemon.json`).
+- Installs Nginx and initially configures the proxy routing.
+
+---
+
+## 3. CI/CD Architecture (GitHub Actions)
+
+The repository features a fully automated Continuous Integration (CI) and Continuous Deployment (CD) pipeline.
+
+### The CI Pipeline (Trigger: `push` to `main`)
+1. Installs Node.js dependencies.
+2. Lints the codebase (`eslint`).
+3. Executes unit tests (`npm run test`).
+4. Compiles the strict TypeScript AST to verify build correctness (`scripts/build.sh`).
+
+### The CD Pipeline (Trigger: `push tag v*`)
+1. **Docker Buildx**: Checks out the code and uses Buildx to compile `server`, `worker`, and `scheduler` images based on the specific Git commit.
+2. **Registry Push**: Images are tagged strictly with the exact Git tag (e.g., `v1.0.14`) and pushed to DigitalOcean Container Registry.
+3. **Dynamic Firewall Whitelist**: The GitHub Runner's dynamic public IP is retrieved and appended to the DO Cloud Firewall on port `22` (via `doctl`).
+4. **SCP & SSH Deployment**:
+   - `docker-compose.yaml` is copied to the Droplet via SCP using the `deploy` user.
+   - The runner SSH's into the Droplet, securely logs into DOCR via `DO_REGISTRY_TOKEN`, exports `IMAGE_TAG=v1.0.14`, and runs `docker compose pull && docker compose up -d`.
+5. **Database Migration**: The ephemeral `db-migrator` container boots, applies any pending Prisma schemas, and successfully exits. The core services subsequently boot.
+6. **Firewall Cleanup**: An `if: always()` block in GitHub Actions guarantees that the ephemeral runner `/32` IP is securely revoked from the DO Cloud Firewall, regardless of deployment success or failure.
+
+---
+
+## 4. Release Process
+
+To cut a new production release:
+1. Complete development locally and merge all PRs into `main`.
+2. Ensure the `main` CI pipeline is green.
+3. Determine the next Semantic Version (e.g., `v1.0.15`).
+4. Create an annotated Git tag on your local machine:
+   ```bash
+   git tag v1.0.15
+   ```
+5. Push **only** the tag to origin:
+   ```bash
+   git push origin v1.0.15
+   ```
+6. The GitHub Actions CD pipeline will automatically trigger, build the images, and perform the zero-downtime deployment.
+
+---
+
+## 5. Rollback Procedure
+
+Because BookDiaNight relies on **immutable release tags**, reverting a faulty deployment is completely deterministic and requires zero rebuilding.
+
+1. Identify the previous stable release tag (e.g., `v1.0.13`).
+2. Verify the tag still exists in DigitalOcean Container Registry.
+3. SSH into the production Droplet as the `admin` or `deploy` user.
+4. Navigate to `/opt/bookdianight-server`.
+5. Run the rollback sequence explicitly:
+   ```bash
+   export IMAGE_TAG=v1.0.13
+   docker compose pull
+   docker compose up -d
+   ```
 
 > [!WARNING]
-> **This is a highly Docker-heavy project.**
-> Do not attempt to run this project or install local service dependencies on your host machine to run services natively. The environment is strictly containerized. Always follow the instructions below and run the project using Docker Compose.
-## 1. Architecture Overview
-We use an **Image-Centric Deployment Strategy**.
-- The VPS **does not** contain any source code.
-- GitHub Actions automatically builds the Docker images and pushes them to DigitalOcean Container Registry.
-- The VPS only pulls the pre-built images and runs them using a production `docker-compose.yaml` file.
-- **Database Migrations:** We utilize an "Init Container" pattern (Option B). A temporary migration container runs the `npx prisma migrate deploy` command before the main services start, ensuring the database schema is always up to date.
+> **Database Migrations Cannot Be Automatically Rolled Back**
+> Rolling back the application containers (`IMAGE_TAG`) will immediately restore the old Node.js code. However, Prisma does not downgrade the database schema. Ensure that your Prisma migrations are always forward-compatible (e.g., adding nullable columns rather than renaming columns) to guarantee that an older application image can safely operate on a newer database schema.
 
-## 2. Setting Up the VPS
+---
 
-### 2.1 Generating an SSH Key for GitHub Actions
-To allow GitHub Actions to SSH into your VPS securely, you need to generate a dedicated SSH key pair on your VPS (or locally, and copy it).
+## 6. Disaster Recovery
 
-1. SSH into your VPS as your deployment user (e.g., `developer`):
-   ```bash
-   ssh developer@<your_vps_ip>
-   ```
-2. Generate a new SSH key pair without a passphrase:
-   ```bash
-   ssh-keygen -t rsa -b 4096 -C "github-actions-deploy" -f ~/.ssh/gh_deploy_key -N ""
-   ```
-3. Add the public key to the `authorized_keys` file so the user can log in with it:
-   ```bash
-   cat ~/.ssh/gh_deploy_key.pub >> ~/.ssh/authorized_keys
-   chmod 600 ~/.ssh/authorized_keys
-   ```
-4. Output the private key to your terminal. **Copy the entire output** (including the `BEGIN` and `END` lines) to use as a GitHub Secret later.
-   ```bash
-   cat ~/.ssh/gh_deploy_key
-   ```
+BookDiaNight maintains robust disaster recovery capabilities.
 
-### 2.2 Directory and Configuration Setup
-You need to prepare the VPS directory where the deployment will run.
+### Fully Reproducible State
+- **Droplet Loss**: If the Droplet is completely destroyed, run `terraform apply` to recreate the VPS, then run the Ansible playbook to reprovision Docker and Nginx. Finally, trigger the GitHub Actions CD pipeline to redeploy the application. Total estimated recovery time: 10 minutes.
+- **Database Corruption**: DigitalOcean Managed PostgreSQL automatically maintains automated daily backups and Point-In-Time-Recovery (PITR) for up to 7 days. You can fork the database to a specific minute in time directly from the DO console.
 
-1. Create the project directory:
-   ```bash
-   mkdir -p /opt/bookdianight-server
-   cd /opt/bookdianight-server
-   ```
-2. Copy the production Docker Compose file:
-   - On your local PC, open `docker/docker-compose.yaml`.
-   - On the VPS, create the file: `nano docker-compose.yaml`.
-   - Paste the contents and save.
-3. Create your production environment variables:
-   - On the VPS, run: `nano .env`
-   - Add the necessary variables. For example:
-     ```env
-     DOCKER_USERNAME=registry.digitalocean.com/bookdianight-registry
-     POSTGRES_USER=postgres
-     POSTGRES_PASSWORD=your_secure_password
-     POSTGRES_DB=bookdianight
-     REDIS_PASSWORD=your_secure_password
-     # Prisma connection string pointing to the DigitalOcean Managed PostgreSQL cluster:
-     DATABASE_URL="postgresql://doadmin:your_secure_password@private-your-cluster.db.ondigitalocean.com:25060/bookdianight?sslmode=require"
-     ```
-
-## 3. GitHub Secrets Configuration
-In your GitHub repository, go to **Settings > Secrets and variables > Actions** and add the following **Repository Secrets**:
-
-| Secret Name | Description | Example |
-|---|---|---|
-| `DIGITALOCEAN_ACCESS_TOKEN` | Your DigitalOcean API token for the runner to authenticate with doctl (used for both Registry login and Firewall rules). | `dop_v1_xxxxxxx` |
-| `DO_REGISTRY_TOKEN` | Your DigitalOcean Registry Token for the Droplet to pull images. | `dop_v1_xxxxxxx` |
-| `DO_SSH_PRIVATE_KEY` | The raw contents of the private key you generated (`cat ~/.ssh/gh_deploy_key`). | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-
-Additionally, add the following **Repository Variables**:
-
-| Variable Name | Description | Example |
-|---|---|---|
-| `DO_DROPLET_HOST` | The public IP address of your DigitalOcean Droplet. | `159.65.30.35` |
-| `DO_DROPLET_USER` | The SSH user on your Droplet. | `developer` |
-| `DO_ACCOUNT_EMAIL` | Email for DOCR authentication. | `you@domain.com` |
-
-## 4. Architecture & Security
-
-### 4.1 Immutable Image Tags & Rollbacks
-Production deployments no longer use the `:latest` tag. Instead, GitHub Actions injects the precise Git release tag (e.g., `v1.0.13`) into the deployment environment as `IMAGE_TAG`.
-- **Release Relationship**: When you push Git tag `v1.0.13`, the pipeline builds and tags the Docker images as `v1.0.13` and deploys that exact immutable tag.
-- **Rollback Procedure**: If a deployment fails, you can roll back instantly without waiting for a rebuild. Simply run GitHub Actions again for an older tag (e.g., `v1.0.12`), or manually execute `IMAGE_TAG=v1.0.12 docker compose up -d` on the Droplet.
-- **Database Rollbacks**: **IMPORTANT**: Database migrations (Prisma) are strictly forward-only. Rolling back the application image to `v1.0.12` does NOT roll back the database schema. If `v1.0.13` altered the schema, you must ensure your older application code can safely interface with the newer schema.
-
-### 4.2 Firewall Automation
-To protect the SSH daemon from brute-force attacks, the DigitalOcean Cloud Firewall globally drops Port 22 connections by default.
-During a CI deployment, the following ephemeral firewall automation occurs:
-1. **Permanent vs Ephemeral**: Terraform manages the permanent firewall state (which allows only authorized static IPs).
-2. **Temporary Authorization**: GitHub Actions discovers its dynamic runner IP and temporarily adds it to the Cloud Firewall via `doctl`.
-3. **Deployment**: The runner executes SCP and SSH.
-4. **Guaranteed Cleanup**: The workflow uses an `if: always()` cleanup step to strictly revoke the specific `/32` runner IP from the firewall, regardless of deployment success or failure.
-
-### 4.3 Healthchecks & Observability
-The production environment utilizes Docker-native healthchecks to ensure maximum visibility into application stability and dependency connectivity.
-- **Server Dependency Health**: The `server` container exposes a deep health check at `/health`. It natively queries PostgreSQL (`SELECT 1`) and Valkey (`PING`) with aggressive 3-second timeouts. If all dependencies are alive, it returns `HTTP 200`. If any dependency crashes, it instantly returns `HTTP 503` (Degraded), which prompts Docker to mark the container as `unhealthy`.
-- **Worker/Scheduler Process Health**: Because these services lack HTTP endpoints, Docker natively validates their execution by querying the internal process tree (`pidof node > /dev/null`). If the Node event loop fatally crashes without exiting the container, Docker flags them as `unhealthy`.
-- **Health Status vs. Restart Policy**: It is important to distinguish between health status and process restarts. The `unhealthy` state indicates degraded dependencies but **does not** cause Docker to automatically restart the container. Container restarts are strictly governed by the `restart: unless-stopped` policy, which only triggers if the main Node process actually exits or crashes.
-- **Initialization Safeties**: These healthchecks run *after* the `db-migrator` successfully finishes. The db-migrator container acts as the definitive initialization gate.
-
-**Manual Troubleshooting**:
-To manually inspect the health status of a specific container:
-```bash
-docker inspect --format='{{json .State.Health}}' bookdianight-server
-```
-## 5. How to Deploy Updates
-The CI/CD pipeline is fully automated via GitHub Actions (`.github/workflows/deploy.yaml`).
-
-To deploy a new version to production, push a new Git tag that starts with `v` (e.g., `v1.0.13`).
-
-```bash
-git add .
-git commit -m "feat: added new feature"
-git switch main
-git merge development
-npm version patch -m "chore: release %s"
-git push origin main --follow-tags
-```
-
-Once pushed, GitHub Actions will detect the new tag, build the versioned images, whitelist itself in the firewall, pull the versioned images on the VPS, and execute the database migrations automatically.
+### Manual Actions Still Required
+- Restoring a PITR database requires manually updating the `DATABASE_URL` secret in GitHub Actions and the `.env` file on the Droplet to point to the new cluster URI.
+- Let's Encrypt certificates are tied to the local Droplet. Recreating the Droplet via Terraform requires running Certbot manually once to provision a new certificate before HTTPS traffic can resume.

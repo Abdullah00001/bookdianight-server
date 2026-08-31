@@ -2,205 +2,145 @@
 
 Welcome to the BookdiaNight Server project! This document outlines how to get up and running with the codebase as a new developer.
 
-## Architecture Overview
+## The Onboarding Path
 
-This project is a multi-service Node.js architecture with a single shared database. Services (like `scheduler`) run in their own Docker containers. We use **Prisma** for our ORM. All shared definitions (like the Prisma schema) and orchestration scripts live at the **root** of the project.
+To start developing, follow this exact sequence:
 
-> [!WARNING]
-> **This is a highly Docker-heavy project.**
-> Do not attempt to run this project or install local service dependencies on your host machine to run services natively. The environment is strictly containerized. Always follow the instructions below and run the project using Docker Compose.
+`CLONE` → `ENVIRONMENT` → `DOCKER` → `DATABASE` → `PRISMA` → `START SERVICES` → `VERIFY` → `START DEVELOPMENT`
+
+> [!IMPORTANT]
+> **AI AGENT RULE**: AI agents are strictly bound to this exact developer workflow. AI agents must use the existing tooling, generators, and Docker configurations defined here. They are not permitted to invent a separate AI workflow.
+
 ---
 
-## 1. Initial Setup (After Cloning)
+## 1. Prerequisites (Host Machine)
 
-Once you have cloned the repository to your local machine, follow these steps to set up your environment:
+This project relies heavily on Docker. You must install the following tools on your local machine before starting:
 
-### Prerequisites
-- [Docker & Docker Compose](https://docs.docker.com/get-docker/) installed.
-- [Node.js](https://nodejs.org/en/) (v22 recommended) installed locally for running root scripts.
+- **Git**: For version control.
+- **Node.js (v22 strictly)**: Used **only** to run the root automation scripts (like Prisma migrations and code generators). The actual application runs inside Alpine Linux Docker containers.
+- **npm (latest)**: Node package manager.
+- **Docker & Docker Compose**: The core orchestration engine. Ensure the Docker daemon is running.
 
-### Setup Steps
-1. **Install Root Dependencies**
-   Open a terminal at the root of the project and run:
+## 2. Clone & Initial Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Abdullah00001/bookdianight-server.git
+   cd bookdianight-server
+   ```
+2. **Install root dependencies:**
+   *(Executes on Host)*
    ```bash
    npm install
    ```
-   *(This installs the Prisma CLI and other shared dependencies required to manage the database schema.)*
 
-2. **Configure Environment Variables**
-   Copy the example environment file to create your local configuration:
+## 3. Environment Configuration
+
+You must configure local environment variables to allow the services to boot.
+
+1. **Copy the template:**
+   *(Executes on Host)*
    ```bash
    cp .env.example .env
    ```
-   > [!IMPORTANT]
-   > **Third-Party Credentials:** The default values in `.env.example` are pre-configured to work perfectly with the local Docker containers (like PostGIS and Redis). However, you **must** update the `SMTP_*` and `FIREBASE_*` variables with valid credentials or placeholders, otherwise the `worker` service will throw an error and crash on startup.
+2. **Configure sensitive keys:**
+   The `DATABASE_URL` and `REDIS_URL` are pre-configured to work with the local Docker containers out of the box.
+   **Crucially**, you must provide valid (or placeholder sandbox) credentials for `SMTP_*` and `FIREBASE_*`, otherwise the `worker` service will crash immediately on boot.
 
----
+## 4. Docker Infrastructure
 
-## 2. Starting the Project
+Do **NOT** install PostgreSQL or Redis on your host machine. We run all dependencies via Docker Compose.
 
-We run all services, including our PostGIS database and Redis, via Docker Compose.
-
-1. **Build and Start the Stack**
-   From the root directory, run:
+1. **Build and start the stack:**
+   *(Executes on Host)*
    ```bash
    docker compose up -d --build
    ```
-   *This command will download the necessary images, build the custom service images (e.g., the scheduler), and start them in the background (`-d`).*
+2. This command downloads the PostGIS and Redis images, builds the `server`, `worker`, and `scheduler` Node.js images, and starts everything in the background.
 
-2. **Verify Containers are Running**
-   You can check the status of your containers using:
+## 5. Database & Prisma Initialization
+
+Because the database runs in Docker but we edit our schema on the host, we use a two-step synchronization process.
+
+1. **Migrate the Database:**
+   *(Executes on Host, connects to Docker)*
    ```bash
-   docker compose ps
+   npm run prisma:migrate
    ```
-   *Ensure that `bookdianight-postgres`, `bookdianight-redis`, `bookdianight-scheduler`, and `bookdianight-worker` are marked as healthy/running.*
+   *This applies the `schema.prisma` to the local PostGIS container and generates the host's Prisma client.*
 
----
-
-## 3. Database Management: Migrate & Sync
-
-Because the database runs in a container but we author our schema on the host machine, we have a custom two-step workflow for Prisma:
-
-### Step A: Migrate the Database
-Whenever you first clone the project, or whenever you change the `prisma/schema.prisma` file, you need to push those changes to the database.
-
-From the root directory, run:
-```bash
-npm run prisma:migrate
-```
-*What this does:* Connects to the local PostGIS container (via port `5440`) and runs `npx prisma migrate dev`. It ensures your database schema is up-to-date and generates the Prisma client locally at the root.
-
-### Step B: Sync the Containers
-Our Node.js services run in Alpine Linux containers, which require a different Prisma query engine binary than your host machine (Mac/Windows/Ubuntu).
-
-After migrating, **you must sync the changes to the running containers**:
-```bash
-npm run prisma:sync
-```
-*What this does:* This script securely execs into the running Docker containers (like `bookdianight-scheduler`) and runs `npx prisma generate` from *inside* the container, ensuring the container has the correct binary for Alpine Linux.
+2. **Sync the Containers:**
+   *(Executes from Host, runs inside Docker)*
+   ```bash
+   npm run prisma:sync
+   ```
+   *This securely executes `npx prisma generate` inside the running Docker containers so they compile the correct Alpine Linux query engine binaries.*
 
 > [!IMPORTANT]
-> **Always run both commands sequentially whenever the schema changes!**
-> 1. `npm run prisma:migrate`
-> 2. `npm run prisma:sync`
+> Always run both commands sequentially whenever you change `prisma/schema.prisma`!
 
----
+## 6. Verify Services
 
-## 4. Development Workflow
+Check that all containers are healthy and running.
 
-Once the project is running and the database is synced, you are ready to develop!
+*(Executes on Host)*
+```bash
+docker compose ps
+```
+Ensure `server`, `worker`, `scheduler`, `postgres`, and `redis` are marked as **Up** or **healthy**.
 
-- **Hot Reloading:** The services (like `scheduler` and `worker`) are configured with `nodemon` and `tsx`. Changes made to `scheduler/src/**/*.ts` or `worker/src/**/*.ts` will automatically trigger a reload inside the Docker container.
-- **Viewing Logs:** To watch the live logs for a specific service:
+You can also view the logs of any specific service:
+```bash
+docker compose logs -f server
+```
+
+## 7. Start Development (Generators)
+
+You are now ready to develop! All code inside `server/`, `worker/`, and `scheduler/` will hot-reload automatically via `nodemon` when you save a file.
+
+We provide custom NPM scripts to eliminate boilerplate. Run these from the **Host** machine:
+
+### API Development (server)
+- `npm run create:version <version_name>`: Initializes a new API version.
+- `npm run create:module <module_name>`: Scaffolds a complete 8-file API module.
+- `npm run create:endpoint`: Interactively generates a strictly-typed controller, service, and auto-wires the route.
+
+### Background Jobs (worker)
+- `npm run create:queue <queue_name>`: Scaffolds a new BullMQ queue and mirrors it to the producers.
+- `npm run create:queue-job <queue_name> <job_name>`: Generates a perfectly typed job handler.
+- `npm run create:emailTemp`: Scaffolds a new HTML email template string.
+
+### Cron Jobs (scheduler)
+- `npm run create:job <job_name>`: Scaffolds a new scheduled chron job.
+
+## 8. Validation (Tests, Linting, Building)
+
+Before committing code, you must validate your changes.
+
+- **Linting & Formatting**: Enforced automatically on `git commit` via Husky and `lint-staged`.
+- **Manual Build Validation**: To ensure TypeScript compiles successfully (especially for strict types):
   ```bash
-  docker compose logs -f scheduler
-  docker compose logs -f worker
+  cd server && npm run build
+  cd ../worker && npm run build
+  cd ../scheduler && npm run build
   ```
-- **Redis UI:** We have included a Redis UI in the docker-compose stack. You can access it in your browser at `http://localhost:8083` (Credentials: admin / admin).
 
-### Adding a New Background Job (Scheduler)
-If you need to add a new scheduled task to the scheduler service:
-1. Run `npm run create:job <job-name>` from the root (e.g., `npm run create:job generate-reports`).
-2. This will automatically generate a correctly-typed boilerplate in `scheduler/src/app/jobs/<job-name>/`.
-3. Add your logic to the `.tasks.ts` file. The scheduler will automatically discover and register your job on startup!
+## 9. Common Errors
 
-### Adding a New Queue & Job (Worker)
-If you need to process tasks offloaded by BullMQ (e.g., sending push notifications, emails), use the worker service:
-1. To create a new queue, run `npm run create:queue <queue-name>` from the root (e.g., `npm run create:queue email`). This scaffolds the queue, typed interfaces, and the worker. It also automatically mirrors the queue definition to the `server` and `scheduler` so they can easily produce jobs!
-2. To add a job to that queue, run `npm run create:queue-job <queue-name> <job-name>` (e.g., `npm run create:queue-job email send-welcome`).
-3. This generates an isolated, fully typed job file inside the queue's `jobs/` directory. The queue's worker will dynamically auto-discover it!
-*Note: The worker service enforces strict typing. The `any` type is completely prohibited.*
+### "PrismaClient did not initialize yet"
+**Cause:** You changed the schema but forgot to sync the container.
+**Fix:** Run `npm run prisma:sync`.
 
-### Adding an Email Template (Worker)
-If you need to create a new HTML email template string:
-1. Run `npm run create:emailTemp` from the root.
-2. It will prompt you for the template name (e.g., `welcomeEmail`).
-3. It will automatically generate a perfectly formatted template file at `worker/src/app/templates/welcomeEmail.template.ts`.
-
-### Adding a New API Module & Endpoint (Server)
-If you need to build new backend API features, use our automated code generators to eliminate boilerplate and instantly register your routes:
-1. To create a completely new API version, run `npm run create:version` (e.g. `v2`). This automatically creates the routing structure and wires it into the main Express application.
-2. To create a new module, run `npm run create:module <module-name>` (e.g. `user`). This scaffolds all 8 module files (controllers, services, middlewares, routes, etc.) and auto-registers the module into your selected API version.
-3. To add a new route endpoint inside your module, run `npm run create:endpoint`. It interactively prompts you for the HTTP method, path, and status code, and then instantly generates a perfectly-typed `asyncHandler` Controller, a paired Service, and auto-wires the Express router!
-
-### Adding a New Service
-If you are tasked with adding a new microservice:
-1. Create a new folder at the root (e.g., `./notifications`).
-2. Add a `Dockerfile.dev` inside it (you can copy the one from `scheduler` as a template).
-3. Add the service to `docker-compose.yaml`.
-4. Ensure the service mounts the shared `prisma` directory as a volume (`- ./prisma:/app/prisma`).
-5. Update `scripts/prisma-sync.sh` to include a sync command for your new container!
-
----
-
-## 5. Code Quality & CI Pipeline
-
-To ensure the codebase remains clean and stable, we enforce strict code quality checks:
-
-### Local Tooling
-- **ESLint & Prettier:** The project is configured with strict linting (`eslint.config.mjs`) and formatting (`.prettierrc`) at the root.
-- **Husky & Lint-Staged:** Whenever you attempt to `git commit`, Husky intercepts it and runs ESLint and Prettier *only on your staged files*. If there are syntax errors or linting violations, the commit will be blocked.
-
-### Continuous Integration (CI)
-We have a two-step GitHub Actions pipeline:
-1. **CI Pipeline (`ci.yaml`):** Runs automatically on every push or PR to `main`. It installs dependencies, lints the code, runs tests, and compiles the TypeScript using the strict `scripts/build.sh` script.
-2. **Delivery Pipeline (`deploy.yaml`):** Runs *only* when a new Git tag (e.g., `v1.0.0`) is published. It builds the Docker images and pushes them to DigitalOcean Container Registry.
-
----
-
-## 6. Git Workflow & Commits
-
-To maintain a clean and understandable history, this repository follows strict standard practices for branching and committing.
-
-### Branching Strategy
-- **Never push directly to `main`.**
-- For any new feature, bug fix, or chore, **create a new branch** from `main`.
-  - Use descriptive branch names: `feature/add-login`, `bugfix/fix-cron-timezone`, `chore/update-deps`.
-- When your work is complete, open a **Pull Request (PR)** against `main`.
-- Follow standard PR practices: leave descriptive comments explaining your changes, and request a review before merging.
-
-### Conventional Commits
-We strictly adhere to the [Conventional Commits](https://www.conventionalcommits.org/) specification. This helps us automatically generate changelogs and understand the project history at a glance.
-
-**Format:**
-```
-<type>(<optional scope>): <description>
-```
-
-**Common Types:**
-- `feat`: A new feature
-- `fix`: A bug fix
-- `chore`: Routine tasks, maintenance, or dependency updates (no production code changes)
-- `docs`: Documentation only changes
-- `refactor`: A code change that neither fixes a bug nor adds a feature
-
-**Examples:**
-- `feat(scheduler): add email notification job`
-- `fix(worker): resolve redis connection drop`
-- `chore(deps): update prisma to version 6`
-
-Always use the imperative mood in your commit message descriptions (e.g., "change message" instead of "changed message").
-
----
-
-## 7. Troubleshooting & Common Friction Points
-
-New to the project? Here are the most common issues you might run into and how to solve them in seconds:
-
-### "PrismaClient did not initialize yet" Crash
-**Symptom:** You changed `schema.prisma` locally and nodemon crashed inside the container with `Error: @prisma/client did not initialize yet`.
-**Cause:** When you update your schema, the container needs to generate its Alpine-specific Prisma binary again. (Note: On a fresh `docker compose up`, this happens automatically now!).
-**Fix:** Run `npm run prisma:sync`. Once that finishes, nodemon will automatically recover or you can just save a file to trigger a reload.
-
-### ESLint / Prettier failing on commit
-**Symptom:** You try to `git commit` and Husky blocks it due to linting errors.
-**Fix:** Run `npm run format` and `npm run lint` in the respective service directories (e.g., `cd worker && npm run format`). Note that we enforce strict typing (no `any` allowed!).
+### ESLint failing on commit
+**Fix:** Run `npm run format` and `npm run lint` inside the specific service directory (e.g., `cd worker`). Fix the strict typing errors (no `any` allowed).
 
 ### Ports already in use
-**Symptom:** Docker fails to bind to ports `5440` (PostGIS), `6382` (Redis), or `8083` (Redis UI).
-**Fix:** Ensure you don't have local instances of Postgres or Redis running on your host machine occupying those specific mapping ports. If necessary, stop them or change the host mappings in `docker-compose.yaml` (do NOT change the internal container ports).
+**Fix:** Ensure you don't have local Postgres (5440) or Redis (6382) instances running on your host machine fighting the Docker containers for port bindings.
 
-### PrismaConfigEnvError: Missing required environment variable: DATABASE_URL
-**Symptom:** You try to manually run `npm run build` inside `scheduler/`, `worker/`, or `server/` locally and it crashes complaining about a missing `DATABASE_URL`.
-**Cause:** Our `prisma.config.ts` requires a database URL to parse the configuration when running `npx prisma generate` during the build step.
-**Fix:** Provide a dummy variable when running the build manually: `export DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"` then run `npm run build`. Note that the CI/CD pipeline does this automatically!
+## 10. Where to Read Next
+
+Now that you have the environment running:
+- Read [System Architecture](architecture.md) to understand how traffic flows.
+- Read [Services & Integrations](services.md) to understand how the worker queues function.
+- Read [Security Architecture](security.md) to understand authentication and JWTs.

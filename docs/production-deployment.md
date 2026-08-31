@@ -93,6 +93,18 @@ During a CI deployment, the following ephemeral firewall automation occurs:
 3. **Deployment**: The runner executes SCP and SSH.
 4. **Guaranteed Cleanup**: The workflow uses an `if: always()` cleanup step to strictly revoke the specific `/32` runner IP from the firewall, regardless of deployment success or failure.
 
+### 4.3 Healthchecks & Observability
+The production environment utilizes Docker-native healthchecks to ensure maximum visibility into application stability and dependency connectivity.
+- **Server Dependency Health**: The `server` container exposes a deep health check at `/health`. It natively queries PostgreSQL (`SELECT 1`) and Valkey (`PING`) with aggressive 3-second timeouts. If all dependencies are alive, it returns `HTTP 200`. If any dependency crashes, it instantly returns `HTTP 503` (Degraded), which prompts Docker to mark the container as `unhealthy`.
+- **Worker/Scheduler Process Health**: Because these services lack HTTP endpoints, Docker natively validates their execution by querying the internal process tree (`pidof node > /dev/null`). If the Node event loop fatally crashes without exiting the container, Docker flags them as `unhealthy`.
+- **Health Status vs. Restart Policy**: It is important to distinguish between health status and process restarts. The `unhealthy` state indicates degraded dependencies but **does not** cause Docker to automatically restart the container. Container restarts are strictly governed by the `restart: unless-stopped` policy, which only triggers if the main Node process actually exits or crashes.
+- **Initialization Safeties**: These healthchecks run *after* the `db-migrator` successfully finishes. The db-migrator container acts as the definitive initialization gate.
+
+**Manual Troubleshooting**:
+To manually inspect the health status of a specific container:
+```bash
+docker inspect --format='{{json .State.Health}}' bookdianight-server
+```
 ## 5. How to Deploy Updates
 The CI/CD pipeline is fully automated via GitHub Actions (`.github/workflows/deploy.yaml`).
 

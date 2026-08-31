@@ -16,6 +16,12 @@ services:
     depends_on:
       db-migrator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pidof node > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
   worker:
     image: ${DOCKER_USERNAME}/bookdianight-worker:${IMAGE_TAG:-latest}
@@ -26,6 +32,12 @@ services:
     depends_on:
       db-migrator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "pidof node > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
   server:
     image: ${DOCKER_USERNAME}/bookdianight-server:${IMAGE_TAG:-latest}
@@ -38,6 +50,12 @@ services:
     depends_on:
       db-migrator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 networks:
   bookdianight-network:

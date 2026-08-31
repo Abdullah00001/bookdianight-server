@@ -6,7 +6,7 @@ This document outlines the entire production infrastructure, CI/CD pipeline, and
 > **This is a highly Docker-heavy project.**
 > Do not attempt to run this project or install local service dependencies on your host machine to run services natively. The environment is strictly containerized. Always follow the instructions below and run the project using Docker Compose.
 ## 1. Architecture Overview
-We use an **Image-Centric Deployment Strategy**. 
+We use an **Image-Centric Deployment Strategy**.
 - The VPS **does not** contain any source code.
 - GitHub Actions automatically builds the Docker images and pushes them to DigitalOcean Container Registry.
 - The VPS only pulls the pre-built images and runs them using a production `docker-compose.yaml` file.
@@ -65,57 +65,46 @@ In your GitHub repository, go to **Settings > Secrets and variables > Actions** 
 
 | Secret Name | Description | Example |
 |---|---|---|
-| `DIGITALOCEAN_ACCESS_TOKEN` | Your DigitalOcean API token for the runner to authenticate with doctl. | `dop_v1_xxxxxxx` |
+| `DIGITALOCEAN_ACCESS_TOKEN` | Your DigitalOcean API token for the runner to authenticate with doctl (used for both Registry login and Firewall rules). | `dop_v1_xxxxxxx` |
 | `DO_REGISTRY_TOKEN` | Your DigitalOcean Registry Token for the Droplet to pull images. | `dop_v1_xxxxxxx` |
-| `DO_DROPLET_HOST` | The public IP address of your DigitalOcean Droplet. | `159.65.30.35` |
-| `DO_DROPLET_USER` | The SSH user on your Droplet. | `root` or `developer` |
 | `DO_SSH_PRIVATE_KEY` | The raw contents of the private key you generated (`cat ~/.ssh/gh_deploy_key`). | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
 
-## 4. How to Deploy Updates
-The CI/CD pipeline is fully automated via GitHub Actions (`.github/workflows/deploy.yml`).
+Additionally, add the following **Repository Variables**:
 
-To deploy a new version to production, you must merge your changes into `main` and push a new Git tag that starts with `v` (e.g., `v1.0.12`).
+| Variable Name | Description | Example |
+|---|---|---|
+| `DO_DROPLET_HOST` | The public IP address of your DigitalOcean Droplet. | `159.65.30.35` |
+| `DO_DROPLET_USER` | The SSH user on your Droplet. | `developer` |
+| `DO_ACCOUNT_EMAIL` | Email for DOCR authentication. | `you@domain.com` |
 
-### Standard Deployment Workflow
+## 4. Architecture & Security
 
-If you are working on the `development` branch and are ready to deploy to production, follow these exact steps:
+### 4.1 Immutable Image Tags & Rollbacks
+Production deployments no longer use the `:latest` tag. Instead, GitHub Actions injects the precise Git release tag (e.g., `v1.0.13`) into the deployment environment as `IMAGE_TAG`.
+- **Release Relationship**: When you push Git tag `v1.0.13`, the pipeline builds and tags the Docker images as `v1.0.13` and deploys that exact immutable tag.
+- **Rollback Procedure**: If a deployment fails, you can roll back instantly without waiting for a rebuild. Simply run GitHub Actions again for an older tag (e.g., `v1.0.12`), or manually execute `IMAGE_TAG=v1.0.12 docker compose up -d` on the Droplet.
+- **Database Rollbacks**: **IMPORTANT**: Database migrations (Prisma) are strictly forward-only. Rolling back the application image to `v1.0.12` does NOT roll back the database schema. If `v1.0.13` altered the schema, you must ensure your older application code can safely interface with the newer schema.
 
-1. **Commit and Push your development work:**
-   ```bash
-   git add .
-   git commit -m "feat: added new feature"
-   git push origin development
-   ```
+### 4.2 Firewall Automation
+To protect the SSH daemon from brute-force attacks, the DigitalOcean Cloud Firewall globally drops Port 22 connections by default.
+During a CI deployment, the following ephemeral firewall automation occurs:
+1. **Permanent vs Ephemeral**: Terraform manages the permanent firewall state (which allows only authorized static IPs).
+2. **Temporary Authorization**: GitHub Actions discovers its dynamic runner IP and temporarily adds it to the Cloud Firewall via `doctl`.
+3. **Deployment**: The runner executes SCP and SSH.
+4. **Guaranteed Cleanup**: The workflow uses an `if: always()` cleanup step to strictly revoke the specific `/32` runner IP from the firewall, regardless of deployment success or failure.
 
-2. **Switch to the main branch and merge:**
-   ```bash
-   git switch main
-   git pull origin main
-   git merge development
-   ```
+## 5. How to Deploy Updates
+The CI/CD pipeline is fully automated via GitHub Actions (`.github/workflows/deploy.yaml`).
 
-3. **Bump the version and create the tag:**
-   Instead of manually tagging, use the built-in NPM command which automatically updates your `package.json` version and creates an annotated git tag simultaneously:
-   ```bash
-   npm version patch -m "chore: release %s"
-   ```
-   *(Note: You can replace `patch` with a specific version like `1.0.12` or `minor` / `major`)*
+To deploy a new version to production, push a new Git tag that starts with `v` (e.g., `v1.0.13`).
 
-4. **Push the code and the tags to trigger the pipeline:**
-   ```bash
-   git push origin main --follow-tags
-   ```
+```bash
+git add .
+git commit -m "feat: added new feature"
+git switch main
+git merge development
+npm version patch -m "chore: release %s"
+git push origin main --follow-tags
+```
 
-Once pushed, GitHub Actions will detect the new `v*` tag and instantly begin deploying the new version directly to your production VPS!
-
-### What happens in the background?
-1. **GitHub Action Triggers:** The workflow detects the new `v*` tag.
-2. **Build Stage:** It checks out the code, logs into DigitalOcean Container Registry via `doctl`, and builds production-ready images for the `server`, `scheduler`, and `worker` components.
-3. **Push Stage:** The images are pushed to DO Registry as `registry.digitalocean.com/bookdianight-registry/bookdianight-{service}:latest` and `...:v*`.
-4. **Deploy Stage:** 
-   - GitHub Actions connects to the VPS via SSH.
-   - It runs `docker compose pull` to grab the fresh images for all services.
-   - It runs `docker compose up -d` to start the stack.
-   - The `db-migrator` service runs first as a one-shot container using the `bookdianight-server` image to execute `npx prisma migrate deploy` using the production `.env`.
-   - If the migration exits successfully (exit 0), the actual services (`server`, `worker`, `scheduler`) start sequentially using the newly migrated schema.
-   - If the migration fails (non-zero exit), the deployment is halted, and the application services will not start, protecting the environment from schema mismatches.
+Once pushed, GitHub Actions will detect the new tag, build the versioned images, whitelist itself in the firewall, pull the versioned images on the VPS, and execute the database migrations automatically.

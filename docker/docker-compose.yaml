@@ -1,6 +1,6 @@
 services:
   db-migrator:
-    image: ${DOCKER_USERNAME}/bookdianight-server:latest
+    image: ${DOCKER_USERNAME}/bookdianight-server:${IMAGE_TAG:-latest}
     container_name: bookdianight-db-migrator
     env_file: .env
     command: ["npx", "prisma", "migrate", "deploy"]
@@ -8,7 +8,7 @@ services:
       - bookdianight-network
     restart: "no"
   scheduler:
-    image: ${DOCKER_USERNAME}/bookdianight-scheduler:latest
+    image: ${DOCKER_USERNAME}/bookdianight-scheduler:${IMAGE_TAG:-latest}
     container_name: bookdianight-scheduler
     env_file: .env
     networks:
@@ -18,7 +18,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
   worker:
-    image: ${DOCKER_USERNAME}/bookdianight-worker:latest
+    image: ${DOCKER_USERNAME}/bookdianight-worker:${IMAGE_TAG:-latest}
     container_name: bookdianight-worker
     env_file: .env
     networks:
@@ -28,7 +28,7 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
   server:
-    image: ${DOCKER_USERNAME}/bookdianight-server:latest
+    image: ${DOCKER_USERNAME}/bookdianight-server:${IMAGE_TAG:-latest}
     container_name: bookdianight-server
     env_file: .env
     ports:

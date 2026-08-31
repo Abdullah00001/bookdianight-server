@@ -43,6 +43,9 @@ ENV NODE_ENV=production
 # Set a dummy DATABASE_URL so prisma generate succeeds during build
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
 
+# Create the temporary upload directory for Multer
+RUN mkdir -p public/temp
+
 # Copy necessary files from the build stage
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/prisma ./prisma

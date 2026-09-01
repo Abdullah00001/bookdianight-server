@@ -1,4 +1,4 @@
-import { env } from '@/env';
+import { companyInformation } from '@/const';
 
 const signupTemplate = `
 <!DOCTYPE html>
@@ -17,7 +17,7 @@ const signupTemplate = `
           <!-- Header -->
           <tr>
             <td align="center" style="padding:32px 24px 16px 24px;">
-              <img src="${env.S3_PUBLIC_URL}/attachments/50525ece-7156-4455-a6bb-f0c2f825a1c7-1787806422985.png" alt="Bookdianight" width="140" style="display:block;" />
+              <img src="${companyInformation.logo}" alt="${companyInformation.name}" width="140" style="display:block;" />
             </td>
           </tr>
  
@@ -32,7 +32,7 @@ const signupTemplate = `
           <tr>
             <td style="padding:32px 32px 8px 32px;">
               <h1 style="margin:0 0 12px 0; color:#ffffff; font-size:22px; font-weight:700;">
-                Welcome to Bookdianight 🎉
+                Welcome to ${companyInformation.name} 🎉
               </h1>
               <p style="margin:0 0 6px 0; color:#b3b3bd; font-size:15px; line-height:1.6;">
                 Hi <strong style="color:#ffffff;">{{name}}</strong>, your account has been created successfully.
@@ -81,18 +81,23 @@ const signupTemplate = `
           <tr>
             <td align="center" style="padding:24px 32px 32px 32px;">
               <p style="margin:0 0 8px 0; color:#6f6f7a; font-size:12px; line-height:1.6;">
-                Didn't sign up for Bookdianight? You can safely ignore this email.
+                Didn't sign up for ${companyInformation.name}? You can safely ignore this email.
               </p>
               <p style="margin:0 0 16px 0; color:#6f6f7a; font-size:12px; line-height:1.6;">
                 Need help? Contact us at
-                <a href="mailto:support@bookdianight.com" style="color:#8b5cf6; text-decoration:none;">support@bookdianight.com</a>
+                <a href="mailto:${companyInformation.email}" style="color:#8b5cf6; text-decoration:none;">${companyInformation.email}</a>
               </p>
               <p style="margin:0 0 16px 0; font-size:12px;">
-                <a href="https://bookdianight.com/terms" style="color:#8a8a94; text-decoration:underline; margin-right:12px;">Terms of Service</a>
-                <a href="https://bookdianight.com/privacy" style="color:#8a8a94; text-decoration:underline;">Privacy Policy</a>
+                <a href="${companyInformation.website}/terms" style="color:#8a8a94; text-decoration:underline; margin-right:12px;">Terms of Service</a>
+                <a href="${companyInformation.website}/privacy" style="color:#8a8a94; text-decoration:underline;">Privacy Policy</a>
+              </p>
+              <p style="margin:0 0 8px 0; color:#4a4a54; font-size:11px; line-height:1.6;">
+                ${companyInformation.legalName}<br />
+                ${companyInformation.address}<br />
+                ${companyInformation.phone}
               </p>
               <p style="margin:0; color:#4a4a54; font-size:11px;">
-                &copy; Bookdianight. All rights reserved.
+                ${companyInformation.copyright}
               </p>
             </td>
           </tr>

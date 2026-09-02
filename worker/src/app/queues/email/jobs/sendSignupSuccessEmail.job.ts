@@ -5,11 +5,16 @@ import { ISignupSuccessEmailJobData } from '@/app/queues/email/email.types';
 import signupTemplate from '@/app/templates/signup.template';
 import mailTransporter from '@/app/configs/nodemailer.config';
 import { mailOption } from '@/app/utils/system.utils';
-import { companyInformation } from '@/const';
+import { companyInformation, QUEUE_JOBS } from '@/const';
 import logger from '@/app/configs/logger.configs';
 
+/**
+ * This job will send a welcome email with otp to the user after successful signup
+ * @param data ISignupSuccessEmailJobData
+ * @param job Job
+ */
 const handler: IJobHandler<ISignupSuccessEmailJobData> = {
-  name: 'send-signup-success-email',
+  name: QUEUE_JOBS.SEND_SIGNUP_SUCCESS_EMAIL,
   handler: async (data: ISignupSuccessEmailJobData, job: Job) => {
     const { email, name, otp, otpExpireAt, traceId } = data;
     try {

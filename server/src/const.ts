@@ -277,6 +277,26 @@ export const REDIS_PREFIXES = {
  */
 export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-START
+  SIGNUP_USER_VERIFICATION_SUCCESSFUL: 'signup-user-verification-successful',
   SEND_SIGNUP_SUCCESS_EMAIL: 'send-signup-success-email',
   // AUTO-GENERATED-JOBS-END
 } as const;
+
+
+/**
+ * ==============================================
+ * ------------------AUTH ERROR TYPES------------
+ * ==============================================
+ */
+export enum AuthErrorType {
+  TOKEN_EXPIRED = 'TOKEN_EXPIRED',
+  TOKEN_INVALID = 'TOKEN_INVALID',
+  TOKEN_BLACKLISTED = 'TOKEN_BLACKLISTED',
+  USER_BLOCKED = 'USER_BLOCKED',
+  INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
+  DUPLICATE_DATA = 'DUPLICATE_DATA',
+  OTP_EXPIRED = 'OTP_EXPIRED',
+  INVALID_OTP = 'INVALID_OTP',
+  ACCESS_DENIED = 'ACCESS_DENIED',
+  USER_NOT_FOUND = 'USER_NOT_FOUND',
+}

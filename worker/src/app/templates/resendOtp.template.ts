@@ -34,10 +34,10 @@ const resendOtpTemplate = `
               <h1 style="margin:0 0 12px 0; color:#ffffff; font-size:24px; font-weight:700; letter-spacing:-0.5px;">
                 Here's your new code 🔑
               </h1>
-              <p style="margin:0 0 6px 0; color:#ffffff; font-size:16px; line-height:1.6;">
+              <p style="margin:0 0 6px 0; color:#e2e8f0; font-size:16px; line-height:1.6;">
                 Hi <strong style="color:#ffffff; font-weight:600;">{{name}}</strong>, we received a request for a new verification code.
               </p>
-              <p style="margin:0 0 20px 0; color:#ffffff; font-size:16px; line-height:1.6;">
+              <p style="margin:0 0 20px 0; color:#e2e8f0; font-size:16px; line-height:1.6;">
                 Use the code below to verify <strong style="color:#ffffff; font-weight:600;"><a href="mailto:{{email}}" style="color:#ffffff; text-decoration:none;">{{email}}</a></strong>. Your previous code is no longer valid.
               </p>
             </td>
@@ -64,7 +64,7 @@ const resendOtpTemplate = `
           <!-- Expiry note -->
           <tr>
             <td style="padding:0 32px 24px 32px;">
-              <p style="margin:0; color:#f8fafc; font-size:14px; line-height:1.6; text-align:center;">
+              <p style="margin:0; color:#94a3b8; font-size:14px; line-height:1.6; text-align:center;">
                 This code expires in <strong style="color:#f8fafc; font-weight:600;">{{otpExpireAt}} minutes</strong>. Do not share it with anyone.
               </p>
             </td>
@@ -95,20 +95,20 @@ const resendOtpTemplate = `
           <!-- Footer -->
           <tr>
             <td align="center" style="padding:24px 32px 32px 32px;">
-              <p style="margin:0 0 16px 0; color:#e2e8f0; font-size:13px; line-height:1.6;">
+              <p style="margin:0 0 16px 0; color:#64748b; font-size:13px; line-height:1.6;">
                 Need help? Contact us at
                 <a href="mailto:${companyInformation.email}" style="color:#8b5cf6; text-decoration:none; font-weight:500;">${companyInformation.email}</a>
               </p>
               <p style="margin:0 0 16px 0; font-size:13px;">
-                <a href="${companyInformation.website}/terms" style="color:#f8fafc; text-decoration:underline; margin-right:12px;">Terms of Service</a>
-                <a href="${companyInformation.website}/privacy" style="color:#f8fafc; text-decoration:underline;">Privacy Policy</a>
+                <a href="${companyInformation.website}/terms" style="color:#94a3b8; text-decoration:underline; margin-right:12px;">Terms of Service</a>
+                <a href="${companyInformation.website}/privacy" style="color:#94a3b8; text-decoration:underline;">Privacy Policy</a>
               </p>
-              <p style="margin:0 0 8px 0; color:#cbd5e1; font-size:12px; line-height:1.6;">
+              <p style="margin:0 0 8px 0; color:#475569; font-size:12px; line-height:1.6;">
                 ${companyInformation.legalName}<br />
                 ${companyInformation.address}<br />
                 ${companyInformation.phone}
               </p>
-              <p style="margin:0; color:#cbd5e1; font-size:12px;">
+              <p style="margin:0; color:#475569; font-size:12px;">
                 ${companyInformation.copyright}
               </p>
             </td>

@@ -1,6 +1,5 @@
 import { getRedisClient } from '@/app/configs/redis.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
-import { TSignupPayload } from '@/app/modules/auth/auth.schema';
 import { hashOtp } from '@/app/utils/otp.utils';
 import { hashPassword } from '@/app/utils/password.utils';
 import {
@@ -11,19 +10,33 @@ import {
 import { getEmailQueue } from '@/app/queues/email/email.queue';
 import prisma from '@/app/configs/db.configs';
 import { AuthProvider } from '@prisma/client';
-import { generateAccessTokenForUser } from '@/app/utils/jwt.utils';
+import {
+  generateAccessTokenForUser,
+  generateOtpPageToken,
+  verifyOtpPageToken,
+} from '@/app/utils/jwt.utils';
 import {
   locationExpireAt,
   otpExpireAt,
   QUEUE_JOBS,
   REDIS_PREFIXES,
 } from '@/const';
+import {
+  ISignupService,
+  IVerifySignupUserService,
+} from '@/app/modules/auth/auth.types';
+import { JwtPayload } from 'jsonwebtoken';
 
+/**
+ * Service for user signup.
+ * Creates a new user with the given payload.
+ * Generates an OTP and stores it in Redis.
+ * Adds a job to the email queue to send the OTP to the user.
+ * @returns Promise<{ token: string; }>
+ */
 export const signupService = async ({
   payload,
-}: {
-  payload: TSignupPayload;
-}): Promise<Record<string, unknown>> => {
+}: ISignupService): Promise<Record<string, unknown>> => {
   const redisClient = getRedisClient();
   const emailQueue = getEmailQueue();
   const traceId = getTraceId();
@@ -74,12 +87,11 @@ export const signupService = async ({
       });
       return user;
     });
-    const token = generateAccessTokenForUser({
-      sub: newUser.id,
-      rememberMe: true,
+    const token = generateOtpPageToken({
       accountStatus: newUser.accountStatus,
       role: newUser.accountRole,
       isVerified: newUser.isVerified,
+      sub: newUser.id,
     });
     const emailQueueData = {
       name: newUser.name,
@@ -110,6 +122,58 @@ export const signupService = async ({
       emailQueue.add(QUEUE_JOBS.SEND_SIGNUP_SUCCESS_EMAIL, emailQueueData),
     ]);
     return { token };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for verifying signup user.
+ * Verifies the OTP and updates the user status.
+ * Removes the OTP from Redis.
+ * @returns Promise<void>
+ */
+export const verifySignupUserService = async ({
+  token,
+  user,
+}: IVerifySignupUserService): Promise<Record<string, unknown>> => {
+  try {
+    const redisClient = getRedisClient();
+    const traceId = getTraceId();
+    const emailQueue = getEmailQueue();
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { isVerified: true },
+    });
+    const accessToken = generateAccessTokenForUser({
+      accountStatus: updatedUser.accountStatus,
+      role: updatedUser.accountRole,
+      isVerified: updatedUser.isVerified,
+      sub: updatedUser.id,
+      rememberMe: true,
+    });
+    const decoded = verifyOtpPageToken(token) as JwtPayload;
+    const tokenExpirationTime = decoded.exp as number;
+    const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
+    const ttl = Math.floor(tokenExpirationTime - currentTime); // remaining time in seconds
+    if (ttl > 0)
+      await redisClient.set(
+        createRedisKey(REDIS_PREFIXES.blacklist, token),
+        token as string,
+        'EX',
+        ttl
+      );
+    const emailData = {
+      name: updatedUser.name,
+      email: updatedUser.email,
+      traceId,
+    };
+    await Promise.all([
+      redisClient.del(createRedisKey(REDIS_PREFIXES.otp, updatedUser.id)),
+      emailQueue.add(QUEUE_JOBS.SIGNUP_USER_VERIFICATION_SUCCESSFUL, emailData),
+    ]);
+
+    return { token: accessToken };
   } catch (error) {
     throw error;
   }

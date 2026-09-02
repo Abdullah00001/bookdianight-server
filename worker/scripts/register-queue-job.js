@@ -23,13 +23,7 @@ const constantKey = jobNameKebab.toUpperCase().replace(/-/g, '_');
 // Use kebab-case string value
 const newEntry = `  ${constantKey}: '${jobNameKebab}',\n`;
 
-// Also update the newly generated job file to use kebab-case for its internal name
-const jobFilePath = path.join(__dirname, `../src/app/queues/${queueName}/jobs/${jobName}.job.ts`);
-if (fs.existsSync(jobFilePath)) {
-  const jobContent = fs.readFileSync(jobFilePath, 'utf8');
-  const updatedJobContent = jobContent.replace(`name: '${jobName}'`, `name: '${jobNameKebab}'`);
-  fs.writeFileSync(jobFilePath, updatedJobContent, 'utf8');
-}
+
 
 const targetFiles = [
   path.join(__dirname, '../../server/src/const.ts'),

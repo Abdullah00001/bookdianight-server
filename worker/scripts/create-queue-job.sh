@@ -28,18 +28,19 @@ if [ -f "$JOB_FILE" ]; then
   exit 1
 fi
 
-JOB_PASCAL=$(echo "$QUEUE_NAME" | awk -F- '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1' OFS="")
-JOB_NAME_PASCAL=$(echo "$JOB_NAME" | awk -F- '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1' OFS="")
+JOB_NAME_PASCAL="$(tr '[:lower:]' '[:upper:]' <<< ${JOB_NAME:0:1})${JOB_NAME:1}"
+JOB_CONSTANT_KEY=$(echo "$JOB_NAME" | sed 's/\([A-Z]\)/_\1/g' | tr 'a-z' 'A-Z')
 
 # Generate the job handler file
 cat > "$JOB_FILE" <<EOF
 import { Job } from 'bullmq';
 import { IJobHandler } from '@/app/@types/queue.types';
-import { I${JOB_PASCAL}JobData } from '../${QUEUE_NAME}.types';
+import { I${JOB_NAME_PASCAL} } from '@/app/queues/${QUEUE_NAME}/${QUEUE_NAME}.types';
+import { QUEUE_JOBS } from '@/const';
 
-const handler: IJobHandler<I${JOB_PASCAL}JobData> = {
-  name: '${JOB_NAME}',
-  handler: async (data: I${JOB_PASCAL}JobData, job: Job) => {
+const handler: IJobHandler<I${JOB_NAME_PASCAL}> = {
+  name: QUEUE_JOBS.${JOB_CONSTANT_KEY},
+  handler: async (data: I${JOB_NAME_PASCAL}, job: Job) => {
     // Write your processing logic here
     console.log(\`Executing \${job.name} with data:\`, data);
   }
@@ -47,6 +48,11 @@ const handler: IJobHandler<I${JOB_PASCAL}JobData> = {
 
 export default handler;
 EOF
+
+TYPES_FILE="$QUEUE_DIR/${QUEUE_NAME}.types.ts"
+if [ -f "$TYPES_FILE" ]; then
+  echo -e "\nexport interface I${JOB_NAME_PASCAL} {\n  // Add properties here\n}" >> "$TYPES_FILE"
+fi
 
 echo "✅ Successfully created job handler '$JOB_NAME' in queue '$QUEUE_NAME'!"
 echo "   - $JOB_FILE"

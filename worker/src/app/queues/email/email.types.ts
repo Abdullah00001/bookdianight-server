@@ -6,3 +6,9 @@ export interface ISignupSuccessEmailJobData {
   otpExpireAt: string;
   traceId: string;
 }
+
+export interface ISignupUserVerificationSuccessful {
+  name: string;
+  email: string;
+  traceId: string;
+}

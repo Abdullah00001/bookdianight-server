@@ -64,6 +64,7 @@ export const loadAllWorkers = (): Worker[] => {
             );
           }
         } catch (error) {
+          console.error('[Worker Registry Raw Error]', error);
           logger.error(
             `[Worker Registry] Failed to load worker module '${queueName}'`,
             { error }

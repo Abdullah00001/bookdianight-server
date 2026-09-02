@@ -1,18 +1,37 @@
 import { TFirebaseCredentials, TMailOption } from '@/app/@types/system.types';
 import { env } from '@/env';
+import { SendMailOptions } from 'nodemailer';
 
-export function mailOption(
-  to: string,
-  subject: string,
-  html: string
-): TMailOption {
-  const option: TMailOption = {
-    from: process.env.SMTP_USER as string,
+export function mailOption({
+  to,
+  subject,
+  html,
+  text,
+  cc,
+  bcc,
+  replyTo,
+  attachments,
+}: {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+  cc?: string | string[];
+  bcc?: string | string[];
+  replyTo?: string;
+  attachments?: SendMailOptions['attachments'];
+}): SendMailOptions {
+  return {
+    from: '"Bookdia Night" <no-reply@bookdianight.com>',
     to,
     subject,
     html,
+    ...(text && { text }),
+    ...(cc && { cc }),
+    ...(bcc && { bcc }),
+    ...(replyTo && { replyTo }),
+    ...(attachments && { attachments }),
   };
-  return option;
 }
 
 export function getFirebaseCredentials(): TFirebaseCredentials {

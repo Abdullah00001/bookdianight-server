@@ -54,3 +54,7 @@ The AI agent MUST stop and ask the user if:
 
 ## 15. SOURCE OF TRUTH PRINCIPLE
 **Existing repository documentation and tooling take precedence over an AI agent's preferred workflow.**
+
+## 16. NAMING CONVENTIONS
+- File names (`.ts`, `.js`), variable names, and function names MUST follow `camelCase` to adhere to JavaScript best practices.
+- The ONLY exception is script files located inside any `./scripts/` directories, which MUST follow `kebab-case` as per industry standards.

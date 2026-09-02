@@ -9,7 +9,7 @@ import crypto from 'crypto';
 import logger from '@/app/configs/logger.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { unlink } from 'fs/promises';
-import { OTPOptions } from '@/app/@types/system.types';
+import { OTPOptions, TRedisPrefix } from '@/app/@types/system.types';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -291,4 +291,48 @@ export function generate(length: number, options: OTPOptions): string {
   }
 
   return otp;
+}
+
+/**
+ * Safely constructs a standardized, colon-separated Redis key.
+ * * This utility acts as a defensive barrier against common runtime bugs by sanitizing
+ * dynamic inputs, trimming accidental whitespace, and completely preventing
+ * "undefined" or "null" strings from leaking into your database keys.
+ *
+ * @param prefix - The base namespace prefix from `REDIS_PREFIXES` (must not contain a trailing colon).
+ * @param parts - Variadic list of dynamic identifiers (IDs, tokens, slugs) to append to the key.
+ * * @returns A fully sanitized, colon-separated Redis key string (e.g., "user:otp:12345").
+ * * @throws {Error} If any argument in `parts` resolves to `undefined`, `null`, or an empty string `""`.
+ * * @example
+ * // 1. Standard dynamic key generation
+ * createRedisKey(REDIS_PREFIXES.otp, 12345);
+ * // Returns: "user:otp:12345"
+ * * @example
+ * // 2. Multi-part key generation
+ * createRedisKey(REDIS_PREFIXES.session, 'US', 'auth_token_xyz');
+ * // Returns: "user:session:US:auth_token_xyz"
+ * * @example
+ * // 3. Edge Case: Throws error instead of creating a corrupt key like "user:otp:undefined"
+ * const userId = undefined;
+ * createRedisKey(REDIS_PREFIXES.otp, userId);
+ * // Throws: [RedisKeyError] Invalid key component passed for prefix "user:otp". Received: undefined
+ */
+export function createRedisKey(
+  prefix: TRedisPrefix,
+  ...parts: (string | number)[]
+): string {
+  // Edge Case 1: Prevent empty, null, or undefined variables from turning into strings like "user:otp:undefined"
+  const validParts = parts.map((part) => {
+    if (part === undefined || part === null || part === '') {
+      throw new Error(
+        `[RedisKeyError] Invalid key component passed for prefix "${prefix}". Received: ${part}`
+      );
+    }
+    return String(part).trim();
+  });
+
+  // Edge Case 2 & 3: Sanitize slashes/spaces and join cleanly with a single colon
+  const joinedParts = validParts.join(':');
+
+  return joinedParts ? `${prefix}:${joinedParts}` : prefix;
 }

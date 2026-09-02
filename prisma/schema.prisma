@@ -71,7 +71,7 @@ model User {
   id            String        @id @default(uuid())
   name          String
   email         String        @unique
-  phoneNumber   String        @unique
+  phoneNumber   String        
   accountStatus AccountStatus @default(ACTIVE)
   accountRole   AccountRole   @default(USER)
   isVerified    Boolean       @default(false)

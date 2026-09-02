@@ -5,7 +5,7 @@ set -e
 if [ -z "$1" ] || [ -z "$2" ]; then
   echo "❌ Error: Please provide a queue name and a job name"
   echo "Usage: npm run create:queue-job <queue_name> <job_name>"
-  echo "Example: npm run create:queue-job email send-welcome"
+  echo "Example: npm run create:queue-job email sendWelcome"
   exit 1
 fi
 
@@ -50,3 +50,6 @@ EOF
 
 echo "✅ Successfully created job handler '$JOB_NAME' in queue '$QUEUE_NAME'!"
 echo "   - $JOB_FILE"
+
+# Automatically register the job key in const.ts files
+node worker/scripts/register-queue-job.js "$QUEUE_NAME" "$JOB_NAME"

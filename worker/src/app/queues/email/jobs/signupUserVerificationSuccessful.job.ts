@@ -31,7 +31,7 @@ const handler: IJobHandler<ISignupUserVerificationSuccessful> = {
       });
       await mailTransporter.sendMail(mailOptions);
     } catch (error) {
-      logger.error('Failed to send signup success email:', {
+      logger.error('Failed to send signup user verification success email:', {
         data,
         jobId: job.id,
         error,

@@ -80,10 +80,10 @@ const signupTemplate = `
           <!-- Footer -->
           <tr>
             <td align="center" style="padding:24px 32px 32px 32px;">
-              <p style="margin:0 0 8px 0; color:#e2e8f0; font-size:13px; line-height:1.6;">
+              <p style="margin:0 0 8px 0; color:#ffffff; font-size:13px; line-height:1.6;">
                 Didn't sign up for ${companyInformation.name}? You can safely ignore this email.
               </p>
-              <p style="margin:0 0 16px 0; color:#e2e8f0; font-size:13px; line-height:1.6;">
+              <p style="margin:0 0 16px 0; color:#ffffff; font-size:13px; line-height:1.6;">
                 Need help? Contact us at
                 <a href="mailto:${companyInformation.email}" style="color:#8b5cf6; text-decoration:none; font-weight:500;">${companyInformation.email}</a>
               </p>

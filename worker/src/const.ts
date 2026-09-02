@@ -24,6 +24,7 @@ export const emailInformation = {
  */
 export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-START
+  RESEND_VERIFICATION_OTP: 'resend-verification-otp',
   SIGNUP_USER_VERIFICATION_SUCCESSFUL: 'signup-user-verification-successful',
   SEND_SIGNUP_SUCCESS_EMAIL: 'send-signup-success-email',
   // AUTO-GENERATED-JOBS-END

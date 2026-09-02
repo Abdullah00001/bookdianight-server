@@ -22,6 +22,7 @@ import {
   REDIS_PREFIXES,
 } from '@/const';
 import {
+  IResendOtpService,
   ISignupService,
   IVerifySignupUserService,
 } from '@/app/modules/auth/auth.types';
@@ -174,6 +175,49 @@ export const verifySignupUserService = async ({
     ]);
 
     return { token: accessToken };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for resending OTP.
+ * Generates a new OTP and stores it in Redis.
+ * Adds a job to the email queue to send the OTP to the user.
+ * @returns Promise<void>
+ */
+export const resendOtpService = async ({
+  user,
+}: IResendOtpService): Promise<void> => {
+  try {
+    const traceId = getTraceId();
+    const redisClient = getRedisClient();
+    const emailQueue = getEmailQueue();
+    const otp = generate(6, {
+      digits: true,
+      lowerCaseAlphabets: false,
+      specialChars: false,
+      upperCaseAlphabets: false,
+    });
+    const hashedOtp = hashOtp({ otp });
+    const emailData = {
+      name: user.name,
+      email: user.email,
+      otp,
+      otpExpireAt,
+      traceId,
+    };
+    await Promise.all([
+      redisClient.del(createRedisKey(REDIS_PREFIXES.otp, user.id)),
+      redisClient.set(
+        createRedisKey(REDIS_PREFIXES.otp, user.id),
+        hashedOtp,
+        'EX',
+        calculateMilliseconds(otpExpireAt, 'minutes')
+      ),
+      emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailData),
+    ]);
+    return;
   } catch (error) {
     throw error;
   }

@@ -12,3 +12,11 @@ export interface ISignupUserVerificationSuccessful {
   email: string;
   traceId: string;
 }
+
+export interface IResendVerificationOtp {
+  name: string;
+  email: string;
+  otp: string;
+  otpExpireAt: number;
+  traceId: string;
+}

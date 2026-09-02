@@ -18,3 +18,10 @@ export interface IVerifySignupUserService {
   user: User;
   token:string;
 }
+
+/**
+ * Interface for resend otp service
+ */
+export interface IResendOtpService {
+  user: User;
+}

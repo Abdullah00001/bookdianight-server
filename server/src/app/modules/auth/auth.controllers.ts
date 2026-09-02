@@ -1,10 +1,7 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import {
-  signupService,
-  verifySignupUserService,
-} from '@/app/modules/auth/auth.services';
+import { signupService, verifySignupUserService, resendOtpService } from '@/app/modules/auth/auth.services';
 import {
   TSignupPayload
 } from '@/app/modules/auth/auth.schema';
@@ -52,6 +49,27 @@ export const verifySignupUserController = asyncHandler(
       message: 'Account verification successful',
       data,
       traceId,
+    });
+    return;
+  }
+);
+
+/**
+ * Controller for handling resend OTP requests.
+ * Calls the resend OTP service to resend the OTP.
+ * Returns the trace ID.
+ * @param req
+ * @param res
+ */
+export const resendOtpController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user=req.user as User;
+    await resendOtpService({user});
+    res.status(200).json({
+      success: true,
+      message: 'Otp resend successful',
+      traceId
     });
     return;
   }

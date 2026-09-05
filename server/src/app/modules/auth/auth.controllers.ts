@@ -1,9 +1,15 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import { signupService, verifySignupUserService, resendOtpService } from '@/app/modules/auth/auth.services';
 import {
-  TSignupPayload
+  signupService,
+  verifySignupUserService,
+  resendOtpService,
+  checkUserAccessTokenService,
+} from '@/app/modules/auth/auth.services';
+import {
+  TCheckAccessTokenPayload,
+  TSignupPayload,
 } from '@/app/modules/auth/auth.schema';
 import { User } from '@prisma/client';
 import { extractToken } from '@/app/utils/jwt.utils';
@@ -43,7 +49,7 @@ export const verifySignupUserController = asyncHandler(
     const traceId = getTraceId();
     const user = req.user as User;
     const token = extractToken(req) as string;
-    const data = await verifySignupUserService({  user, token });
+    const data = await verifySignupUserService({ user, token });
     res.status(200).json({
       success: true,
       message: 'Account verification successful',
@@ -64,12 +70,27 @@ export const verifySignupUserController = asyncHandler(
 export const resendOtpController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    const user=req.user as User;
-    await resendOtpService({user});
+    const user = req.user as User;
+    await resendOtpService({ user });
     res.status(200).json({
       success: true,
       message: 'Otp resend successful',
-      traceId
+      traceId,
+    });
+    return;
+  }
+);
+
+export const checkUserAccessTokenController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    const payload = req.body as TCheckAccessTokenPayload;
+    await checkUserAccessTokenService({ payload, user });
+    res.status(200).json({
+      success: true,
+      message: 'User is authenticated',
+      traceId,
     });
     return;
   }

@@ -1,6 +1,6 @@
 import {
+  TCheckAccessTokenPayload,
   TSignupPayload,
-  TVerifySignupUserPayload,
 } from '@/app/modules/auth/auth.schema';
 import { User } from '@prisma/client';
 
@@ -16,7 +16,7 @@ export interface ISignupService {
  */
 export interface IVerifySignupUserService {
   user: User;
-  token:string;
+  token: string;
 }
 
 /**
@@ -24,4 +24,9 @@ export interface IVerifySignupUserService {
  */
 export interface IResendOtpService {
   user: User;
+}
+
+export interface ICheckAccessTokenService {
+  user: User;
+  payload: TCheckAccessTokenPayload;
 }

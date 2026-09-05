@@ -22,6 +22,7 @@ import {
   REDIS_PREFIXES,
 } from '@/const';
 import {
+  ICheckAccessTokenService,
   IResendOtpService,
   ISignupService,
   IVerifySignupUserService,
@@ -217,6 +218,19 @@ export const resendOtpService = async ({
       ),
       emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailData),
     ]);
+    return;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const checkUserAccessTokenService = async ({
+  payload,
+  user,
+}: ICheckAccessTokenService): Promise<void> => {
+  try {
+    // const { fcmToken, lat, lng, platform } = payload;
+    console.log(payload, user);
     return;
   } catch (error) {
     throw error;

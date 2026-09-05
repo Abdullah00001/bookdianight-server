@@ -41,3 +41,17 @@ export const verifySignupUserSchema = z
  * Type for verifying signup user.
  */
 export type TVerifySignupUserPayload = z.infer<typeof verifySignupUserSchema>;
+
+export const checkAccessTokenSchema = z
+  .object({
+    lat: z.number(),
+    lng: z.number(),
+    platform: z.enum(['ANDROID', 'IOS']),
+    fcmToken: z.string().min(1, 'FCM Token is required'),
+  })
+  .strict();
+
+/**
+ * Type for check access token.
+ */
+export type TCheckAccessTokenPayload = z.infer<typeof checkAccessTokenSchema>;

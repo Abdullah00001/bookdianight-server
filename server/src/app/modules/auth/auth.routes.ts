@@ -3,37 +3,57 @@ import {
   signupController,
   verifySignupUserController,
   resendOtpController,
+  checkUserAccessTokenController,
 } from '@/app/modules/auth/auth.controllers';
 import { validateReqBody } from '@/app/utils/system.utils';
 import {
+  checkAccessTokenSchema,
   signupSchema,
   verifySignupUserSchema,
 } from '@/app/modules/auth/auth.schema';
 import {
-  checkOtp,
-  checkOtpPageToken,
-  checkSignupUserExists,
-  checkUserExistence,
+  checkOtpMiddleware,
+  checkOtpPageTokenMiddleware,
+  checkSignupUserExistsMiddleware,
+  checkUserExistenceMiddleware,
+  checkUserAccessTokenMiddleware,
 } from '@/app/modules/auth/auth.middlewares';
 
 const router = Router();
 
 router
   .route('/auth/signup')
-  .post(validateReqBody(signupSchema), checkSignupUserExists, signupController);
+  .post(
+    validateReqBody(signupSchema),
+    checkSignupUserExistsMiddleware,
+    signupController
+  );
 
 router
   .route('/auth/verify')
   .post(
-    checkOtpPageToken,
-    checkUserExistence,
+    checkOtpPageTokenMiddleware,
+    checkUserExistenceMiddleware,
     validateReqBody(verifySignupUserSchema),
-    checkOtp,
+    checkOtpMiddleware,
     verifySignupUserController
   );
 
 router
   .route('/auth/resend')
-  .post(checkOtpPageToken, checkUserExistence, resendOtpController);
+  .post(
+    checkOtpPageTokenMiddleware,
+    checkUserExistenceMiddleware,
+    resendOtpController
+  );
+
+router
+  .route('/auth/check')
+  .post(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    validateReqBody(checkAccessTokenSchema),
+    checkUserAccessTokenController
+  );
 
 export default router;

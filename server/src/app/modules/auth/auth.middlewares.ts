@@ -1,9 +1,16 @@
 import { NextFunction, Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler, createRedisKey } from '@/app/utils/system.utils';
-import { TSignupPayload } from '@/app/modules/auth/auth.schema';
+import {
+  TCheckAccessTokenPayload,
+  TSignupPayload,
+} from '@/app/modules/auth/auth.schema';
 import prisma from '@/app/configs/db.configs';
-import { extractToken, verifyOtpPageToken } from '@/app/utils/jwt.utils';
+import {
+  extractToken,
+  verifyAccessToken,
+  verifyOtpPageToken,
+} from '@/app/utils/jwt.utils';
 import { getRedisClient } from '@/app/configs/redis.configs';
 import { AuthErrorType, REDIS_PREFIXES } from '@/const';
 import { JwtPayload } from 'jsonwebtoken';
@@ -18,7 +25,7 @@ import { User } from '@prisma/client';
  * @param res Response
  * @param next NextFunction
  */
-export const checkSignupUserExists = asyncHandler(
+export const checkSignupUserExistsMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const traceId = getTraceId();
     const { email } = req.body as TSignupPayload;
@@ -42,7 +49,7 @@ export const checkSignupUserExists = asyncHandler(
  * @param res Response
  * @param next NextFunction
  */
-export const checkOtpPageToken = asyncHandler(
+export const checkOtpPageTokenMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const traceId = getTraceId();
     const token = extractToken(req);
@@ -67,16 +74,25 @@ export const checkOtpPageToken = asyncHandler(
       return;
     }
     const decoded = verifyOtpPageToken(token);
-    if (!decoded) {
+    if (decoded.error) {
+      if (decoded.error === AuthErrorType.TOKEN_EXPIRED) {
+        res.status(401).json({
+          success: false,
+          message: 'Token has been expired',
+          errorType: AuthErrorType.TOKEN_EXPIRED,
+          traceId,
+        });
+        return;
+      }
       res.status(401).json({
         success: false,
-        message: 'Invalid or expired token',
+        message: 'Token is invalid',
         errorType: AuthErrorType.TOKEN_INVALID,
         traceId,
       });
       return;
     }
-    req.user = decoded as JwtPayload;
+    req.user = decoded.data as JwtPayload;
     return next();
   }
 );
@@ -90,7 +106,7 @@ export const checkOtpPageToken = asyncHandler(
  * @param next NextFunction
  */
 
-export const checkOtp = asyncHandler(
+export const checkOtpMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const traceId = getTraceId();
     const user = req.user as User;
@@ -131,7 +147,7 @@ export const checkOtp = asyncHandler(
  * @param res Response
  * @param next NextFunction
  */
-export const checkUserExistence = asyncHandler(
+export const checkUserExistenceMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const traceId = getTraceId();
     const user = req.user as JwtPayload;
@@ -150,5 +166,55 @@ export const checkUserExistence = asyncHandler(
     }
     req.user = isUserExist as User;
     next();
+  }
+);
+
+export const checkUserAccessTokenMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const token = extractToken(req);
+    const redisClient = getRedisClient();
+    if (!token) {
+      res.status(401).json({
+        success: false,
+        message: 'Token not found',
+        errorType: AuthErrorType.TOKEN_INVALID,
+        traceId,
+      });
+      return;
+    }
+    const isBlackListed = await redisClient.get(
+      createRedisKey(REDIS_PREFIXES.blacklist, token)
+    );
+    if (isBlackListed) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        errorType: AuthErrorType.TOKEN_BLACKLISTED,
+        traceId,
+      });
+      return;
+    }
+    const decoded = verifyAccessToken(token);
+    if (decoded.error) {
+      if (decoded.error === AuthErrorType.TOKEN_EXPIRED) {
+        res.status(401).json({
+          success: false,
+          message: 'Token has been expired',
+          errorType: AuthErrorType.TOKEN_EXPIRED,
+          traceId,
+        });
+        return;
+      }
+      res.status(401).json({
+        success: false,
+        message: 'Token is invalid',
+        errorType: AuthErrorType.TOKEN_INVALID,
+        traceId,
+      });
+      return;
+    }
+    req.user = decoded.data as JwtPayload;
+    return next();
   }
 );

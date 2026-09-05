@@ -1,7 +1,7 @@
 import { getRedisClient } from '@/app/configs/redis.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { hashOtp } from '@/app/utils/otp.utils';
-import { hashPassword } from '@/app/utils/password.utils';
+import { hashPassword, comparePassword } from '@/app/utils/password.utils';
 import {
   calculateMilliseconds,
   createRedisKey,
@@ -23,6 +23,7 @@ import {
 } from '@/const';
 import {
   ICheckAccessTokenService,
+  ILoginService,
   IResendOtpService,
   ISignupService,
   IVerifySignupUserService,
@@ -43,16 +44,8 @@ export const signupService = async ({
   const emailQueue = getEmailQueue();
   const traceId = getTraceId();
   try {
-    const {
-      email,
-      lat,
-      lng,
-      location,
-      name,
-      password,
-      phoneNumber,
-      role,
-    } = payload;
+    const { email, lat, lng, location, name, password, phoneNumber, role } =
+      payload;
     const hashPass = await hashPassword(password);
     const otp = generate(6, {
       digits: true,
@@ -271,6 +264,126 @@ export const checkUserAccessTokenService = async ({
     }
 
     return;
+  } catch (error) {
+    throw error;
+  }
+};
+/**
+ * Service for user login.
+ * Validates credentials, checks account status, manages Device creation/updates/reassignment,
+ * and returns the appropriate JWT (access token or OTP token).
+ * @returns Promise<{ token: string; }>
+ */
+export const loginService = async ({
+  payload,
+}: ILoginService): Promise<Record<string, unknown>> => {
+  try {
+    const {
+      email,
+      password,
+      deviceIdentifier,
+      platform,
+      fcmToken,
+      rememberMe,
+    } = payload;
+
+    // 1. Find User by email
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || !user.password) {
+      throw new Error('Invalid credentials');
+    }
+
+    // 2. Verify password
+    const isPasswordValid = await comparePassword(password, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Invalid credentials');
+    }
+
+    // 3. Verify account status
+    if (user.accountStatus === 'BLOCKED' || user.accountStatus === 'INACTIVE') {
+      throw new Error('Account is blocked or inactive');
+    }
+
+    // 4. Handle Unverified Users
+    if (!user.isVerified) {
+      // Reuse existing OTP mechanism if not verified
+      const traceId = getTraceId();
+      const redisClient = getRedisClient();
+      const emailQueue = getEmailQueue();
+
+      const otp = generate(6, {
+        digits: true,
+        lowerCaseAlphabets: false,
+        specialChars: false,
+        upperCaseAlphabets: false,
+      });
+      const hashedOtp = hashOtp({ otp });
+
+      const token = generateOtpPageToken({
+        accountStatus: user.accountStatus,
+        role: user.accountRole,
+        isVerified: user.isVerified,
+        sub: user.id,
+        deviceId: 'pending',
+      });
+
+      const emailQueueData = {
+        name: user.name,
+        email: user.email,
+        otp,
+        otpExpireAt,
+        traceId,
+      };
+
+      await Promise.all([
+        redisClient.set(
+          createRedisKey(REDIS_PREFIXES.otp, user.id),
+          hashedOtp,
+          'EX',
+          calculateMilliseconds(otpExpireAt, 'minutes')
+        ),
+        emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailQueueData),
+      ]);
+
+      return { token };
+    }
+
+    // 5 & 6. Resolve and manage Device
+    // We upsert: if it doesn't exist, create it (CASE A).
+    // If it exists (CASE B or CASE C), update it and reassign userId.
+    const device = await prisma.device.upsert({
+      where: { deviceIdentifier },
+      create: {
+        deviceIdentifier,
+        fcmToken: fcmToken || null,
+        platform,
+        authProvider: AuthProvider.MANUAL,
+        userId: user.id,
+        isActive: true,
+      },
+      update: {
+        userId: user.id, // Handles CASE C (reassignment) silently, and is a no-op for CASE B
+        platform,
+        lastSeenAt: new Date(),
+        isActive: true,
+        ...(fcmToken ? { fcmToken } : {}), // Update fcmToken only if provided
+      },
+    });
+
+    // 7. Generate access JWT with Device.id
+    const accessToken = generateAccessTokenForUser({
+      accountStatus: user.accountStatus,
+      role: user.accountRole,
+      isVerified: user.isVerified,
+      sub: user.id,
+      deviceId: device.id,
+      rememberMe: rememberMe ?? false,
+    });
+
+    return { token: accessToken };
   } catch (error) {
     throw error;
   }

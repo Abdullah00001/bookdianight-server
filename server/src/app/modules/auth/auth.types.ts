@@ -1,5 +1,6 @@
 import {
   TCheckAccessTokenPayload,
+  TLoginPayload,
   TSignupPayload,
   TVerifySignupUserPayload,
 } from '@/app/modules/auth/auth.schema';
@@ -34,4 +35,8 @@ export interface ICheckAccessTokenService {
   user: User;
   payload: TCheckAccessTokenPayload;
   jwtPayload: JwtPayload;
+}
+
+export interface ILoginService {
+  payload: TLoginPayload;
 }

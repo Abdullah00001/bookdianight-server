@@ -46,6 +46,9 @@ export const verifySignupUserSchema = z
  */
 export type TVerifySignupUserPayload = z.infer<typeof verifySignupUserSchema>;
 
+/**
+ * Schema for check access token.
+ */
 export const checkAccessTokenSchema = z
   .object({
     deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
@@ -60,3 +63,22 @@ export const checkAccessTokenSchema = z
  * Type for check access token.
  */
 export type TCheckAccessTokenPayload = z.infer<typeof checkAccessTokenSchema>;
+
+/**
+ * Schema for user login.
+ */
+export const loginSchema = z
+  .object({
+    email: z.string().email('Invalid email'),
+    password: z.string().min(6, 'Password must be at least 6 characters long'),
+    deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
+    platform: z.enum(['ANDROID', 'IOS']),
+    fcmToken: z.string().optional(),
+    rememberMe: z.boolean().optional().default(false),
+  })
+  .strict();
+
+/**
+ * Type for user login.
+ */
+export type TLoginPayload = z.infer<typeof loginSchema>;

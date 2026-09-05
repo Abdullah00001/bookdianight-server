@@ -6,10 +6,12 @@ import {
   verifySignupUserService,
   resendOtpService,
   checkUserAccessTokenService,
+  loginService,
 } from '@/app/modules/auth/auth.services';
 import {
   TCheckAccessTokenPayload,
   TSignupPayload,
+  TLoginPayload,
 } from '@/app/modules/auth/auth.schema';
 import { User } from '@prisma/client';
 import { extractToken } from '@/app/utils/jwt.utils';
@@ -92,6 +94,27 @@ export const checkUserAccessTokenController = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'User is authenticated',
+      traceId,
+    });
+    return;
+  }
+);
+/**
+ * Controller for handling login requests.
+ * Calls the login service to authenticate the user.
+ * Returns the trace ID and access token.
+ * @param req
+ * @param res
+ */
+export const loginController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const payload = req.body as TLoginPayload;
+    const data = await loginService({ payload });
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data,
       traceId,
     });
     return;

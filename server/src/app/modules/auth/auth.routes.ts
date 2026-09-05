@@ -4,12 +4,14 @@ import {
   verifySignupUserController,
   resendOtpController,
   checkUserAccessTokenController,
+  loginController,
 } from '@/app/modules/auth/auth.controllers';
 import { validateReqBody } from '@/app/utils/system.utils';
 import {
   checkAccessTokenSchema,
   signupSchema,
   verifySignupUserSchema,
+  loginSchema,
 } from '@/app/modules/auth/auth.schema';
 import {
   checkOtpMiddleware,
@@ -28,6 +30,8 @@ router
     checkSignupUserExistsMiddleware,
     signupController
   );
+
+router.route('/auth/login').post(validateReqBody(loginSchema), loginController);
 
 router
   .route('/auth/verify')

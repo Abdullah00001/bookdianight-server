@@ -49,7 +49,8 @@ export const verifySignupUserController = asyncHandler(
     const traceId = getTraceId();
     const user = req.user as User;
     const token = extractToken(req) as string;
-    const data = await verifySignupUserService({ user, token });
+    const payload = req.body;
+    const data = await verifySignupUserService({ user, token, payload });
     res.status(200).json({
       success: true,
       message: 'Account verification successful',
@@ -86,7 +87,8 @@ export const checkUserAccessTokenController = asyncHandler(
     const traceId = getTraceId();
     const user = req.user as User;
     const payload = req.body as TCheckAccessTokenPayload;
-    await checkUserAccessTokenService({ payload, user });
+    const jwtPayload = req.jwtPayload as any;
+    await checkUserAccessTokenService({ payload, user, jwtPayload });
     res.status(200).json({
       success: true,
       message: 'User is authenticated',

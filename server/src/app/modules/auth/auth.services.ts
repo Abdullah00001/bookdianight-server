@@ -45,14 +45,12 @@ export const signupService = async ({
   try {
     const {
       email,
-      fcmToken,
       lat,
       lng,
       location,
       name,
       password,
       phoneNumber,
-      platform,
       role,
     } = payload;
     const hashPass = await hashPassword(password);
@@ -79,14 +77,6 @@ export const signupService = async ({
           userId: user.id,
         },
       });
-      await tx.device.create({
-        data: {
-          authProvider: AuthProvider.MANUAL,
-          platform,
-          fcmToken,
-          userId: user.id,
-        },
-      });
       return user;
     });
     const token = generateOtpPageToken({
@@ -94,6 +84,7 @@ export const signupService = async ({
       role: newUser.accountRole,
       isVerified: newUser.isVerified,
       sub: newUser.id,
+      deviceId: 'pending',
     });
     const emailQueueData = {
       name: newUser.name,
@@ -138,20 +129,41 @@ export const signupService = async ({
 export const verifySignupUserService = async ({
   token,
   user,
+  payload,
 }: IVerifySignupUserService): Promise<Record<string, unknown>> => {
   try {
     const redisClient = getRedisClient();
     const traceId = getTraceId();
     const emailQueue = getEmailQueue();
+    const { deviceIdentifier, fcmToken, platform } = payload;
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: { isVerified: true },
+    });
+    const device = await prisma.device.upsert({
+      where: { deviceIdentifier },
+      create: {
+        deviceIdentifier,
+        fcmToken: fcmToken || null,
+        platform,
+        authProvider: AuthProvider.MANUAL,
+        userId: user.id,
+        isActive: true,
+      },
+      update: {
+        userId: user.id,
+        fcmToken: fcmToken || null,
+        platform,
+        lastSeenAt: new Date(),
+        isActive: true,
+      },
     });
     const accessToken = generateAccessTokenForUser({
       accountStatus: updatedUser.accountStatus,
       role: updatedUser.accountRole,
       isVerified: updatedUser.isVerified,
       sub: updatedUser.id,
+      deviceId: device.id,
       rememberMe: true,
     });
     const decoded = verifyOtpPageToken(token) as JwtPayload;
@@ -226,11 +238,38 @@ export const resendOtpService = async ({
 
 export const checkUserAccessTokenService = async ({
   payload,
-  user,
+  jwtPayload,
 }: ICheckAccessTokenService): Promise<void> => {
   try {
-    // const { fcmToken, lat, lng, platform } = payload;
-    console.log(payload, user);
+    const { deviceIdentifier, fcmToken } = payload;
+    const { sub, deviceId } = jwtPayload;
+
+    const device = await prisma.device.findUnique({
+      where: { id: deviceId },
+    });
+
+    if (!device) {
+      throw new Error('Device not found or invalid device context');
+    }
+
+    if (device.userId !== sub || device.deviceIdentifier !== deviceIdentifier) {
+      throw new Error('Invalid device context');
+    }
+
+    // Throttle lastSeenAt updates to at most once per hour to minimize DB writes
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const shouldUpdateLastSeenAt = device.lastSeenAt < oneHourAgo;
+
+    if (shouldUpdateLastSeenAt || (fcmToken && device.fcmToken !== fcmToken)) {
+      await prisma.device.update({
+        where: { id: device.id },
+        data: {
+          lastSeenAt: shouldUpdateLastSeenAt ? new Date() : undefined,
+          fcmToken: fcmToken ? fcmToken : undefined,
+        },
+      });
+    }
+
     return;
   } catch (error) {
     throw error;

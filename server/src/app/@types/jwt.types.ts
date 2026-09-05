@@ -4,6 +4,7 @@ import { Socket } from 'socket.io';
 
 export interface ITokenPayload extends JwtPayload {
   sub: string;
+  deviceId: string;
   rememberMe?: boolean;
   role: AccountRole;
   isVerified: boolean;

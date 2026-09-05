@@ -12,6 +12,7 @@ declare global {
       fileRequired: boolean;
       files?: { [fieldname: string]: Express.Multer.File[] };
       user: JwtPayload | User;
+      jwtPayload?: JwtPayload;
       profile:Profile
       validatedQuery?: unknown;
     }

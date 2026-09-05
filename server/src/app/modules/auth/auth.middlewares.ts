@@ -2,7 +2,6 @@ import { NextFunction, Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler, createRedisKey } from '@/app/utils/system.utils';
 import {
-  TCheckAccessTokenPayload,
   TSignupPayload,
 } from '@/app/modules/auth/auth.schema';
 import prisma from '@/app/configs/db.configs';
@@ -164,6 +163,7 @@ export const checkUserExistenceMiddleware = asyncHandler(
       });
       return;
     }
+    req.jwtPayload = user;
     req.user = isUserExist as User;
     next();
   }

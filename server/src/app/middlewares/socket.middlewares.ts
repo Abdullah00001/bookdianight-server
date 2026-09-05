@@ -52,11 +52,11 @@ export const socketAuthMiddleware = async (
       return next(new Error('UNAUTHORIZED: Token blacklisted'));
     }
     const decoded = verifyAccessToken(token);
-    if (!decoded) {
+    if (decoded.error || !decoded.data) {
       logger.warn(`Socket auth failed — Invalid token: ${socket.id}`);
       return next(new Error('UNAUTHORIZED: Invalid token provided'));
     }
-    const user = await prisma.user.findUnique({ where: { id: decoded.sub } });
+    const user = await prisma.user.findUnique({ where: { id: decoded.data.sub } });
     if (!user) {
       logger.warn(`Socket auth failed — user not found: ${socket.id}`);
       return next(new Error('UNAUTHORIZED: User not found'));
@@ -73,7 +73,7 @@ export const socketAuthMiddleware = async (
       requestContext.run({ traceId: packetTraceId }, () => nextPacket());
     });
 
-    logger.info(`Socket authenticated — userId: ${decoded?.sub}`);
+    logger.info(`Socket authenticated — userId: ${decoded.data.sub}`);
     next();
   } catch (err) {
     if (err instanceof TokenExpiredError) {

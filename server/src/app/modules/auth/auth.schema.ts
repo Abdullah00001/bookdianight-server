@@ -11,7 +11,8 @@ export const signupSchema = z
     phoneNumber: z.string().min(5, 'Phone number is required'),
     location: z.string().min(1, 'Location is required'),
     password: z.string().min(6, 'Password must be at least 6 characters long'),
-    fcmToken: z.string().min(1, 'FCM Token is required'),
+    deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
+    fcmToken: z.string().optional(),
     lat: z.number(),
     lng: z.number(),
     platform: z.enum(['ANDROID', 'IOS']),
@@ -34,6 +35,9 @@ export const verifySignupUserSchema = z
       .min(1, 'OTP cannot be empty')
       .length(6, 'OTP must be exactly 6 characters long')
       .regex(/^\d+$/, 'OTP must contain numbers only'),
+    deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
+    fcmToken: z.string().optional(),
+    platform: z.enum(['ANDROID', 'IOS']),
   })
   .strict();
 
@@ -44,10 +48,11 @@ export type TVerifySignupUserPayload = z.infer<typeof verifySignupUserSchema>;
 
 export const checkAccessTokenSchema = z
   .object({
+    deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
     lat: z.number(),
     lng: z.number(),
     platform: z.enum(['ANDROID', 'IOS']),
-    fcmToken: z.string().min(1, 'FCM Token is required'),
+    fcmToken: z.string().optional(),
   })
   .strict();
 

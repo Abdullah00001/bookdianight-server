@@ -1,9 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler, createRedisKey } from '@/app/utils/system.utils';
-import {
-  TSignupPayload,
-} from '@/app/modules/auth/auth.schema';
+import { TSignupPayload } from '@/app/modules/auth/auth.schema';
 import prisma from '@/app/configs/db.configs';
 import {
   extractToken,
@@ -33,6 +31,7 @@ export const checkSignupUserExistsMiddleware = asyncHandler(
       return res.status(409).json({
         success: false,
         message: 'User with this email already exist',
+        errorType: AuthErrorType.USER_ALREADY_EXISTS,
         traceId,
       });
     }

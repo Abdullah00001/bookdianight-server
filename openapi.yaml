@@ -1,0 +1,646 @@
+openapi: 3.0.3
+info:
+  title: BookDiaNight API
+  version: 1.0.0
+  description: API documentation for the BookDiaNight backend.
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+  - url: https://api.bookdianight.com
+    description: Production server
+
+tags:
+  - name: Health
+    description: System health and status endpoints
+  - name: Auth
+    description: Authentication and device management endpoints
+  - name: Media
+    description: Public media and file upload endpoints
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer token for authentication. 
+        Note: The `/auth/verify` and `/auth/resend` endpoints expect the OTP-page pending verification token, 
+        whereas `/auth/check` expects the standard user access token.
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        traceId:
+          type: string
+          format: uuid
+      required:
+        - success
+        - message
+        - traceId
+
+    TokenResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+              required:
+                - token
+
+    MediaResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: string
+                format: uri
+              description: Array of S3 URLs for uploaded files
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Server Is Running
+        dependencies:
+          type: object
+          properties:
+            database:
+              type: string
+              example: up
+            redis:
+              type: string
+              example: up
+        traceId:
+          type: string
+          format: uuid
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        traceId:
+          type: string
+          format: uuid
+      required:
+        - success
+        - message
+        - traceId
+
+    AuthErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            errorType:
+              type: string
+              enum:
+                - TOKEN_EXPIRED
+                - TOKEN_INVALID
+                - TOKEN_BLACKLISTED
+                - USER_BLOCKED
+                - INVALID_CREDENTIALS
+                - DUPLICATE_DATA
+                - OTP_EXPIRED
+                - INVALID_OTP
+                - ACCESS_DENIED
+                - USER_NOT_FOUND
+
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
+
+    SignupPayload:
+      type: object
+      required:
+        - role
+        - name
+        - email
+        - phoneNumber
+        - location
+        - password
+        - deviceIdentifier
+        - lat
+        - lng
+        - platform
+      properties:
+        role:
+          type: string
+          enum: [ CLUB_OWNER, USER ]
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+          minLength: 5
+        location:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 6
+        deviceIdentifier:
+          type: string
+          minLength: 1
+        fcmToken:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        platform:
+          type: string
+          enum: [ ANDROID, IOS ]
+
+    LoginPayload:
+      type: object
+      required:
+        - email
+        - password
+        - deviceIdentifier
+        - platform
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        deviceIdentifier:
+          type: string
+          minLength: 1
+        platform:
+          type: string
+          enum: [ ANDROID, IOS ]
+        fcmToken:
+          type: string
+        rememberMe:
+          type: boolean
+          default: false
+
+    VerifySignupPayload:
+      type: object
+      required:
+        - otp
+        - deviceIdentifier
+        - platform
+      properties:
+        otp:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^\d+$'
+        deviceIdentifier:
+          type: string
+          minLength: 1
+        fcmToken:
+          type: string
+        platform:
+          type: string
+          enum: [ ANDROID, IOS ]
+
+    CheckAccessPayload:
+      type: object
+      required:
+        - deviceIdentifier
+        - lat
+        - lng
+        - platform
+      properties:
+        deviceIdentifier:
+          type: string
+          minLength: 1
+        lat:
+          type: number
+        lng:
+          type: number
+        platform:
+          type: string
+          enum: [ ANDROID, IOS ]
+        fcmToken:
+          type: string
+
+    DeleteMediaPayload:
+      type: object
+      required:
+        - urls
+      properties:
+        urls:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: Reports the health status of the application and its dependencies
+        (Database, Redis).
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/v1/auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: User signup
+      description: |
+        creates a new user account
+        validates the submitted registration information
+        creates the pending verification state
+        generates the verification OTP flow
+        returns the OTP-page/pending-verification token
+        does not issue a normal authenticated access token until verification succeeds
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupPayload'
+      responses:
+        '201':
+          description: Signup successful, OTP email dispatched.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: User with this email already exist
+                errorType: USER_ALREADY_EXISTS
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: User login
+      description: |
+        authenticates using email/password
+        requires the app's deviceIdentifier
+        resolves/registers the device after successful authentication
+        supports multiple devices for the same account
+        optionally updates FCM token information
+        returns an access JWT for verified users
+        uses the existing remember-me behavior
+        (7-day token if rememberMe is false, 30-day token if rememberMe is true)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginPayload'
+      responses:
+        '200':
+          description: Login successful. Returns access token or OTP pending token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: |
+            Internal Service Errors (Currently thrown as native Errors caught by global 500 handler).
+            Includes: "Invalid credentials", "Account is blocked or inactive".
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/verify:
+    post:
+      tags:
+        - Auth
+      summary: Verify OTP
+      security:
+        - bearerAuth: []
+      description: |
+        this endpoint uses the pending OTP verification token
+        validates the OTP
+        establishes the device relationship
+        issues the normal access token after successful verification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifySignupPayload'
+      responses:
+        '200':
+          description: OTP Verification successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Unauthorized. OTP is invalid, expired, or token missing/revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: OTP Expired
+                errorType: OTP_EXPIRED
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: User not found
+                errorType: USER_NOT_FOUND
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/resend:
+    post:
+      tags:
+        - Auth
+      summary: Resend OTP
+      security:
+        - bearerAuth: []
+      description: |
+        it requires the pending OTP verification token
+        generates/sends another verification OTP
+        does not issue an access token
+      responses:
+        '200':
+          description: OTP resent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized. Token is missing, expired, or revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: Token Expired
+                errorType: TOKEN_EXPIRED
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: User not found
+                errorType: USER_NOT_FOUND
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/check:
+    post:
+      tags:
+        - Auth
+      summary: Check Access Token
+      security:
+        - bearerAuth: []
+      description: |
+        it validates the access token
+        validates the JWT/device relationship
+        validates the submitted deviceIdentifier
+        updates device activity according to the existing implementation
+        does not create/reassign device ownership
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckAccessPayload'
+      responses:
+        '200':
+          description: User is authenticated and device context is valid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized. Token missing, expired, or revoked.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: Token Expired
+                errorType: TOKEN_EXPIRED
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                success: false
+                message: User not found
+                errorType: USER_NOT_FOUND
+                traceId: 123e4567-e89b-12d3-a456-426614174000
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Invalid device context, blocked account, or other internal error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/media:
+    post:
+      tags:
+        - Media
+      summary: Upload Media
+      description: |
+        multipart file upload
+        accepted field name is "files"
+        number of files: up to 10
+        per-file size limit: 50MB
+        accepted MIME categories: standard images, videos, audio, and documents
+        returned media URLs
+        **Security Warning:** This route is currently PUBLIC and requires no authentication.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  description: Array of files to upload. Max 10. Max 50MB per file.
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: Files uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaResponse'
+        '400':
+          description: Multer Upload Error (File size exceeded, unexpected field, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  status:
+                    type: integer
+                    example: 400
+                  message:
+                    type: string
+                  traceId:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Media
+      summary: Delete Media
+      description: |
+        deletes the supplied media objects/URLs
+        request structure expects a JSON array of URLs
+        current authentication state is PUBLIC
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteMediaPayload'
+      responses:
+        '200':
+          description: Media items deletion successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

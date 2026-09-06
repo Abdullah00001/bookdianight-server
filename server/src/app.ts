@@ -9,6 +9,10 @@ import express, {
 } from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import fs from 'fs';
+import path from 'path';
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
 
 import corsConfiguration from '@/app/configs/cors.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
@@ -110,6 +114,21 @@ app.get('/health', async (_req: Request, res: Response) => {
 /* ====================================|
 |--------------APP ROUTES--------------|
 |==================================== */
+
+let currentDir = __dirname;
+let yamlPath = path.join(currentDir, 'openapi.yaml');
+
+while (!fs.existsSync(yamlPath) && currentDir !== path.parse(currentDir).root) {
+  currentDir = path.dirname(currentDir);
+  yamlPath = path.join(currentDir, 'openapi.yaml');
+}
+
+if (!fs.existsSync(yamlPath)) {
+  throw new Error('Failed to locate openapi.yaml for Swagger UI. Ensure it is copied to the runtime environment.');
+}
+
+const swaggerDocument = YAML.load(yamlPath);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // V1 ROUTES
 app.use(baseUrl.v1, v1Routes);

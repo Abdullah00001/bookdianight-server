@@ -14,6 +14,16 @@ export const corsWhiteList = [
   'http://10.10.10.26:3000',
   'http://10.10.10.27:3008',
   'http://10.10.10.27:3001',
+  'https://api.bookdianight.com',
+  'http://localhost:5000',
+  'http://localhost:5001',
+  'http://localhost:5002',
+  'http://localhost:5003',
+  'http://localhost:5004',
+  'http://localhost:5005',
+  'http://localhost:5006',
+  'http://localhost:5007',
+  'http://localhost:5008',
 ];
 export const saltRound = 10;
 export const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
@@ -294,6 +304,7 @@ export enum AuthErrorType {
   TOKEN_INVALID = 'TOKEN_INVALID',
   TOKEN_BLACKLISTED = 'TOKEN_BLACKLISTED',
   USER_BLOCKED = 'USER_BLOCKED',
+  USER_ALREADY_EXISTS='USER_ALREADY_EXISTS',
   INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
   DUPLICATE_DATA = 'DUPLICATE_DATA',
   OTP_EXPIRED = 'OTP_EXPIRED',

@@ -1,7 +1,7 @@
 import { getRedisClient } from '@/app/configs/redis.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { hashOtp } from '@/app/utils/otp.utils';
-import { hashPassword, comparePassword } from '@/app/utils/password.utils';
+import { hashPassword } from '@/app/utils/password.utils';
 import {
   calculateMilliseconds,
   createRedisKey,
@@ -44,8 +44,18 @@ export const signupService = async ({
   const emailQueue = getEmailQueue();
   const traceId = getTraceId();
   try {
-    const { email, lat, lng, location, name, password, phoneNumber, role, gender, dateOfBirth } =
-      payload;
+    const {
+      email,
+      lat,
+      lng,
+      location,
+      name,
+      password,
+      phoneNumber,
+      role,
+      gender,
+      dateOfBirth,
+    } = payload;
     const hashPass = await hashPassword(password);
     const otp = generate(6, {
       digits: true,
@@ -281,14 +291,8 @@ export const loginService = async ({
   payload,
 }: ILoginService): Promise<Record<string, unknown>> => {
   try {
-    const {
-      deviceIdentifier,
-      platform,
-      fcmToken,
-      rememberMe,
-      lat,
-      lng,
-    } = payload;
+    const { deviceIdentifier, platform, fcmToken, rememberMe, lat, lng } =
+      payload;
 
     const redisClient = getRedisClient();
 
@@ -360,7 +364,7 @@ export const loginService = async ({
         lat,
         lng,
         user.id
-      )
+      ),
     ]);
 
     // 5 & 6. Resolve and manage Device

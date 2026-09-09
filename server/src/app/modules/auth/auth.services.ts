@@ -277,43 +277,25 @@ export const checkUserAccessTokenService = async ({
  * @returns Promise<{ token: string; }>
  */
 export const loginService = async ({
+  user,
   payload,
 }: ILoginService): Promise<Record<string, unknown>> => {
   try {
     const {
-      email,
-      password,
       deviceIdentifier,
       platform,
       fcmToken,
       rememberMe,
+      lat,
+      lng,
     } = payload;
 
-    // 1. Find User by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (!user || !user.password) {
-      throw new Error('Invalid credentials');
-    }
-
-    // 2. Verify password
-    const isPasswordValid = await comparePassword(password, user.password);
-    if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
-    }
-
-    // 3. Verify account status
-    if (user.accountStatus === 'BLOCKED' || user.accountStatus === 'INACTIVE') {
-      throw new Error('Account is blocked or inactive');
-    }
+    const redisClient = getRedisClient();
 
     // 4. Handle Unverified Users
     if (!user.isVerified) {
       // Reuse existing OTP mechanism if not verified
       const traceId = getTraceId();
-      const redisClient = getRedisClient();
       const emailQueue = getEmailQueue();
 
       const otp = generate(6, {
@@ -347,11 +329,39 @@ export const loginService = async ({
           'EX',
           calculateMilliseconds(otpExpireAt, 'minutes')
         ),
+        redisClient.set(
+          createRedisKey(REDIS_PREFIXES.location, user.id),
+          JSON.stringify({ lat, lng }),
+          'EX',
+          calculateMilliseconds(locationExpireAt, 'days')
+        ),
+        redisClient.geoadd(
+          createRedisKey(REDIS_PREFIXES.locations),
+          lat,
+          lng,
+          user.id
+        ),
         emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailQueueData),
       ]);
 
       return { token };
     }
+
+    // Update location for verified users too
+    await Promise.all([
+      redisClient.set(
+        createRedisKey(REDIS_PREFIXES.location, user.id),
+        JSON.stringify({ lat, lng }),
+        'EX',
+        calculateMilliseconds(locationExpireAt, 'days')
+      ),
+      redisClient.geoadd(
+        createRedisKey(REDIS_PREFIXES.locations),
+        lat,
+        lng,
+        user.id
+      )
+    ]);
 
     // 5 & 6. Resolve and manage Device
     // We upsert: if it doesn't exist, create it (CASE A).

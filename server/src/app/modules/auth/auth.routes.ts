@@ -21,6 +21,7 @@ import {
   checkUserAccessTokenMiddleware,
   checkPassword,
   findUserByEmail,
+  checkAccountStatus,
 } from '@/app/modules/auth/auth.middlewares';
 
 const router = Router();
@@ -38,6 +39,7 @@ router
   .post(
     validateReqBody(loginSchema),
     findUserByEmail,
+    checkAccountStatus,
     checkPassword,
     loginController
   );

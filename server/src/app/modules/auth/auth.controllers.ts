@@ -110,7 +110,8 @@ export const loginController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const payload = req.body as TLoginPayload;
-    const data = await loginService({ payload });
+    const user = req.user as User;
+    const data = await loginService({ user, payload });
     res.status(200).json({
       success: true,
       message: 'Login successful',

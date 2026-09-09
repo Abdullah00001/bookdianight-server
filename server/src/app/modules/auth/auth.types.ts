@@ -38,5 +38,6 @@ export interface ICheckAccessTokenService {
 }
 
 export interface ILoginService {
+  user: User;
   payload: TLoginPayload;
 }

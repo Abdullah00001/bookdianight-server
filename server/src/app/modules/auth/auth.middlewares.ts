@@ -283,3 +283,37 @@ export const findUserByEmail = asyncHandler(
     next();
   }
 );
+
+/**
+ * This middleware is used to check if the user account is active.
+ * If the user account is not active, it will return a 401 response.
+ * If the user account is active, it will call return next() for further process.
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction
+ */
+export const checkAccountStatus = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const user = req.user as User;
+    const traceId = getTraceId();
+    if (user.accountStatus === 'BLOCKED') {
+      res.status(401).json({
+        success: false,
+        errorType: AuthErrorType.USER_BLOCKED,
+        message: 'Your account has been blocked',
+        traceId,
+      });
+      return;
+    }
+    if (user.accountStatus === 'INACTIVE') {
+      res.status(401).json({
+        success: false,
+        errorType: AuthErrorType.ACCOUNT_INACTIVE,
+        message: 'Your account has been deactivated',
+        traceId,
+      });
+      return;
+    }
+    next();
+  }
+);

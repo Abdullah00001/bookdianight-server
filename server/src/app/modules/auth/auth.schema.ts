@@ -16,6 +16,8 @@ export const signupSchema = z
     lat: z.number(),
     lng: z.number(),
     platform: z.enum(['ANDROID', 'IOS']),
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+    dateOfBirth: z.coerce.date().optional(),
   })
   .strict();
 

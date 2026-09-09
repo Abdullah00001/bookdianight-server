@@ -44,7 +44,7 @@ export const signupService = async ({
   const emailQueue = getEmailQueue();
   const traceId = getTraceId();
   try {
-    const { email, lat, lng, location, name, password, phoneNumber, role } =
+    const { email, lat, lng, location, name, password, phoneNumber, role, gender, dateOfBirth } =
       payload;
     const hashPass = await hashPassword(password);
     const otp = generate(6, {
@@ -67,6 +67,8 @@ export const signupService = async ({
       await tx.profile.create({
         data: {
           location,
+          gender,
+          dateOfBirth,
           userId: user.id,
         },
       });

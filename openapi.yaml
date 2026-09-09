@@ -190,6 +190,15 @@ components:
         platform:
           type: string
           enum: [ ANDROID, IOS ]
+        gender:
+          type: string
+          enum:
+            - MALE
+            - FEMALE
+            - OTHER
+        dateOfBirth:
+          type: string
+          format: date-time
 
     LoginPayload:
       type: object

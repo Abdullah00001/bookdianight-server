@@ -7,6 +7,7 @@ import {
   AuthErrorType,
   refreshTokenExpiresInWithOutRememberMe,
   refreshTokenExpiresInWithRememberMe,
+  resetOtpPageTokenExpiresIn,
 } from '@/const';
 import { env } from '@/env';
 
@@ -61,6 +62,18 @@ export function generateOtpPageToken(payload: ITokenPayload | null): string {
   });
 }
 
+export function generateResetPasswordPageToken(
+  payload: ITokenPayload | null
+): string {
+  if (!payload) {
+    throw new Error('Generate Reset Password Page Token Payload Cant Be Null');
+  }
+
+  return sign(payload, env.JWT_RESET_PASSWORD_TOKEN_SECRET_KEY as string, {
+    expiresIn: resetOtpPageTokenExpiresIn,
+  });
+}
+
 export function verifyOtpPageToken(token: string | null): {
   data?: JwtPayload;
   error?: AuthErrorType.TOKEN_EXPIRED | AuthErrorType.TOKEN_INVALID;
@@ -72,6 +85,34 @@ export function verifyOtpPageToken(token: string | null): {
   try {
     return {
       data: verify(token, env.JWT_VERIFY_OTP_PAGE_SECRET_KEY) as JwtPayload,
+    };
+  } catch (error) {
+    logger.error(error);
+    if (error instanceof JsonWebTokenError) {
+      if (error.name === 'TokenExpiredError') {
+        return { error: AuthErrorType.TOKEN_EXPIRED };
+      } else {
+        return { error: AuthErrorType.TOKEN_INVALID };
+      }
+    }
+    return { error: AuthErrorType.TOKEN_INVALID };
+  }
+}
+
+export function verifyResetPasswordPageToken(token: string | null): {
+  data?: JwtPayload;
+  error?: AuthErrorType.TOKEN_EXPIRED | AuthErrorType.TOKEN_INVALID;
+} {
+  if (!token) {
+    throw new Error('Reset Password Page Token Is Missing');
+  }
+
+  try {
+    return {
+      data: verify(
+        token,
+        env.JWT_RESET_PASSWORD_TOKEN_SECRET_KEY as string
+      ) as JwtPayload,
     };
   } catch (error) {
     logger.error(error);

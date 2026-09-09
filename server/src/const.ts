@@ -40,6 +40,7 @@ export const baseUrl = {
 export const otpPageTokenExpireIn = '1d';
 export const userAccessTokenExpiresIn = '30d';
 export const adminAccessTokenExpiresIn = '15m';
+export const resetOtpPageTokenExpiresIn = '15m';
 export const refreshTokenExpiresInWithOutRememberMe = '3d';
 export const refreshTokenExpiresInWithRememberMe = '30d';
 export const otpExpireAt = 4;
@@ -293,7 +294,6 @@ export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-END
 } as const;
 
-
 /**
  * ==============================================
  * ------------------AUTH ERROR TYPES------------
@@ -305,7 +305,7 @@ export enum AuthErrorType {
   TOKEN_BLACKLISTED = 'TOKEN_BLACKLISTED',
   USER_BLOCKED = 'USER_BLOCKED',
   ACCOUNT_INACTIVE = 'ACCOUNT_INACTIVE',
-  USER_ALREADY_EXISTS='USER_ALREADY_EXISTS',
+  USER_ALREADY_EXISTS = 'USER_ALREADY_EXISTS',
   INVALID_CREDENTIALS = 'INVALID_CREDENTIALS',
   DUPLICATE_DATA = 'DUPLICATE_DATA',
   OTP_EXPIRED = 'OTP_EXPIRED',

@@ -13,6 +13,7 @@ import { AuthErrorType, REDIS_PREFIXES } from '@/const';
 import { JwtPayload } from 'jsonwebtoken';
 import { compareOtp } from '@/app/utils/otp.utils';
 import { User } from '@prisma/client';
+import { comparePassword } from '@/app/utils/password.utils';
 
 /**
  * This middleware is used to check if the user already exists with the email user trying to signup.
@@ -168,6 +169,15 @@ export const checkUserExistenceMiddleware = asyncHandler(
   }
 );
 
+/**
+ * This middleware is used to check if the user access token is valid and not expired.
+ * If the token is invalid or expired, it will return a 401 response.
+ * If the token is valid and not expired, it will call return next() for further process.
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction
+ */
+
 export const checkUserAccessTokenMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const traceId = getTraceId();
@@ -215,5 +225,61 @@ export const checkUserAccessTokenMiddleware = asyncHandler(
     }
     req.user = decoded.data as JwtPayload;
     return next();
+  }
+);
+
+/**
+ * This middleware is used to check if the password is valid.
+ * If the password is not valid, it will return a 401 response.
+ * If the password is valid, it will call return next() for further process.
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction  
+ */
+export const checkPassword = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const { password } = req.body;
+    const hashedPassword = (req.user as User).password as string;
+    const isMatched = await comparePassword(password, hashedPassword);
+    if (!isMatched) {
+      res.status(401).json({
+        success: false,
+        errorType: AuthErrorType.INVALID_CREDENTIALS,
+        message: 'Invalid Credential,Check Your Email And Password',
+        traceId,
+      });
+      return;
+    }
+    next();
+  }
+);
+
+/**
+ * This middleware is used to find the user by email.
+ * If the user does not exist, it will return a 401 response.
+ * If the user exists, it will call return next() for further process.
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction
+ */
+export const findUserByEmail = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const { email } = req.body;
+    const isUserExist = await prisma.user.findUnique({
+      where: { email },
+    });
+    if (!isUserExist) {
+      res.status(401).json({
+        success: false,
+        errorType: AuthErrorType.INVALID_CREDENTIALS,
+        message: 'Invalid Credential,Check Your Email And Password',
+        traceId,
+      });
+      return;
+    }
+    req.user = isUserExist as User;
+    next();
   }
 );

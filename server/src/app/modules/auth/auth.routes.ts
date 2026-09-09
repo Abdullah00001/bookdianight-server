@@ -19,6 +19,8 @@ import {
   checkSignupUserExistsMiddleware,
   checkUserExistenceMiddleware,
   checkUserAccessTokenMiddleware,
+  checkPassword,
+  findUserByEmail,
 } from '@/app/modules/auth/auth.middlewares';
 
 const router = Router();
@@ -31,7 +33,14 @@ router
     signupController
   );
 
-router.route('/auth/login').post(validateReqBody(loginSchema), loginController);
+router
+  .route('/auth/login')
+  .post(
+    validateReqBody(loginSchema),
+    findUserByEmail,
+    checkPassword,
+    loginController
+  );
 
 router
   .route('/auth/verify')

@@ -288,6 +288,7 @@ export const REDIS_PREFIXES = {
  */
 export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-START
+  RECOVER_USER_VERIFICATION_OTP: 'recover-user-verification-otp',
   RESEND_VERIFICATION_OTP: 'resend-verification-otp',
   SIGNUP_USER_VERIFICATION_SUCCESSFUL: 'signup-user-verification-successful',
   SEND_SIGNUP_SUCCESS_EMAIL: 'send-signup-success-email',
@@ -313,3 +314,9 @@ export enum AuthErrorType {
   ACCESS_DENIED = 'ACCESS_DENIED',
   USER_NOT_FOUND = 'USER_NOT_FOUND',
 }
+
+export const COOKIE_NAMES = {
+  ACCESS_TOKEN: 'access_token',
+  REFRESH_TOKEN: 'refresh_token',
+  RECOVER_PAGE_TOKEN: 'recover_page_token',
+} as const;

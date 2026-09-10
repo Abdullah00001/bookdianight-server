@@ -20,3 +20,12 @@ export interface IResendVerificationOtp {
   otpExpireAt: number;
   traceId: string;
 }
+
+export interface IRecoverUserVerificationOtp {
+  // Add properties here
+  name: string;
+  email: string;
+  otp: string;
+  otpExpireAt: number;
+  traceId: string;
+}

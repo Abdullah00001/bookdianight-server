@@ -141,6 +141,7 @@ scratch_ssh.py
 **/src/generated/prisma/
 **/src/app/schemas/
 **/generated/prisma/
+server/openapi.yaml
 
 # =======================================================
 # Terraform

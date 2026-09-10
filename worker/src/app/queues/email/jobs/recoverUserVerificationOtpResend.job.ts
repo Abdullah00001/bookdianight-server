@@ -17,7 +17,7 @@ const handler: IJobHandler<IRecoverUserVerificationOtpResend> = {
       const personalizedTemplate = template({ name, email, otp, otpExpireAt });
       const mailOptions = mailOption({
         to: email,
-        subject: `Your verification code is ${otp} - Bookdianight`,
+        subject: `Your account recovery verification code is ${otp} - Bookdianight`,
         html: personalizedTemplate,
         replyTo: companyInformation.email,
       });

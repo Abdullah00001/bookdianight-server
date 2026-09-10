@@ -1,11 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
-import { asyncHandler } from '@/app/utils/system.utils';
+import { asyncHandler, createRedisKey } from '@/app/utils/system.utils';
 import {
   extractToken,
   verifyResetPasswordPageToken,
 } from '@/app/utils/jwt.utils';
-import { AuthErrorType } from '@/const';
+import { AuthErrorType, REDIS_PREFIXES } from '@/const';
 import { JwtPayload } from 'jsonwebtoken';
 import { getRedisClient } from '@/app/configs/redis.configs';
 
@@ -32,7 +32,9 @@ export const checkResetPasswordPageTokenMiddleware = asyncHandler(
       return;
     }
     const redisClient = getRedisClient();
-    const isBlackListed = await redisClient.get(`blacklist:jwt:${token}`);
+    const isBlackListed = await redisClient.get(
+      createRedisKey(REDIS_PREFIXES.blacklist, token)
+    );
     if (isBlackListed) {
       res.status(401).json({
         success: false,

@@ -110,7 +110,7 @@ export const recoverUserPasswordResetService = async ({
     });
     const emailData = { email: user.email, name: user.name };
     await emailQueue.add(
-      QUEUE_JOBS.RECOVER_USER_PASSWORD_SUCCESSFUL,
+      QUEUE_JOBS.RECOVER_USER_PASSWORD_RESET_SUCCESSFUL,
       emailData
     );
     return;

@@ -30,7 +30,7 @@ export interface IRecoverUserVerificationOtp {
   traceId: string;
 }
 
-export interface IRecoverUserPasswordSuccessful {
+export interface IRecoverUserPasswordResetSuccessful {
   // Add properties here
   name: string;
   email: string;

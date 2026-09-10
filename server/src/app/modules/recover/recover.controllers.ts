@@ -69,7 +69,6 @@ export const recoverUserVerificationOtpResendController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     await recoverUserVerificationOtpResendService();
-
     res.status(200).json({
       success: true,
       message: 'Otp Resend successful ',

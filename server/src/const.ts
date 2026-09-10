@@ -277,6 +277,7 @@ export const REDIS_PREFIXES = {
   blacklist: 'blacklist:token',
   location: 'user:location',
   locations: 'users:locations',
+  adminSession: 'admin:session',
 } as const;
 
 /**
@@ -322,4 +323,5 @@ export const COOKIE_NAMES = {
   ACCESS_TOKEN: 'access_token',
   REFRESH_TOKEN: 'refresh_token',
   RECOVER_PAGE_TOKEN: 'recover_page_token',
+  ADMIN_CSRF_TOKEN: 'admin_csrf_token',
 } as const;

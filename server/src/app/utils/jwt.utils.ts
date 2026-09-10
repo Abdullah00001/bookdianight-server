@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { type Request } from 'express';
 import { JsonWebTokenError, type JwtPayload, sign, verify } from 'jsonwebtoken';
 
@@ -49,6 +50,7 @@ export function generateRefreshToken(payload: ITokenPayload): string {
 
   return sign(payload, env.JWT_REFRESH_TOKEN_SECRET_KEY, {
     expiresIn: expiresAt,
+    jwtid: crypto.randomUUID(),
   });
 }
 

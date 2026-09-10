@@ -2,8 +2,10 @@ import { Router } from 'express';
 import authRoutes from '@/app/modules/auth/auth.routes';
 import mediaRoutes from '@/app/modules/media/media.routes';
 import recoverRoutes from '@/app/modules/recover/recover.routes';
+import adminRoutes from '@/app/modules/admin/admin.routes';
 
 const routes: Router[] = [
+  adminRoutes,
   recoverRoutes,
   mediaRoutes,
   authRoutes,

@@ -3,13 +3,11 @@ info:
   title: BookDiaNight API
   version: 1.0.0
   description: API documentation for the BookDiaNight backend.
-
 servers:
   - url: http://localhost:5005
     description: Local development server
   - url: https://api.bookdianight.com
     description: Production server
-
 tags:
   - name: Health
     description: System health and status endpoints
@@ -17,7 +15,6 @@ tags:
     description: Authentication and device management endpoints
   - name: Media
     description: Public media and file upload endpoints
-
 components:
   securitySchemes:
     bearerAuth:
@@ -28,9 +25,7 @@ components:
         JWT Bearer token for authentication. 
         Note: The `/auth/verify` and `/auth/resend` endpoints expect the OTP-page pending verification token, 
         whereas `/auth/check` expects the standard user access token.
-
   schemas:
-
     CheckAccessResponse:
       type: object
       properties:
@@ -39,7 +34,7 @@ components:
           example: true
         message:
           type: string
-          example: 'User is authenticated'
+          example: User is authenticated
         traceId:
           type: string
           format: uuid
@@ -48,22 +43,21 @@ components:
           properties:
             name:
               type: string
-              example: 'John Doe'
+              example: John Doe
             avatar:
               type: string
               nullable: true
-              example: 'https://example.com/avatar.jpg'
+              example: https://example.com/avatar.jpg
             role:
               type: string
-              example: 'USER'
+              example: USER
             accountStatus:
               type: string
-              example: 'ACTIVE'
+              example: ACTIVE
       required:
         - success
         - message
         - traceId
-
     FindRecoverUserByEmailPayload:
       type: object
       required:
@@ -106,7 +100,6 @@ components:
         - success
         - message
         - traceId
-
     TokenResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
@@ -119,7 +112,6 @@ components:
                   type: string
               required:
                 - token
-
     MediaResponse:
       allOf:
         - $ref: '#/components/schemas/SuccessResponse'
@@ -131,7 +123,6 @@ components:
                 type: string
                 format: uri
               description: Array of S3 URLs for uploaded files
-
     HealthResponse:
       type: object
       properties:
@@ -156,7 +147,6 @@ components:
         traceId:
           type: string
           format: uuid
-
     ErrorResponse:
       type: object
       properties:
@@ -172,7 +162,6 @@ components:
         - success
         - message
         - traceId
-
     AuthErrorResponse:
       allOf:
         - $ref: '#/components/schemas/ErrorResponse'
@@ -192,7 +181,6 @@ components:
                 - ACCESS_DENIED
                 - USER_NOT_FOUND
                 - INVALID_DEVICE_CONTEXT
-
     ValidationErrorResponse:
       allOf:
         - $ref: '#/components/schemas/ErrorResponse'
@@ -207,7 +195,6 @@ components:
                     type: string
                   message:
                     type: string
-
     SignupPayload:
       type: object
       required:
@@ -224,7 +211,9 @@ components:
       properties:
         role:
           type: string
-          enum: [ CLUB_OWNER, USER ]
+          enum:
+            - CLUB_OWNER
+            - USER
         name:
           type: string
           minLength: 1
@@ -251,7 +240,9 @@ components:
           type: number
         platform:
           type: string
-          enum: [ ANDROID, IOS ]
+          enum:
+            - ANDROID
+            - IOS
         gender:
           type: string
           enum:
@@ -261,7 +252,6 @@ components:
         dateOfBirth:
           type: string
           format: date-time
-
     LoginPayload:
       type: object
       required:
@@ -286,7 +276,9 @@ components:
           example: zZp|6sBQ<Ca2_=Kl]J7jt:Mvz{n9VT$v
         platform:
           type: string
-          enum: [ ANDROID, IOS ]
+          enum:
+            - ANDROID
+            - IOS
           example: ANDROID
         fcmToken:
           type: string
@@ -303,7 +295,6 @@ components:
           type: number
           format: double
           example: -15.315821
-
     VerifySignupPayload:
       type: object
       required:
@@ -315,7 +306,7 @@ components:
           type: string
           minLength: 6
           maxLength: 6
-          pattern: '^\d+$'
+          pattern: ^\d+$
         deviceIdentifier:
           type: string
           minLength: 1
@@ -323,9 +314,9 @@ components:
           type: string
         platform:
           type: string
-          enum: [ ANDROID, IOS ]
-
-
+          enum:
+            - ANDROID
+            - IOS
     LogoutPayload:
       type: object
       required:
@@ -352,10 +343,11 @@ components:
           type: number
         platform:
           type: string
-          enum: [ ANDROID, IOS ]
+          enum:
+            - ANDROID
+            - IOS
         fcmToken:
           type: string
-
     DeleteMediaPayload:
       type: object
       required:
@@ -367,15 +359,38 @@ components:
             type: string
             minLength: 1
           minItems: 1
-
+    AdminLoginPayload:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+    AdminAuthSuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserResponse'
+        traceId:
+          type: string
+          format: uuid
 paths:
   /health:
     get:
       tags:
         - Health
       summary: Health check endpoint
-      description: Reports the health status of the application and its dependencies
-        (Database, Redis).
+      description: Reports the health status of the application and its dependencies (Database, Redis).
       responses:
         '200':
           description: Service is healthy
@@ -389,7 +404,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
-
   /api/v1/auth/signup:
     post:
       tags:
@@ -438,7 +452,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/auth/login:
     post:
       tags:
@@ -480,7 +493,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/auth/verify:
     post:
       tags:
@@ -540,7 +552,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/auth/resend:
     post:
       tags:
@@ -587,7 +598,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/auth/check:
     post:
       tags:
@@ -648,7 +658,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/media:
     post:
       tags:
@@ -707,7 +716,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
     delete:
       tags:
         - Media
@@ -741,7 +749,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/recover/find:
     post:
       tags:
@@ -779,7 +786,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/recover/verify:
     post:
       tags:
@@ -825,7 +831,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/recover/reset:
     post:
       tags:
@@ -871,7 +876,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/recover/resend:
     post:
       tags:
@@ -905,7 +909,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /api/v1/auth/logout:
     post:
       tags:
@@ -956,3 +959,157 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/auth/login:
+    post:
+      tags:
+        - Admin Auth
+      summary: Admin Login
+      description: Authenticate an admin user, sets secure HttpOnly cookies and CSRF cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginPayload'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAuthSuccessResponse'
+          headers:
+            Set-Cookie:
+              description: access_token (HttpOnly), refresh_token (HttpOnly), admin_csrf_token
+              schema:
+                type: string
+        '401':
+          description: Invalid credentials or account blocked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Access denied - Not an admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+  /api/v1/admin/auth/check:
+    post:
+      tags:
+        - Admin Auth
+      summary: Check Admin Authentication Status
+      description: Verifies the admin is authenticated using access cookies and CSRF headers
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAuthSuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: CSRF Token Invalid or Access Denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+  /api/v1/admin/auth/refresh:
+    post:
+      tags:
+        - Admin Auth
+      summary: Refresh Admin Tokens
+      description: Atomically rotates refresh tokens. Requires valid CSRF and refresh cookies.
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin tokens refreshed successfully
+                  traceId:
+                    type: string
+                    format: uuid
+          headers:
+            Set-Cookie:
+              description: access_token (HttpOnly), refresh_token (HttpOnly), admin_csrf_token
+              schema:
+                type: string
+        '401':
+          description: Invalid or already consumed refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: CSRF Token Invalid or Access Denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+  /api/v1/admin/auth/logout:
+    post:
+      tags:
+        - Admin Auth
+      summary: Admin Logout
+      description: Invalidates the current admin session, blacklists access token, clears cookies
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successfully logged out
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin logged out successfully
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: CSRF Token Invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'

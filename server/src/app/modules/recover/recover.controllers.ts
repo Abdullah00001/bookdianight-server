@@ -9,6 +9,7 @@ import {
 } from '@/app/modules/recover/recover.services';
 import { COOKIE_NAMES, resetOtpPageTokenExpiresIn } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
+import { User } from '@prisma/client';
 
 export const findRecoverUserController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
@@ -40,8 +41,8 @@ export const findRecoverUserController = asyncHandler(
 export const verifyRecoverUserController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    await verifyRecoverUserService();
-
+    const user = req.user as User;
+    await verifyRecoverUserService({ user });
     res.status(200).json({
       success: true,
       message: 'User verification successful',
@@ -54,8 +55,7 @@ export const verifyRecoverUserController = asyncHandler(
 export const recoverUserPasswordResetController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    await recoverUserPasswordResetService();
-
+    await recoverUserPasswordResetService({ req });
     res.status(200).json({
       success: true,
       message: 'Password reset successful',

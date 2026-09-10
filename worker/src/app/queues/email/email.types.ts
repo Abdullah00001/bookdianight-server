@@ -29,3 +29,10 @@ export interface IRecoverUserVerificationOtp {
   otpExpireAt: number;
   traceId: string;
 }
+
+export interface IRecoverUserPasswordSuccessful {
+  // Add properties here
+  name: string;
+  email: string;
+  traceId: string;
+}

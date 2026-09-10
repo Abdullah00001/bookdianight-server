@@ -1,7 +1,11 @@
 import { getRedisClient } from '@/app/configs/redis.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { getEmailQueue } from '@/app/queues/email/email.queue';
-import { generateResetPasswordPageToken } from '@/app/utils/jwt.utils';
+import {
+  extractToken,
+  generateResetPasswordPageToken,
+  verifyResetPasswordPageToken,
+} from '@/app/utils/jwt.utils';
 import { hashOtp } from '@/app/utils/otp.utils';
 import {
   calculateMilliseconds,
@@ -11,6 +15,10 @@ import {
 import { otpExpireAt, QUEUE_JOBS, REDIS_PREFIXES } from '@/const';
 import { User } from '@prisma/client';
 import { Request } from 'express';
+import { TResetRecoverUserOtpPayload } from '@/app/modules/recover/recover.schema';
+import { hashPassword } from '@/app/utils/password.utils';
+import { JwtPayload } from 'jsonwebtoken';
+import prisma from '@/app/configs/db.configs';
 
 export const findRecoverUserService = async ({
   req,
@@ -59,18 +67,52 @@ export const findRecoverUserService = async ({
   }
 };
 
-export const verifyRecoverUserService = async (): Promise<void> => {
+export const verifyRecoverUserService = async ({
+  user,
+}: {
+  user: User;
+}): Promise<void> => {
   try {
-    console.log('verifyRecoverUserService called');
+    const redisClient = getRedisClient();
+    await redisClient.del(createRedisKey(REDIS_PREFIXES.otp, user.id));
     return;
   } catch (error) {
     throw error;
   }
 };
 
-export const recoverUserPasswordResetService = async (): Promise<void> => {
+export const recoverUserPasswordResetService = async ({
+  req,
+}: {
+  req: Request;
+}): Promise<void> => {
   try {
-    console.log('recoverUserPasswordResetService called');
+    const user = req.user as User;
+    const token = extractToken(req) as string;
+    const redisClient = getRedisClient();
+    const emailQueue = getEmailQueue();
+    const { password } = req.body as TResetRecoverUserOtpPayload;
+    const hashedPassword = await hashPassword(password);
+    const decoded = verifyResetPasswordPageToken(token)?.data as JwtPayload;
+    const expirationTime = decoded?.exp as number;
+    const currentTime = Math.floor(Date.now() / 1000); // current time in seconds
+    const ttl = Math.floor(expirationTime - currentTime); // remaining time in seconds
+    if (ttl > 0)
+      await redisClient.set(
+        createRedisKey(REDIS_PREFIXES.blacklist, token),
+        token,
+        'EX',
+        ttl
+      );
+    await prisma.user.update({
+      data: { password: hashedPassword },
+      where: { id: user.id },
+    });
+    const emailData = { email: user.email, name: user.name };
+    await emailQueue.add(
+      QUEUE_JOBS.RECOVER_USER_PASSWORD_SUCCESSFUL,
+      emailData
+    );
     return;
   } catch (error) {
     throw error;

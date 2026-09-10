@@ -31,6 +31,39 @@ components:
 
   schemas:
 
+    CheckAccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'User is authenticated'
+        traceId:
+          type: string
+          format: uuid
+        data:
+          type: object
+          properties:
+            name:
+              type: string
+              example: 'John Doe'
+            avatar:
+              type: string
+              nullable: true
+              example: 'https://example.com/avatar.jpg'
+            role:
+              type: string
+              example: 'USER'
+            accountStatus:
+              type: string
+              example: 'ACTIVE'
+      required:
+        - success
+        - message
+        - traceId
+
     FindRecoverUserByEmailPayload:
       type: object
       required:
@@ -569,7 +602,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuccessResponse'
+                $ref: '#/components/schemas/CheckAccessResponse'
         '401':
           description: Unauthorized. Token missing, expired, or revoked.
           content:

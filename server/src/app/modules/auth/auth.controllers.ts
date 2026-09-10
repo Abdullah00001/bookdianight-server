@@ -90,10 +90,11 @@ export const checkUserAccessTokenController = asyncHandler(
     const user = req.user as User;
     const payload = req.body as TCheckAccessTokenPayload;
     const jwtPayload = req.jwtPayload as any;
-    await checkUserAccessTokenService({ payload, user, jwtPayload });
+    const profileData = await checkUserAccessTokenService({ payload, user, jwtPayload });
     res.status(200).json({
       success: true,
       message: 'User is authenticated',
+      data: profileData,
       traceId,
     });
     return;

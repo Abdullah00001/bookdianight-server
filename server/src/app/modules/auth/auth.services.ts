@@ -244,7 +244,13 @@ export const resendOtpService = async ({
 export const checkUserAccessTokenService = async ({
   payload,
   jwtPayload,
-}: ICheckAccessTokenService): Promise<void> => {
+  user,
+}: ICheckAccessTokenService): Promise<{
+  name: string;
+  avatar: string | null;
+  role: string;
+  accountStatus: string;
+}> => {
   try {
     const { deviceIdentifier, fcmToken } = payload;
     const { sub, deviceId } = jwtPayload;
@@ -275,7 +281,17 @@ export const checkUserAccessTokenService = async ({
       });
     }
 
-    return;
+    const userProfile = await prisma.profile.findUnique({
+      where: { userId: sub },
+      select: { profileAvatar: true },
+    });
+
+    return {
+      name: user.name,
+      avatar: userProfile?.profileAvatar || null,
+      role: user.accountRole,
+      accountStatus: user.accountStatus,
+    };
   } catch (error) {
     throw error;
   }

@@ -36,3 +36,12 @@ export interface IRecoverUserPasswordResetSuccessful {
   email: string;
   traceId: string;
 }
+
+export interface IRecoverUserVerificationOtpResend {
+  // Add properties here
+  name: string;
+  email: string;
+  otp: string;
+  otpExpireAt: number;
+  traceId: string;
+}

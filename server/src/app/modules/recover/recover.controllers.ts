@@ -11,6 +11,12 @@ import { COOKIE_NAMES, resetOtpPageTokenExpiresIn } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
 import { User } from '@prisma/client';
 
+/**
+ * This controller is used to find the user for the password reset.
+ * @param req Request
+ * @param res Response
+ * @returns Promise<void>  
+ */
 export const findRecoverUserController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
@@ -38,6 +44,12 @@ export const findRecoverUserController = asyncHandler(
   }
 );
 
+/**
+ * This controller is used to verify the OTP of the user.
+ * @param req Request
+ * @param res Response
+ * @returns Promise<void>  
+ */
 export const verifyRecoverUserController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
@@ -52,10 +64,19 @@ export const verifyRecoverUserController = asyncHandler(
   }
 );
 
+/**
+ * This controller is used to reset the password of the user.
+ * @param req Request
+ * @param res Response
+ * @returns Promise<void>  
+ */
 export const recoverUserPasswordResetController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    await recoverUserPasswordResetService({ req });
+    const { isAdmin } = await recoverUserPasswordResetService({ req });
+    if (isAdmin) {
+      res.clearCookie(COOKIE_NAMES.RECOVER_PAGE_TOKEN);
+    }
     res.status(200).json({
       success: true,
       message: 'Password reset successful',
@@ -65,10 +86,16 @@ export const recoverUserPasswordResetController = asyncHandler(
   }
 );
 
+/**
+ * This controller is used to resend the OTP of the user.
+ * @param req Request
+ * @param res Response
+ * @returns Promise<void>  
+ */
 export const recoverUserVerificationOtpResendController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    await recoverUserVerificationOtpResendService();
+    await recoverUserVerificationOtpResendService({ req });
     res.status(200).json({
       success: true,
       message: 'Otp Resend successful ',

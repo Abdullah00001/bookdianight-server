@@ -1,3 +1,4 @@
+import { ITokenPayload } from '@/app/@types/jwt.types';
 import { NextFunction, Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler, createRedisKey } from '@/app/utils/system.utils';
@@ -314,6 +315,51 @@ export const checkAccountStatus = asyncHandler(
       });
       return;
     }
+    next();
+  }
+);
+
+/**
+ * This middleware is used to check if the device context matches the JWT.
+ * It validates device existence, ownership, and the physical device identifier.
+ * If the context is invalid, it returns a 401 response.
+ * If valid, it attaches the trusted Device to req.device and calls next().
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction
+ */
+export const checkDeviceContextMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const { deviceIdentifier } = req.body;
+    const jwtPayload = req.jwtPayload as ITokenPayload;
+    const { sub, deviceId } = jwtPayload;
+
+    if (!deviceId) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid device context: No device ID in token',
+        errorType: AuthErrorType.INVALID_DEVICE_CONTEXT,
+        traceId,
+      });
+      return;
+    }
+
+    const device = await prisma.device.findUnique({
+      where: { id: deviceId },
+    });
+
+    if (!device || device.userId !== sub || device.deviceIdentifier !== deviceIdentifier) {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid device context',
+        errorType: AuthErrorType.INVALID_DEVICE_CONTEXT,
+        traceId,
+      });
+      return;
+    }
+
+    req.device = device;
     next();
   }
 );

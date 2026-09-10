@@ -86,3 +86,18 @@ export const loginSchema = z
  * Type for user login.
  */
 export type TLoginPayload = z.infer<typeof loginSchema>;
+
+
+/**
+ * Schema for user logout.
+ */
+export const logoutSchema = z
+  .object({
+    deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
+  })
+  .strict();
+
+/**
+ * Type for user logout.
+ */
+export type TLogoutPayload = z.infer<typeof logoutSchema>;

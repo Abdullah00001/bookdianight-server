@@ -24,6 +24,7 @@ import {
 import {
   ICheckAccessTokenService,
   ILoginService,
+  ILogoutService,
   IResendOtpService,
   ISignupService,
   IVerifySignupUserService,
@@ -245,6 +246,7 @@ export const checkUserAccessTokenService = async ({
   payload,
   jwtPayload,
   user,
+  device,
 }: ICheckAccessTokenService): Promise<{
   name: string;
   avatar: string | null;
@@ -252,20 +254,8 @@ export const checkUserAccessTokenService = async ({
   accountStatus: string;
 }> => {
   try {
-    const { deviceIdentifier, fcmToken } = payload;
-    const { sub, deviceId } = jwtPayload;
-
-    const device = await prisma.device.findUnique({
-      where: { id: deviceId },
-    });
-
-    if (!device) {
-      throw new Error('Device not found or invalid device context');
-    }
-
-    if (device.userId !== sub || device.deviceIdentifier !== deviceIdentifier) {
-      throw new Error('Invalid device context');
-    }
+    const { fcmToken } = payload;
+    const { sub } = jwtPayload;
 
     // Throttle lastSeenAt updates to at most once per hour to minimize DB writes
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -416,6 +406,53 @@ export const loginService = async ({
     });
 
     return { token: accessToken };
+  } catch (error) {
+    throw error;
+  }
+};
+
+
+/**
+ * Service for user logout.
+ * Operates on a trusted device context established by checkDeviceContextMiddleware.
+ * Marks the device as inactive, clears FCM token,
+ * and blacklists the current JWT access token.
+ */
+export const logoutService = async ({
+  jwtPayload,
+  token,
+  device,
+}: ILogoutService): Promise<void> => {
+  try {
+    const { exp } = jwtPayload;
+
+    const redisClient = getRedisClient();
+    const currentTime = Math.floor(Date.now() / 1000);
+    const ttl = Math.floor(exp! - currentTime);
+
+    const updateDevicePromise = prisma.device.update({
+      where: { id: device.id },
+      data: {
+        isActive: false,
+        fcmToken: null,
+      },
+    });
+
+    if (ttl > 0) {
+      await Promise.all([
+        updateDevicePromise,
+        redisClient.set(
+          createRedisKey(REDIS_PREFIXES.blacklist, token),
+          token,
+          'EX',
+          ttl
+        ),
+      ]);
+    } else {
+      await updateDevicePromise;
+    }
+
+    return;
   } catch (error) {
     throw error;
   }

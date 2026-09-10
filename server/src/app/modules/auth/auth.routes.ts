@@ -5,6 +5,7 @@ import {
   resendOtpController,
   checkUserAccessTokenController,
   loginController,
+  logoutController,
 } from '@/app/modules/auth/auth.controllers';
 import { validateReqBody } from '@/app/utils/system.utils';
 import {
@@ -12,6 +13,7 @@ import {
   signupSchema,
   verifySignupUserSchema,
   loginSchema,
+  logoutSchema,
 } from '@/app/modules/auth/auth.schema';
 import {
   checkOtpMiddleware,
@@ -22,6 +24,7 @@ import {
   checkPassword,
   findUserByEmail,
   checkAccountStatus,
+  checkDeviceContextMiddleware,
 } from '@/app/modules/auth/auth.middlewares';
 
 const router = Router();
@@ -65,10 +68,23 @@ router
 router
   .route('/auth/check')
   .post(
+    validateReqBody(checkAccessTokenSchema),
     checkUserAccessTokenMiddleware,
     checkUserExistenceMiddleware,
-    validateReqBody(checkAccessTokenSchema),
+    checkAccountStatus,
+    checkDeviceContextMiddleware,
     checkUserAccessTokenController
+  );
+
+router
+  .route('/auth/logout')
+  .post(
+    validateReqBody(logoutSchema),
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    checkDeviceContextMiddleware,
+    logoutController
   );
 
 export default router;

@@ -1,4 +1,4 @@
-import { Profile, User } from '@prisma/client';
+import { Profile, User, Device } from '@prisma/client';
 import { JwtPayload } from 'jsonwebtoken';
 
 declare global {
@@ -14,6 +14,7 @@ declare global {
       user: JwtPayload | User;
       jwtPayload?: JwtPayload;
       profile:Profile
+      device?: Device;
       validatedQuery?: unknown;
     }
   }

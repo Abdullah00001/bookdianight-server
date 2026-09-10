@@ -191,6 +191,7 @@ components:
                 - INVALID_OTP
                 - ACCESS_DENIED
                 - USER_NOT_FOUND
+                - INVALID_DEVICE_CONTEXT
 
     ValidationErrorResponse:
       allOf:
@@ -324,6 +325,16 @@ components:
           type: string
           enum: [ ANDROID, IOS ]
 
+
+    LogoutPayload:
+      type: object
+      required:
+        - deviceIdentifier
+      properties:
+        deviceIdentifier:
+          type: string
+          minLength: 1
+          description: Client-generated app-installation identifier used to validate the authenticated device context.
     CheckAccessPayload:
       type: object
       required:
@@ -888,6 +899,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: User logout
+      description: |
+        Logs out the user from the current device ONLY.
+        This invalidates the current device context by setting isActive=false and clearing the FCM token,
+        stopping notifications for this specific device.
+        It also immediately revokes the stateless JWT by adding it to a Redis blacklist for its remaining lifetime.
+        Other devices logged into the same account remain completely unaffected.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutPayload'
+      responses:
+        '200':
+          description: Logout successful. The JWT is revoked and the device context is inactive.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized. Token missing/expired/revoked, account blocked/inactive, or deviceIdentifier mismatch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation failed (e.g. missing deviceIdentifier).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
         '500':
           description: Internal server error
           content:

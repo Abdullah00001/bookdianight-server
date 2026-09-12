@@ -20,3 +20,14 @@ export interface ILogoutAdminService {
   accessToken: string;
   refreshToken?: string;
 }
+
+import { TUpdateAdminProfilePayload } from '@/app/modules/admin/admin.schema';
+
+export interface IGetAdminProfileService {
+  userId: string;
+}
+
+export interface IUpdateAdminProfileService {
+  userId: string;
+  payload: TUpdateAdminProfilePayload;
+}

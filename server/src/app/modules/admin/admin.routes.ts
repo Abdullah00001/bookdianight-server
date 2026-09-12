@@ -4,6 +4,8 @@ import {
   checkAdminController,
   refreshAdminController,
   logoutAdminController,
+  getAdminProfileController,
+  updateAdminProfileController,
 } from '@/app/modules/admin/admin.controllers';
 import { validateReqBody } from '@/app/utils/system.utils';
 import { adminLoginSchema } from '@/app/modules/admin/admin.schema';
@@ -19,6 +21,7 @@ import {
   checkAccountStatus,
   checkPassword,
 } from '@/app/modules/auth/auth.middlewares';
+import { updateAdminProfileSchema } from '@/app/modules/admin/admin.schema';
 
 const router = Router();
 
@@ -58,6 +61,21 @@ router
     checkAdminAccessTokenMiddleware,
     checkAdminExistenceMiddleware,
     logoutAdminController
+  );
+
+router
+  .route('/admin/profile')
+  .get(
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    getAdminProfileController
+  )
+  .patch(
+    checkCsrfTokenMiddleware,
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    validateReqBody(updateAdminProfileSchema),
+    updateAdminProfileController
   );
 
 export default router;

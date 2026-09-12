@@ -87,6 +87,13 @@ export const resendOtpController = asyncHandler(
   }
 );
 
+/**
+ * Controller for handling check user access token requests.
+ * Calls the check user access token service to check the user's access token.
+ * Returns the user's profile information.
+ * @param req
+ * @param res
+ */
 export const checkUserAccessTokenController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();

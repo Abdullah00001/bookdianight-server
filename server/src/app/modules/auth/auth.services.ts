@@ -242,6 +242,16 @@ export const resendOtpService = async ({
   }
 };
 
+/**
+ * This service is used to check the user's access token.
+ * It updates the device information and returns the user's profile information.
+ * @returns Promise<{
+ *   name: string;
+ *   avatar: string | null;
+ *   role: string;
+ *   accountStatus: string;
+ * }>
+ */
 export const checkUserAccessTokenService = async ({
   payload,
   jwtPayload,
@@ -411,12 +421,12 @@ export const loginService = async ({
   }
 };
 
-
 /**
  * Service for user logout.
  * Operates on a trusted device context established by checkDeviceContextMiddleware.
  * Marks the device as inactive, clears FCM token,
  * and blacklists the current JWT access token.
+ * @returns Promise<void>
  */
 export const logoutService = async ({
   jwtPayload,

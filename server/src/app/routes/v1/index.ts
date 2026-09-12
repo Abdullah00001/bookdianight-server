@@ -3,8 +3,10 @@ import authRoutes from '@/app/modules/auth/auth.routes';
 import mediaRoutes from '@/app/modules/media/media.routes';
 import recoverRoutes from '@/app/modules/recover/recover.routes';
 import adminRoutes from '@/app/modules/admin/admin.routes';
+import profileRoutes from '@/app/modules/profile/profile.routes';
 
 const routes: Router[] = [
+  profileRoutes,
   adminRoutes,
   recoverRoutes,
   mediaRoutes,

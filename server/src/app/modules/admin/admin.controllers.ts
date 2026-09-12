@@ -3,19 +3,14 @@ import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { COOKIE_NAMES, adminAccessTokenExpiresIn, refreshTokenExpiresInWithRememberMe } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
-import {
-  loginAdminService,
-  checkAdminService,
-  refreshAdminService,
-  logoutAdminService,
-} from '@/app/modules/admin/admin.services';
+import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService } from '@/app/modules/admin/admin.services';
 import { TAdminLoginPayload } from '@/app/modules/admin/admin.schema';
 import { User } from '@prisma/client';
 
 /**
  * Controller for admin login.
  * Calls service to validate and generate tokens. Sets secure cookies.
- * 
+ *
  * @param {Request} req
  * @param {Response} res
  * @returns {Promise<void>}
@@ -24,12 +19,12 @@ export const loginAdminController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const payload = req.body as TAdminLoginPayload;
-    
-    // User is injected by findUserByEmail middleware if we use it, 
+
+    // User is injected by findUserByEmail middleware if we use it,
     // but the requirement specified validateReqBody -> loginAdminController -> service.
-    // So we need to ensure the user is passed or fetched. 
-    // Wait, the plan says validateReqBody -> loginAdminController, which means the service must fetch it? 
-    // Let's use the existing findUserByEmail middleware from auth module if possible, 
+    // So we need to ensure the user is passed or fetched.
+    // Wait, the plan says validateReqBody -> loginAdminController, which means the service must fetch it?
+    // Let's use the existing findUserByEmail middleware from auth module if possible,
     // or just fetch it in the controller/service.
     // Actually, I'll pass the `user` from `req.user` since we will chain `findUserByEmail` in routes.
     const user = req.user as User;
@@ -72,7 +67,7 @@ export const loginAdminController = asyncHandler(
 /**
  * Controller for checking admin auth status.
  * Relies completely on trusted context from middlewares.
- * 
+ *
  * @param {Request} req
  * @param {Response} res
  * @returns {Promise<void>}
@@ -96,7 +91,7 @@ export const checkAdminController = asyncHandler(
 /**
  * Controller for refreshing admin tokens.
  * Calls service to atomically rotate tokens and sets new cookies.
- * 
+ *
  * @param {Request} req
  * @param {Response} res
  * @returns {Promise<void>}
@@ -144,7 +139,7 @@ export const refreshAdminController = asyncHandler(
 /**
  * Controller for admin logout.
  * Clears cookies and calls service to invalidate tokens in Redis.
- * 
+ *
  * @param {Request} req
  * @param {Response} res
  * @returns {Promise<void>}
@@ -174,5 +169,49 @@ export const logoutAdminController = asyncHandler(
       message: 'Admin logged out successfully',
       traceId,
     });
+  }
+);
+
+/**
+ * Controller for retrieving the admin's profile.
+ * @param req
+ * @param res
+ */
+export const getAdminProfileController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+
+    const profileData = await getAdminProfileService({ userId: user.id });
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin profile retrieved successfully',
+      data: profileData,
+      traceId
+    });
+    return;
+  }
+);
+
+/**
+ * Controller for updating the admin's profile.
+ * @param req
+ * @param res
+ */
+export const updateAdminProfileController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+
+    const updatedData = await updateAdminProfileService({ userId: user.id, payload: req.body });
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin profile updated successfully',
+      data: updatedData,
+      traceId
+    });
+    return;
   }
 );

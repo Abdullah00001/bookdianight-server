@@ -1,3 +1,4 @@
+import prisma from '@/app/configs/db.configs';
 import { getRedisClient } from '@/app/configs/redis.configs';
 import { createRedisKey, expiresInTimeUnitToMs } from '@/app/utils/system.utils';
 import {
@@ -11,6 +12,8 @@ import {
   ICheckAdminService,
   IRefreshAdminService,
   ILogoutAdminService,
+  IGetAdminProfileService,
+  IUpdateAdminProfileService,
 } from '@/app/modules/admin/admin.types';
 import crypto from 'crypto';
 import { ITokenPayload } from '@/app/@types/jwt.types';
@@ -165,6 +168,81 @@ export const logoutAdminService = async ({
       await redisClient.set(blacklistKey, '1', 'EX', accessTokenTTL);
     }
   } catch (error: any) {
+    throw error;
+  }
+};
+
+/**
+ * Service for fetching admin profile.
+ * Retrieves the admin's core data and nested profile fields.
+ * Returns the sanitized admin record.
+ * @returns Promise<Record<string, unknown>>
+ */
+export const getAdminProfileService = async ({
+  userId,
+}: IGetAdminProfileService): Promise<Record<string, unknown>> => {
+  try {
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: { profile: true },
+    });
+
+    const { password: _password, ...userWithoutPassword } = user;
+    return {
+      user: userWithoutPassword,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for updating admin profile.
+ * Modifies the admin's core fields and nested profile fields atomically via a transaction.
+ * Returns the updated sanitized admin record.
+ * @returns Promise<Record<string, unknown>>
+ */
+export const updateAdminProfileService = async ({
+  userId,
+  payload,
+}: IUpdateAdminProfileService): Promise<Record<string, unknown>> => {
+  try {
+    const { name, phoneNumber, profileAvatar } = payload;
+
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // 1. Update User if User fields are provided
+      if (name !== undefined || phoneNumber !== undefined) {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            ...(name !== undefined && { name }),
+            ...(phoneNumber !== undefined && { phoneNumber }),
+          },
+        });
+      }
+
+      // 2. Update Profile if Profile fields are provided
+      if (profileAvatar !== undefined) {
+        await tx.profile.update({
+          where: { userId },
+          data: {
+            profileAvatar,
+          },
+        });
+      }
+
+      // 3. Fetch and return the combined result
+      return await tx.user.findUniqueOrThrow({
+        where: { id: userId },
+        include: { profile: true },
+      });
+    });
+
+    const { password: _password, ...userWithoutPassword } = updatedUser;
+    return {
+      user: userWithoutPassword,
+    };
+  } catch (error) {
     throw error;
   }
 };

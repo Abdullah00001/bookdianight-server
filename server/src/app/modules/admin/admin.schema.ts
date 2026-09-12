@@ -1,10 +1,16 @@
 import { z } from 'zod';
 
+/**
+ * Schema for admin login.
+ */
 export const adminLoginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
+  email: z.email({ error: 'Invalid email address' }),
+  password: z.string().min(6, { error: 'Password must be at least 6 characters long' }),
 });
 
+/**
+ * Type for admin login.
+ */
 export type TAdminLoginPayload = z.infer<typeof adminLoginSchema>;
 
 /**

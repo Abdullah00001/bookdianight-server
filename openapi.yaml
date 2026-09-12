@@ -6,6 +6,8 @@ info:
 servers:
   - url: http://localhost:5005
     description: Local development server
+  - url: https://promised-shed-citizens-lewis.trycloudflare.com
+    description: TryCloudflare server (temporary)
   - url: https://api.bookdianight.com
     description: Production server
 tags:

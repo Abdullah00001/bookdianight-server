@@ -15,6 +15,7 @@
     "create:queue": "bash worker/scripts/create-queue.sh",
     "create:queue-job": "bash worker/scripts/create-queue-job.sh",
     "create:emailTemp": "bash worker/scripts/create-email-temp.sh",
+    "feed:legal": "node server/scripts/feed-legal.js",
     "create:admin": "node server/scripts/create-admin.js",
     "create:module": "node server/scripts/create-module.js",
     "create:version": "node server/scripts/create-version.js",

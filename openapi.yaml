@@ -380,10 +380,53 @@ components:
         message:
           type: string
         data:
-          $ref: '#/components/schemas/UserResponse'
+          $ref: '#/components/schemas/AdminUserResponse'
         traceId:
           type: string
           format: uuid
+    AdminUserResponse:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - phoneNumber
+        - accountStatus
+        - accountRole
+        - isVerified
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phoneNumber:
+          type: string
+        accountStatus:
+          type: string
+          enum:
+            - ACTIVE
+            - INACTIVE
+            - BLOCKED
+        accountRole:
+          type: string
+          enum:
+            - USER
+            - ADMIN
+            - CLUB_OWNER
+        isVerified:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
 paths:
   /health:
     get:

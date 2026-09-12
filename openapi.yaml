@@ -4,19 +4,19 @@ info:
   version: 1.0.0
   description: API documentation for the BookDiaNight backend.
 servers:
-- url: http://localhost:5005
-  description: Local development server
-- url: https://promised-shed-citizens-lewis.trycloudflare.com
-  description: TryCloudflare server (temporary)
-- url: https://api.bookdianight.com
-  description: Production server
+  - url: http://localhost:5005
+    description: Local development server
+  - url: https://promised-shed-citizens-lewis.trycloudflare.com
+    description: TryCloudflare server (temporary)
+  - url: https://api.bookdianight.com
+    description: Production server
 tags:
-- name: Health
-  description: System health and status endpoints
-- name: Auth
-  description: Authentication and device management endpoints
-- name: Media
-  description: Public media and file upload endpoints
+  - name: Health
+    description: System health and status endpoints
+  - name: Auth
+    description: Authentication and device management endpoints
+  - name: Media
+    description: Public media and file upload endpoints
 components:
   securitySchemes:
     bearerAuth:
@@ -25,8 +25,8 @@ components:
       bearerFormat: JWT
       description: 'JWT Bearer token for authentication.
 
-        Note: The `/auth/verify` and `/auth/resend` endpoints expect the OTP-page
-        pending verification token,
+        Note: The `/auth/verify` and `/auth/resend` endpoints expect the
+        OTP-page pending verification token,
 
         whereas `/auth/check` expects the standard user access token.
 
@@ -61,13 +61,13 @@ components:
               type: string
               example: ACTIVE
       required:
-      - success
-      - message
-      - traceId
+        - success
+        - message
+        - traceId
     FindRecoverUserByEmailPayload:
       type: object
       required:
-      - email
+        - email
       properties:
         email:
           type: string
@@ -76,7 +76,7 @@ components:
     VerifyRecoverUserOtpPayload:
       type: object
       required:
-      - otp
+        - otp
       properties:
         otp:
           type: string
@@ -85,7 +85,7 @@ components:
     ResetRecoverUserPasswordPayload:
       type: object
       required:
-      - password
+        - password
       properties:
         password:
           type: string
@@ -103,32 +103,32 @@ components:
           type: string
           format: uuid
       required:
-      - success
-      - message
-      - traceId
+        - success
+        - message
+        - traceId
     TokenResponse:
       allOf:
-      - $ref: '#/components/schemas/SuccessResponse'
-      - type: object
-        properties:
-          data:
-            type: object
-            properties:
-              token:
-                type: string
-            required:
-            - token
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+              required:
+                - token
     MediaResponse:
       allOf:
-      - $ref: '#/components/schemas/SuccessResponse'
-      - type: object
-        properties:
-          data:
-            type: array
-            items:
-              type: string
-              format: uri
-            description: Array of S3 URLs for uploaded files
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: string
+                format: uri
+              description: Array of S3 URLs for uploaded files
     HealthResponse:
       type: object
       properties:
@@ -165,61 +165,61 @@ components:
           type: string
           format: uuid
       required:
-      - success
-      - message
-      - traceId
+        - success
+        - message
+        - traceId
     AuthErrorResponse:
       allOf:
-      - $ref: '#/components/schemas/ErrorResponse'
-      - type: object
-        properties:
-          errorType:
-            type: string
-            enum:
-            - TOKEN_EXPIRED
-            - TOKEN_INVALID
-            - TOKEN_BLACKLISTED
-            - USER_BLOCKED
-            - INVALID_CREDENTIALS
-            - DUPLICATE_DATA
-            - OTP_EXPIRED
-            - INVALID_OTP
-            - ACCESS_DENIED
-            - USER_NOT_FOUND
-            - INVALID_DEVICE_CONTEXT
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            errorType:
+              type: string
+              enum:
+                - TOKEN_EXPIRED
+                - TOKEN_INVALID
+                - TOKEN_BLACKLISTED
+                - USER_BLOCKED
+                - INVALID_CREDENTIALS
+                - DUPLICATE_DATA
+                - OTP_EXPIRED
+                - INVALID_OTP
+                - ACCESS_DENIED
+                - USER_NOT_FOUND
+                - INVALID_DEVICE_CONTEXT
     ValidationErrorResponse:
       allOf:
-      - $ref: '#/components/schemas/ErrorResponse'
-      - type: object
-        properties:
-          errors:
-            type: array
-            items:
-              type: object
-              properties:
-                field:
-                  type: string
-                message:
-                  type: string
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            errors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  message:
+                    type: string
     SignupPayload:
       type: object
       required:
-      - role
-      - name
-      - email
-      - phoneNumber
-      - location
-      - password
-      - deviceIdentifier
-      - lat
-      - lng
-      - platform
+        - role
+        - name
+        - email
+        - phoneNumber
+        - location
+        - password
+        - deviceIdentifier
+        - lat
+        - lng
+        - platform
       properties:
         role:
           type: string
           enum:
-          - CLUB_OWNER
-          - USER
+            - CLUB_OWNER
+            - USER
         name:
           type: string
           minLength: 1
@@ -247,26 +247,26 @@ components:
         platform:
           type: string
           enum:
-          - ANDROID
-          - IOS
+            - ANDROID
+            - IOS
         gender:
           type: string
           enum:
-          - MALE
-          - FEMALE
-          - OTHER
+            - MALE
+            - FEMALE
+            - OTHER
         dateOfBirth:
           type: string
           format: date-time
     LoginPayload:
       type: object
       required:
-      - email
-      - password
-      - deviceIdentifier
-      - platform
-      - lat
-      - lng
+        - email
+        - password
+        - deviceIdentifier
+        - platform
+        - lat
+        - lng
       properties:
         email:
           type: string
@@ -283,8 +283,8 @@ components:
         platform:
           type: string
           enum:
-          - ANDROID
-          - IOS
+            - ANDROID
+            - IOS
           example: ANDROID
         fcmToken:
           type: string
@@ -304,9 +304,9 @@ components:
     VerifySignupPayload:
       type: object
       required:
-      - otp
-      - deviceIdentifier
-      - platform
+        - otp
+        - deviceIdentifier
+        - platform
       properties:
         otp:
           type: string
@@ -321,25 +321,25 @@ components:
         platform:
           type: string
           enum:
-          - ANDROID
-          - IOS
+            - ANDROID
+            - IOS
     LogoutPayload:
       type: object
       required:
-      - deviceIdentifier
+        - deviceIdentifier
       properties:
         deviceIdentifier:
           type: string
           minLength: 1
-          description: Client-generated app-installation identifier used to validate
-            the authenticated device context.
+          description: Client-generated app-installation identifier used to validate the
+            authenticated device context.
     CheckAccessPayload:
       type: object
       required:
-      - deviceIdentifier
-      - lat
-      - lng
-      - platform
+        - deviceIdentifier
+        - lat
+        - lng
+        - platform
       properties:
         deviceIdentifier:
           type: string
@@ -351,14 +351,14 @@ components:
         platform:
           type: string
           enum:
-          - ANDROID
-          - IOS
+            - ANDROID
+            - IOS
         fcmToken:
           type: string
     DeleteMediaPayload:
       type: object
       required:
-      - urls
+        - urls
       properties:
         urls:
           type: array
@@ -369,8 +369,8 @@ components:
     AdminLoginPayload:
       type: object
       required:
-      - email
-      - password
+        - email
+        - password
       properties:
         email:
           type: string
@@ -390,23 +390,23 @@ components:
           $ref: '#/components/schemas/AdminUserResponse'
         csrfToken:
           type: string
-          description: CSRF token provided for easier Swagger testing. Usually sent
-            via cookie.
+          description: CSRF token provided for easier Swagger testing. Usually sent via
+            cookie.
         traceId:
           type: string
           format: uuid
     AdminUserResponse:
       type: object
       required:
-      - id
-      - name
-      - email
-      - phoneNumber
-      - accountStatus
-      - accountRole
-      - isVerified
-      - createdAt
-      - updatedAt
+        - id
+        - name
+        - email
+        - phoneNumber
+        - accountStatus
+        - accountRole
+        - isVerified
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -421,15 +421,15 @@ components:
         accountStatus:
           type: string
           enum:
-          - ACTIVE
-          - INACTIVE
-          - BLOCKED
+            - ACTIVE
+            - INACTIVE
+            - BLOCKED
         accountRole:
           type: string
           enum:
-          - USER
-          - ADMIN
-          - CLUB_OWNER
+            - USER
+            - ADMIN
+            - CLUB_OWNER
         isVerified:
           type: boolean
         createdAt:
@@ -453,9 +453,9 @@ components:
         gender:
           type: string
           enum:
-          - MALE
-          - FEMALE
-          - OTHER
+            - MALE
+            - FEMALE
+            - OTHER
           example: MALE
         dateOfBirth:
           type: string
@@ -624,11 +624,56 @@ components:
         traceId:
           type: string
           format: uuid
+    LegalContent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        legalContentType:
+          type: string
+          enum:
+            - TERMS_AND_CONDITION
+            - PRIVACY_AND_POLICY
+            - ABOUT_US
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UpdateLegalContentPayload:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          minLength: 1
+    LegalContentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Legal content retrieved successfully
+        data:
+          type: object
+          properties:
+            legalContent:
+              $ref: "#/components/schemas/LegalContent"
+        traceId:
+          type: string
+          format: uuid
 paths:
   /health:
     get:
       tags:
-      - Health
+        - Health
       summary: Health check endpoint
       description: Reports the health status of the application and its dependencies
         (Database, Redis).
@@ -648,7 +693,7 @@ paths:
   /api/v1/auth/signup:
     post:
       tags:
-      - Auth
+        - Auth
       summary: User signup
       description: 'creates a new user account
 
@@ -660,7 +705,8 @@ paths:
 
         returns the OTP-page/pending-verification token
 
-        does not issue a normal authenticated access token until verification succeeds
+        does not issue a normal authenticated access token until verification
+        succeeds
 
         '
       requestBody:
@@ -702,7 +748,7 @@ paths:
   /api/v1/auth/login:
     post:
       tags:
-      - Auth
+        - Auth
       summary: User login
       description: |
         authenticates using email/password
@@ -740,8 +786,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
         '500':
-          description: 'Internal Service Errors (Currently thrown as native Errors
-            caught by global 500 handler).
+          description: 'Internal Service Errors (Currently thrown as native Errors caught
+            by global 500 handler).
 
             Includes: "Invalid credentials", "Account is blocked or inactive".
 
@@ -753,10 +799,10 @@ paths:
   /api/v1/auth/verify:
     post:
       tags:
-      - Auth
+        - Auth
       summary: Verify OTP
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       description: 'this endpoint uses the pending OTP verification token
 
         validates the OTP
@@ -816,10 +862,10 @@ paths:
   /api/v1/auth/resend:
     post:
       tags:
-      - Auth
+        - Auth
       summary: Resend OTP
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       description: 'it requires the pending OTP verification token
 
         generates/sends another verification OTP
@@ -865,10 +911,10 @@ paths:
   /api/v1/auth/check:
     post:
       tags:
-      - Auth
+        - Auth
       summary: Check Access Token
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       description: 'it validates the access token
 
         validates the JWT/device relationship
@@ -922,8 +968,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
         '500':
-          description: Invalid device context, blocked account, or other internal
-            error.
+          description: Invalid device context, blocked account, or other internal error.
           content:
             application/json:
               schema:
@@ -931,7 +976,7 @@ paths:
   /api/v1/media:
     post:
       tags:
-      - Media
+        - Media
       summary: Upload Media
       description: 'multipart file upload
 
@@ -945,7 +990,8 @@ paths:
 
         returned media URLs
 
-        **Security Warning:** This route is currently PUBLIC and requires no authentication.
+        **Security Warning:** This route is currently PUBLIC and requires no
+        authentication.
 
         '
       requestBody:
@@ -955,7 +1001,7 @@ paths:
             schema:
               type: object
               required:
-              - files
+                - files
               properties:
                 files:
                   type: array
@@ -971,8 +1017,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MediaResponse'
         '400':
-          description: Multer Upload Error (File size exceeded, unexpected field,
-            etc.)
+          description: Multer Upload Error (File size exceeded, unexpected field, etc.)
           content:
             application/json:
               schema:
@@ -996,7 +1041,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags:
-      - Media
+        - Media
       summary: Delete Media
       description: 'deletes the supplied media objects/URLs
 
@@ -1033,10 +1078,10 @@ paths:
   /api/v1/recover/find:
     post:
       tags:
-      - Recover
+        - Recover
       summary: Find user by email and send OTP
-      description: Validates email, checks account status, generates OTP, and sends
-        it via email queue.
+      description: Validates email, checks account status, generates OTP, and sends it
+        via email queue.
       requestBody:
         required: true
         content:
@@ -1071,12 +1116,12 @@ paths:
   /api/v1/recover/verify:
     post:
       tags:
-      - Recover
+        - Recover
       summary: Verify recover OTP
-      description: Verifies the OTP using the reset password token. Sets the reset-authorized
-        flag.
+      description: Verifies the OTP using the reset password token. Sets the
+        reset-authorized flag.
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -1091,8 +1136,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
         '401':
-          description: Unauthorized. Token missing/invalid/expired, account blocked/inactive,
-            or OTP invalid/expired.
+          description: Unauthorized. Token missing/invalid/expired, account
+            blocked/inactive, or OTP invalid/expired.
           content:
             application/json:
               schema:
@@ -1118,12 +1163,12 @@ paths:
   /api/v1/recover/reset:
     post:
       tags:
-      - Recover
+        - Recover
       summary: Reset user password
       description: Resets the password after OTP verification. Blacklists the reset
         token and sends success email.
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -1138,8 +1183,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
         '401':
-          description: Unauthorized. Token missing/invalid/expired, account blocked/inactive,
-            or not authorized (OTP not verified).
+          description: Unauthorized. Token missing/invalid/expired, account
+            blocked/inactive, or not authorized (OTP not verified).
           content:
             application/json:
               schema:
@@ -1165,11 +1210,11 @@ paths:
   /api/v1/recover/resend:
     post:
       tags:
-      - Recover
+        - Recover
       summary: Resend recover OTP
       description: Resends a new OTP for the password reset flow using the reset token.
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: OTP resent successfully.
@@ -1178,7 +1223,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
         '401':
-          description: Unauthorized. Token missing/invalid/expired, or account blocked/inactive.
+          description: Unauthorized. Token missing/invalid/expired, or account
+            blocked/inactive.
           content:
             application/json:
               schema:
@@ -1198,23 +1244,23 @@ paths:
   /api/v1/auth/logout:
     post:
       tags:
-      - Auth
+        - Auth
       summary: User logout
       description: 'Logs out the user from the current device ONLY.
 
-        This invalidates the current device context by setting isActive=false and
-        clearing the FCM token,
+        This invalidates the current device context by setting isActive=false
+        and clearing the FCM token,
 
         stopping notifications for this specific device.
 
-        It also immediately revokes the stateless JWT by adding it to a Redis blacklist
-        for its remaining lifetime.
+        It also immediately revokes the stateless JWT by adding it to a Redis
+        blacklist for its remaining lifetime.
 
         Other devices logged into the same account remain completely unaffected.
 
         '
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -1223,15 +1269,15 @@ paths:
               $ref: '#/components/schemas/LogoutPayload'
       responses:
         '200':
-          description: Logout successful. The JWT is revoked and the device context
-            is inactive.
+          description: Logout successful. The JWT is revoked and the device context is
+            inactive.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
         '401':
-          description: Unauthorized. Token missing/expired/revoked, account blocked/inactive,
-            or deviceIdentifier mismatch.
+          description: Unauthorized. Token missing/expired/revoked, account
+            blocked/inactive, or deviceIdentifier mismatch.
           content:
             application/json:
               schema:
@@ -1257,10 +1303,9 @@ paths:
   /api/v1/admin/auth/login:
     post:
       tags:
-      - Admin Auth
+        - Admin Auth
       summary: Admin Login
-      description: Authenticate an admin user, sets secure HttpOnly cookies and CSRF
-        cookie
+      description: Authenticate an admin user, sets secure HttpOnly cookies and CSRF cookie
       requestBody:
         required: true
         content:
@@ -1306,16 +1351,15 @@ paths:
   /api/v1/admin/auth/check:
     post:
       tags:
-      - Admin Auth
+        - Admin Auth
       summary: Check Admin Authentication Status
-      description: Verifies the admin is authenticated using access cookies and CSRF
-        headers
+      description: Verifies the admin is authenticated using access cookies and CSRF headers
       parameters:
-      - name: X-CSRF-Token
-        in: header
-        required: true
-        schema:
-          type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Authenticated
@@ -1344,16 +1388,16 @@ paths:
   /api/v1/admin/auth/refresh:
     post:
       tags:
-      - Admin Auth
+        - Admin Auth
       summary: Refresh Admin Tokens
       description: Atomically rotates refresh tokens. Requires valid CSRF and refresh
         cookies.
       parameters:
-      - name: X-CSRF-Token
-        in: header
-        required: true
-        schema:
-          type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Tokens refreshed
@@ -1370,8 +1414,8 @@ paths:
                     example: Admin tokens refreshed successfully
                   csrfToken:
                     type: string
-                    description: CSRF token provided for easier Swagger testing. Usually
-                      sent via cookie.
+                    description: CSRF token provided for easier Swagger testing. Usually sent via
+                      cookie.
                   traceId:
                     type: string
                     format: uuid
@@ -1401,16 +1445,16 @@ paths:
   /api/v1/admin/auth/logout:
     post:
       tags:
-      - Admin Auth
+        - Admin Auth
       summary: Admin Logout
       description: Invalidates the current admin session, blacklists access token,
         clears cookies
       parameters:
-      - name: X-CSRF-Token
-        in: header
-        required: true
-        schema:
-          type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
       responses:
         '200':
           description: Successfully logged out
@@ -1449,11 +1493,11 @@ paths:
   /api/v1/profile:
     get:
       tags:
-      - Profile
+        - Profile
       summary: Get User Profile
       description: Retrieves the authenticated user's profile
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       responses:
         '200':
           description: Profile retrieved successfully
@@ -1481,11 +1525,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags:
-      - Profile
+        - Profile
       summary: Update User Profile
-      description: Updates the user's profile fields. Email modification is ignored/rejected.
+      description: Updates the user's profile fields. Email modification is
+        ignored/rejected.
       security:
-      - bearerAuth: []
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -1526,7 +1571,7 @@ paths:
   /api/v1/admin/profile:
     get:
       tags:
-      - Admin Auth
+        - Admin Auth
       summary: Get Admin Profile
       description: Retrieves the authenticated admin's profile
       responses:
@@ -1562,15 +1607,15 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     patch:
       tags:
-      - Admin Auth
+        - Admin Auth
       summary: Update Admin Profile
       description: Updates the admin's profile. Requires CSRF validation.
       parameters:
-      - name: X-CSRF-Token
-        in: header
-        required: true
-        schema:
-          type: string
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
       requestBody:
         required: true
         content:
@@ -1614,3 +1659,363 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/terms:
+    get:
+      tags:
+        - Admin Legal
+      summary: Get Terms & Conditions
+      description: Retrieves the Terms & Conditions content
+      responses:
+        "200":
+          description: Successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - adminAuth: []
+    patch:
+      tags:
+        - Admin Legal
+      summary: Update Terms & Conditions
+      description: Updates the Terms & Conditions content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLegalContentPayload"
+      responses:
+        "200":
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden (CSRF Invalid or Access Denied)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - adminAuth: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+  /api/v1/admin/privacy:
+    get:
+      tags:
+        - Admin Legal
+      summary: Get Privacy Policy
+      description: Retrieves the Privacy Policy content
+      responses:
+        "200":
+          description: Successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - adminAuth: []
+    patch:
+      tags:
+        - Admin Legal
+      summary: Update Privacy Policy
+      description: Updates the Privacy Policy content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLegalContentPayload"
+      responses:
+        "200":
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden (CSRF Invalid or Access Denied)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - adminAuth: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+  /api/v1/admin/about-us:
+    get:
+      tags:
+        - Admin Legal
+      summary: Get About Us
+      description: Retrieves the About Us content
+      responses:
+        "200":
+          description: Successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - adminAuth: []
+    patch:
+      tags:
+        - Admin Legal
+      summary: Update About Us
+      description: Updates the About Us content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLegalContentPayload"
+      responses:
+        "200":
+          description: Successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden (CSRF Invalid or Access Denied)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      security:
+        - adminAuth: []
+      parameters:
+        - name: X-CSRF-Token
+          in: header
+          required: true
+          schema:
+            type: string
+  /api/v1/terms:
+    get:
+      tags:
+        - Public Legal
+      summary: Get Terms & Conditions
+      description: Retrieves the Terms & Conditions content
+      responses:
+        "200":
+          description: Successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/privacy:
+    get:
+      tags:
+        - Public Legal
+      summary: Get Privacy Policy
+      description: Retrieves the Privacy Policy content
+      responses:
+        "200":
+          description: Successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/about-us:
+    get:
+      tags:
+        - Public Legal
+      summary: Get About Us
+      description: Retrieves the About Us content
+      responses:
+        "200":
+          description: Successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LegalContentResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

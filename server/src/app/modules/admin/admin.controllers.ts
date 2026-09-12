@@ -59,6 +59,7 @@ export const loginAdminController = asyncHandler(
       success: true,
       message: 'Admin logged in successfully',
       data: adminData,
+      csrfToken,
       traceId,
     });
   }
@@ -131,6 +132,7 @@ export const refreshAdminController = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'Admin tokens refreshed successfully',
+      csrfToken,
       traceId,
     });
   }

@@ -24,6 +24,7 @@ export const corsWhiteList = [
   'http://localhost:5006',
   'http://localhost:5007',
   'http://localhost:5008',
+  'https://promised-shed-citizens-lewis.trycloudflare.com',
 ];
 export const saltRound = 10;
 export const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
@@ -290,7 +291,8 @@ export const REDIS_PREFIXES = {
 export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-START
   RECOVER_USER_VERIFICATION_OTP_RESEND: 'recover-user-verification-otp-resend',
-  RECOVER_USER_PASSWORD_RESET_SUCCESSFUL: 'recover-user-password-reset-successful',
+  RECOVER_USER_PASSWORD_RESET_SUCCESSFUL:
+    'recover-user-password-reset-successful',
   RECOVER_USER_VERIFICATION_OTP: 'recover-user-verification-otp',
   RESEND_VERIFICATION_OTP: 'resend-verification-otp',
   SIGNUP_USER_VERIFICATION_SUCCESSFUL: 'signup-user-verification-successful',

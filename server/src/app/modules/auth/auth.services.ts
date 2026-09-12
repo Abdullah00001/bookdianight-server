@@ -415,7 +415,7 @@ export const loginService = async ({
       rememberMe: rememberMe ?? false,
     });
 
-    return { token: accessToken };
+    return { token: accessToken, role: user.accountRole };
   } catch (error) {
     throw error;
   }

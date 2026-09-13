@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:5005
     description: Local development server
-  - url: https://promised-shed-citizens-lewis.trycloudflare.com
+  - url: https://petition-orchestra-awards-adaptor.trycloudflare.com 
     description: TryCloudflare server (temporary)
   - url: https://api.bookdianight.com
     description: Production server

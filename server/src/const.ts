@@ -24,7 +24,7 @@ export const corsWhiteList = [
   'http://localhost:5006',
   'http://localhost:5007',
   'http://localhost:5008',
-  'https://promised-shed-citizens-lewis.trycloudflare.com',
+  'https://petition-orchestra-awards-adaptor.trycloudflare.com',
 ];
 export const saltRound = 10;
 export const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;

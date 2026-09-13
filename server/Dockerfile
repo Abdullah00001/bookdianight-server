@@ -8,9 +8,10 @@ WORKDIR /app
 # Install dumb-init for proper process management
 RUN apk add --no-cache dumb-init
 
-# Copy root configurations required for Prisma
+# Copy root configurations required for Prisma and OpenAPI
 COPY prisma.config.ts ./
 COPY prisma ./prisma/
+COPY openapi.yaml ./
 
 # Copy the server package and tsconfig
 COPY server/package*.json ./
@@ -50,6 +51,7 @@ RUN mkdir -p public/temp
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/prisma.config.ts ./
+COPY --from=base /app/openapi.yaml ./
 COPY server/package*.json ./
 
 # Install ONLY production dependencies.

@@ -1,4 +1,4 @@
-import { createReadStream } from 'fs';
+import { createReadStream, statSync } from 'fs';
 
 import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { lookup } from 'mime-types';
@@ -21,6 +21,7 @@ export async function singleUploadToS3({
   key: string;
 }): Promise<string> {
   try {
+    const fileStats = statSync(filePath);
     const contentType = lookup(filePath);
     const stream = createReadStream(filePath);
     const command = new PutObjectCommand({
@@ -28,6 +29,8 @@ export async function singleUploadToS3({
       Bucket: bucketName,
       ContentType: contentType || `image/${mimeType.replace(/^\./, '')}`,
       Body: stream,
+      ContentLength: fileStats.size,
+      ACL: 'public-read',
     });
     await s3Client.send(command);
     stream.destroy();

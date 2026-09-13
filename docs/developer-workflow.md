@@ -126,7 +126,14 @@ Before committing code, you must validate your changes.
   cd ../scheduler && npm run build
   ```
 
-## 9. Common Errors
+## 9. Naming Conventions
+
+To maintain consistency and adhere to JavaScript best practices, please follow these rules:
+- **File Names, Variables, and Functions**: Must use `camelCase` (e.g., `sendSignupSuccessEmail.job.ts`).
+- **Scripts**: Any files within `./scripts/` directories must use `kebab-case` (e.g., `create-queue-job.sh`), as this is the industry standard for executable scripts.
+- **Queue Jobs**: When generating a job via `npm run create:queue-job`, provide the name in `camelCase`. The generator will automatically convert it to `kebab-case` for the internal job string and `UPPER_SNAKE_CASE` for the registry key.
+
+## 10. Common Errors
 
 ### "PrismaClient did not initialize yet"
 **Cause:** You changed the schema but forgot to sync the container.
@@ -138,7 +145,7 @@ Before committing code, you must validate your changes.
 ### Ports already in use
 **Fix:** Ensure you don't have local Postgres (5440) or Redis (6382) instances running on your host machine fighting the Docker containers for port bindings.
 
-## 10. Where to Read Next
+## 11. Where to Read Next
 
 Now that you have the environment running:
 - Read [System Architecture](architecture.md) to understand how traffic flows.

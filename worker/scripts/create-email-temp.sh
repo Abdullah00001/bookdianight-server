@@ -24,6 +24,8 @@ fi
 
 # Create the template file
 cat > "$TEMP_FILE" <<EOF
+import { companyInformation } from '@/const';
+
 const ${TEMP_NAME}Template = \`\`;
 
 export default ${TEMP_NAME}Template;

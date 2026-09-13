@@ -1,3 +1,5 @@
+import { REDIS_PREFIXES } from "@/const";
+
 export type TEnv = {
   NODE_ENV: string;
   DATABASE_URL: string;
@@ -15,6 +17,7 @@ export type TEnv = {
   JWT_REFRESH_TOKEN_SECRET_KEY: string;
   JWT_VERIFY_OTP_PAGE_SECRET_KEY: string;
   OTP_HASH_SECRET: string;
+  JWT_RESET_PASSWORD_TOKEN_SECRET_KEY:string;
 };
 
 /**
@@ -30,3 +33,5 @@ export interface OTPOptions {
   /** Include special characters (e.g., !@#$%^&*). */
   specialChars: boolean;
 }
+
+export type TRedisPrefix = (typeof REDIS_PREFIXES)[keyof typeof REDIS_PREFIXES];

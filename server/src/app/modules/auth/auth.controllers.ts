@@ -1,18 +1,161 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import { signupService } from '@/app/modules/auth/auth.services';
-import { TSignupPayload } from '@/app/modules/auth/auth.schema';
+import {
+  signupService,
+  verifySignupUserService,
+  resendOtpService,
+  checkUserAccessTokenService,
+  loginService,
+  logoutService,
+} from '@/app/modules/auth/auth.services';
+import {
+  TCheckAccessTokenPayload,
+  TSignupPayload,
+  TLoginPayload,
+  TLogoutPayload,
+} from '@/app/modules/auth/auth.schema';
+import { User } from '@prisma/client';
+import { extractToken } from '@/app/utils/jwt.utils';
+import { ITokenPayload } from '@/app/@types/jwt.types';
 
+/**
+ * Controller for handling signup requests.
+ * Calls the signup service to create a new user.
+ * Returns the user token and trace ID.
+ * @param req
+ * @param res
+ */
 export const signupController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const payload = req.body as TSignupPayload;
-    await signupService({ payload });
+    const data = await signupService({ payload });
     res.status(201).json({
       success: true,
       message:
         'Signup successful. Please check your email for the verification OTP.',
+      data,
+      traceId,
+    });
+    return;
+  }
+);
+
+/**
+ * Controller for handling verify signup user requests.
+ * Calls the verify signup service to verify the user.
+ * Returns the trace ID.
+ * @param req
+ * @param res
+ */
+export const verifySignupUserController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    const token = extractToken(req) as string;
+    const payload = req.body;
+    const data = await verifySignupUserService({ user, token, payload });
+    res.status(200).json({
+      success: true,
+      message: 'Account verification successful',
+      data,
+      traceId,
+    });
+    return;
+  }
+);
+
+/**
+ * Controller for handling resend OTP requests.
+ * Calls the resend OTP service to resend the OTP.
+ * Returns the trace ID.
+ * @param req
+ * @param res
+ */
+export const resendOtpController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    await resendOtpService({ user });
+    res.status(200).json({
+      success: true,
+      message: 'Otp resend successful',
+      traceId,
+    });
+    return;
+  }
+);
+
+/**
+ * Controller for handling check user access token requests.
+ * Calls the check user access token service to check the user's access token.
+ * Returns the user's profile information.
+ * @param req
+ * @param res
+ */
+export const checkUserAccessTokenController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    const payload = req.body as TCheckAccessTokenPayload;
+    const jwtPayload = req.jwtPayload as any;
+    const device = req.device!;
+    const profileData = await checkUserAccessTokenService({ payload, user, jwtPayload, device });
+    res.status(200).json({
+      success: true,
+      message: 'User is authenticated',
+      data: profileData,
+      traceId,
+    });
+    return;
+  }
+);
+/**
+ * Controller for handling login requests.
+ * Calls the login service to authenticate the user.
+ * Returns the trace ID and access token.
+ * @param req
+ * @param res
+ */
+export const loginController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const payload = req.body as TLoginPayload;
+    const user = req.user as User;
+    const data = await loginService({ user, payload });
+    res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      data,
+      traceId,
+    });
+    return;
+  }
+);
+
+
+/**
+ * Controller for handling logout requests.
+ * Calls the logout service to invalidate the device context and token.
+ * Returns the trace ID and success message.
+ * @param req
+ * @param res
+ */
+export const logoutController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    const payload = req.body as TLogoutPayload;
+    const jwtPayload = req.jwtPayload as ITokenPayload;
+    const token = extractToken(req) as string;
+    const device = req.device!;
+
+    await logoutService({ payload, user, jwtPayload, token, device });
+
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful',
       traceId,
     });
     return;

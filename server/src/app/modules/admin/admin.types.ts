@@ -31,3 +31,17 @@ export interface IUpdateAdminProfileService {
   userId: string;
   payload: TUpdateAdminProfilePayload;
 }
+
+import {
+  TChangeAdminPasswordPayload,
+  TUpdateCommissionPayload,
+} from '@/app/modules/admin/admin.schema';
+
+export interface IChangeAdminPasswordService {
+  userId: string;
+  payload: TChangeAdminPasswordPayload;
+}
+
+export interface IUpdateCommissionService {
+  payload: TUpdateCommissionPayload;
+}

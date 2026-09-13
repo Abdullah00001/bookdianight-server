@@ -19,6 +19,11 @@ tags:
     description: Public media and file upload endpoints
 components:
   securitySchemes:
+    adminAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+      description: 'Cookie based access token for Admin API.'
     bearerAuth:
       type: http
       scheme: bearer
@@ -32,6 +37,33 @@ components:
 
         '
   schemas:
+    ChangePasswordPayload:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+        - confirmPassword
+      properties:
+        currentPassword:
+          type: string
+          minLength: 6
+        newPassword:
+          type: string
+          minLength: 6
+        confirmPassword:
+          type: string
+          minLength: 6
+    UpdateCommissionPayload:
+      type: object
+      required:
+        - serviceType
+        - chargePercentage
+      properties:
+        serviceType:
+          type: string
+          enum: [EVENT, CLUB]
+        chargePercentage:
+          type: number
     CheckAccessResponse:
       type: object
       properties:
@@ -1490,6 +1522,61 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/change-password:
+    patch:
+      tags:
+        - Profile
+      summary: Change User Password
+      operationId: changeUserPassword
+      description: Changes the authenticated user's password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordPayload'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Password changed successfully
+                  traceId:
+                    type: string
+        '401':
+          description: Unauthorized or Incorrect current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/profile:
     get:
       tags:
@@ -1562,6 +1649,188 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/change-password:
+    patch:
+      tags:
+        - Admin Auth
+      summary: Change Admin Password
+      operationId: changeAdminPassword
+      description: Changes the authenticated admin's password
+      security:
+        - adminAuth: []
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+          description: CSRF token for mutating requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordPayload'
+      responses:
+        '200':
+          description: Admin password changed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Admin password changed successfully
+                  traceId:
+                    type: string
+        '401':
+          description: Unauthorized or Incorrect current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: CSRF Token Invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/commission:
+    get:
+      tags:
+        - Admin Auth
+      summary: Get Commission Configurations
+      operationId: getCommission
+      description: Retrieves the current commission configuration for EVENT and CLUB
+      security:
+        - adminAuth: []
+      responses:
+        '200':
+          description: Commission configuration retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Commission configuration retrieved successfully
+                  data:
+                    type: object
+                  traceId:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Commission configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Admin Auth
+      summary: Update Commission Configuration
+      operationId: updateCommission
+      description: Updates the application charge percentage for a specific service type
+      security:
+        - adminAuth: []
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+          description: CSRF token for mutating requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommissionPayload'
+      responses:
+        '200':
+          description: Commission updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Commission updated successfully
+                  data:
+                    type: object
+                  traceId:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: CSRF Token Invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Commission configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
         '500':
           description: Internal server error
           content:

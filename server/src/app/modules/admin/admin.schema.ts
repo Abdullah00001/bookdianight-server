@@ -26,3 +26,38 @@ export const updateAdminProfileSchema = z.object({
  * Type for updating admin profile.
  */
 export type TUpdateAdminProfilePayload = z.infer<typeof updateAdminProfileSchema>;
+
+/**
+ * Schema for changing admin password.
+ */
+export const changeAdminPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(6, 'Password must be at least 6 characters long'),
+    newPassword: z.string().min(6, 'Password must be at least 6 characters long'),
+    confirmPassword: z.string().min(6, 'Password must be at least 6 characters long'),
+  })
+  .strict()
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
+
+/**
+ * Type for changing admin password.
+ */
+export type TChangeAdminPasswordPayload = z.infer<typeof changeAdminPasswordSchema>;
+
+/**
+ * Schema for updating commission configuration.
+ */
+export const updateCommissionSchema = z
+  .object({
+    serviceType: z.enum(['EVENT', 'CLUB']),
+    chargePercentage: z.number(),
+  })
+  .strict();
+
+/**
+ * Type for updating commission configuration.
+ */
+export type TUpdateCommissionPayload = z.infer<typeof updateCommissionSchema>;

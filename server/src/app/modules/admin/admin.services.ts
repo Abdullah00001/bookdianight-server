@@ -14,6 +14,8 @@ import {
   ILogoutAdminService,
   IGetAdminProfileService,
   IUpdateAdminProfileService,
+  IChangeAdminPasswordService,
+  IUpdateCommissionService,
 } from '@/app/modules/admin/admin.types';
 import crypto from 'crypto';
 import { ITokenPayload } from '@/app/@types/jwt.types';
@@ -241,6 +243,99 @@ export const updateAdminProfileService = async ({
     const { password: _password, ...userWithoutPassword } = updatedUser;
     return {
       user: userWithoutPassword,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for changing admin password.
+ * Hashes the new password and updates the user record.
+ * @returns Promise<void>
+ */
+export const changeAdminPasswordService = async ({
+  userId,
+  payload,
+}: IChangeAdminPasswordService): Promise<void> => {
+  try {
+    const { newPassword } = payload;
+    const { hashPassword } = await import('@/app/utils/password.utils');
+    const hashedPassword = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for updating commission configuration.
+ * Updates the ApplicationCharge for a specific serviceType.
+ * Returns the updated record.
+ * @returns Promise<Record<string, unknown>>
+ */
+export const updateCommissionService = async ({
+  payload,
+}: IUpdateCommissionService): Promise<Record<string, unknown>> => {
+  try {
+    const { serviceType, chargePercentage } = payload;
+
+    // Use findFirst to check existence
+    const existing = await prisma.applicationCharge.findFirst({
+      where: { serviceType },
+    });
+
+    if (!existing) {
+      return { error: 'Commission configuration not found for this service type' };
+    }
+
+    const updatedCharge = await prisma.applicationCharge.update({
+      where: { id: existing.id },
+      data: { chargePercentage },
+    });
+
+    return {
+      commission: updatedCharge,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for retrieving commission configurations.
+ * Retrieves both EVENT and CLUB configurations.
+ * @returns Promise<Record<string, unknown>>
+ */
+export const getCommissionService = async (): Promise<Record<string, unknown>> => {
+  try {
+    const { Service } = await import('@prisma/client');
+    const charges = await prisma.applicationCharge.findMany({
+      where: {
+        serviceType: {
+          in: [Service.EVENT, Service.CLUB],
+        },
+      },
+    });
+
+    const eventCharge = charges.find((c: any) => c.serviceType === Service.EVENT);
+    const clubCharge = charges.find((c: any) => c.serviceType === Service.CLUB);
+
+    if (!eventCharge || !clubCharge) {
+      return {
+        error: 'Incomplete commission configuration',
+      };
+    }
+
+    return {
+      commission: {
+        EVENT: eventCharge,
+        CLUB: clubCharge,
+      },
     };
   } catch (error) {
     throw error;

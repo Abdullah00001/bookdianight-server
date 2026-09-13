@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import { COOKIE_NAMES, adminAccessTokenExpiresIn, refreshTokenExpiresInWithRememberMe } from '@/const';
+import { COOKIE_NAMES, adminAccessTokenExpiresIn, refreshTokenExpiresInWithRememberMe, AuthErrorType } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
-import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService } from '@/app/modules/admin/admin.services';
-import { TAdminLoginPayload } from '@/app/modules/admin/admin.schema';
+import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService } from '@/app/modules/admin/admin.services';
+import { TAdminLoginPayload, TChangeAdminPasswordPayload, TUpdateCommissionPayload } from '@/app/modules/admin/admin.schema';
+import { comparePassword } from '@/app/utils/password.utils';
 import { User } from '@prisma/client';
 
 /**
@@ -212,6 +213,100 @@ export const updateAdminProfileController = asyncHandler(
       success: true,
       message: 'Admin profile updated successfully',
       data: updatedData,
+      traceId
+    });
+    return;
+  }
+);
+
+/**
+ * Handles changing the current admin's password.
+ * @param req Request
+ * @param res Response
+ */
+export const changeAdminPasswordController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    const payload = req.body as TChangeAdminPasswordPayload;
+    
+    const isMatched = await comparePassword(payload.currentPassword, user.password as string);
+    if (!isMatched) {
+      res.status(401).json({
+        success: false,
+        errorType: AuthErrorType.INVALID_CREDENTIALS,
+        message: 'Incorrect current password',
+        traceId,
+      });
+      return;
+    }
+
+    await changeAdminPasswordService({ userId: user.id, payload });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Admin password changed successfully',
+      traceId
+    });
+    return;
+  }
+);
+
+/**
+ * Handles updating commission configuration.
+ * @param req Request
+ * @param res Response
+ */
+export const updateCommissionController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const payload = req.body as TUpdateCommissionPayload;
+    
+    const updatedData = await updateCommissionService({ payload });
+
+    if (updatedData.error) {
+      res.status(404).json({
+        success: false,
+        message: updatedData.error,
+        traceId
+      });
+      return;
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Commission updated successfully',
+      data: updatedData,
+      traceId
+    });
+    return;
+  }
+);
+
+/**
+ * Handles retrieving the current commission configuration.
+ * @param req Request
+ * @param res Response
+ */
+export const getCommissionController = asyncHandler(
+  async (_req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    
+    const data = await getCommissionService();
+
+    if (data.error) {
+      res.status(404).json({
+        success: false,
+        message: data.error,
+        traceId
+      });
+      return;
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Commission configuration retrieved successfully',
+      data: data.commission,
       traceId
     });
     return;

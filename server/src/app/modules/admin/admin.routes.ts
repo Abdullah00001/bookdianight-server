@@ -6,6 +6,9 @@ import {
   logoutAdminController,
   getAdminProfileController,
   updateAdminProfileController,
+  changeAdminPasswordController,
+  updateCommissionController,
+  getCommissionController,
 } from '@/app/modules/admin/admin.controllers';
 import { validateReqBody } from '@/app/utils/system.utils';
 import { adminLoginSchema } from '@/app/modules/admin/admin.schema';
@@ -21,7 +24,11 @@ import {
   checkAccountStatus,
   checkPassword,
 } from '@/app/modules/auth/auth.middlewares';
-import { updateAdminProfileSchema } from '@/app/modules/admin/admin.schema';
+import {
+  updateAdminProfileSchema,
+  changeAdminPasswordSchema,
+  updateCommissionSchema,
+} from '@/app/modules/admin/admin.schema';
 
 const router = Router();
 
@@ -76,6 +83,31 @@ router
     checkAdminExistenceMiddleware,
     validateReqBody(updateAdminProfileSchema),
     updateAdminProfileController
+  );
+
+router
+  .route('/admin/change-password')
+  .patch(
+    checkCsrfTokenMiddleware,
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    validateReqBody(changeAdminPasswordSchema),
+    changeAdminPasswordController
+  );
+
+router
+  .route('/admin/commission')
+  .get(
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    getCommissionController
+  )
+  .patch(
+    checkCsrfTokenMiddleware,
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    validateReqBody(updateCommissionSchema),
+    updateCommissionController
   );
 
 export default router;

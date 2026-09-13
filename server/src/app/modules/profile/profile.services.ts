@@ -1,5 +1,9 @@
 import prisma from '@/app/configs/db.configs';
-import { IGetUserProfileService, IUpdateUserProfileService } from '@/app/modules/profile/profile.types';
+import {
+  IGetUserProfileService,
+  IUpdateUserProfileService,
+  IChangePasswordService,
+} from '@/app/modules/profile/profile.types';
 
 /**
  * Service for fetching user profile.
@@ -75,6 +79,29 @@ export const updateUserProfileService = async ({
     return {
       user: userWithoutPassword,
     };
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Service for changing user password.
+ * Hashes the new password and updates the user record.
+ * @returns Promise<void>
+ */
+export const changePasswordService = async ({
+  userId,
+  payload,
+}: IChangePasswordService): Promise<void> => {
+  try {
+    const { newPassword } = payload;
+    const { hashPassword } = await import('@/app/utils/password.utils');
+    const hashedPassword = await hashPassword(newPassword);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
   } catch (error) {
     throw error;
   }

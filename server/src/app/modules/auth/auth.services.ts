@@ -114,8 +114,8 @@ export const signupService = async ({
       ),
       redisClient.geoadd(
         createRedisKey(REDIS_PREFIXES.locations),
-        lat,
         lng,
+        lat,
         newUser.id
       ),
       emailQueue.add(QUEUE_JOBS.SEND_SIGNUP_SUCCESS_EMAIL, emailQueueData),

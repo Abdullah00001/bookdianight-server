@@ -4,6 +4,7 @@ import { asyncHandler } from '@/app/utils/system.utils';
 import { exploreListService, exploreDetailService } from '@/app/modules/explore/explore.services';
 import { TExploreQuery, TExploreDetailQuery } from '@/app/modules/explore/explore.schema';
 import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
+import { JwtPayload } from 'jsonwebtoken';
 
 /**
  * Controller for handling Explore list requests.
@@ -16,8 +17,9 @@ export const exploreListController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const query = (req.validatedQuery || req.query) as unknown as TExploreQuery;
+    const userId = req.user ? (req.user as JwtPayload).sub : undefined;
 
-    const { data, total } = await exploreListService({ query });
+    const { data, total } = await exploreListService({ query, userId });
 
     const totalPages = Math.ceil(total / query.limit);
     const links = buildPaginationLinks(req, query.page, totalPages);
@@ -48,8 +50,9 @@ export const exploreDetailController = asyncHandler(
     const traceId = getTraceId();
     const id = req.params.id as string;
     const query = (req.validatedQuery || req.query) as unknown as TExploreDetailQuery;
+    const userId = req.user ? (req.user as JwtPayload).sub : undefined;
 
-    const data = await exploreDetailService({ id, query });
+    const data = await exploreDetailService({ id, query, userId });
 
     if (!data) {
       res.status(404).json({

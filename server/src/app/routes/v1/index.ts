@@ -8,8 +8,10 @@ import legalRoutes from '@/app/modules/legal/legal.routes';
 import clubRoutes from '@/app/modules/club/club.routes';
 import eventRoutes from '@/app/modules/event/event.routes';
 import exploreRoutes from '@/app/modules/explore/explore.routes';
+import wishlistRoutes from '@/app/modules/wishlist/wishlist.routes';
 
 const routes: Router[] = [
+  wishlistRoutes,
   exploreRoutes,
   eventRoutes,
   clubRoutes,

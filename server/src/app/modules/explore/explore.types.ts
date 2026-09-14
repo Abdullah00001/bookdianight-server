@@ -1,13 +1,14 @@
 import { TExploreQuery, TExploreDetailQuery } from './explore.schema';
 
-
 export interface IExploreListService {
   query: TExploreQuery;
+  userId?: string;
 }
 
 export interface IExploreDetailService {
   id: string;
   query: TExploreDetailQuery;
+  userId?: string;
 }
 
 export interface ILightweightExploreItem {
@@ -23,4 +24,5 @@ export interface ILightweightExploreItem {
   maxPrice?: number;
   price?: number;
   currency: string;
+  isWishlist?: boolean;
 }

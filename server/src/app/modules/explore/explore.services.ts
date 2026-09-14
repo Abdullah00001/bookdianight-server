@@ -7,7 +7,7 @@ import { Prisma } from '@prisma/client';
  * Utilizes complex PostGIS Raw SQL queries.
  * @returns Promise<{ data: ILightweightExploreItem[], total: number }>
  */
-export const exploreListService = async ({ query }: IExploreListService) => {
+export const exploreListService = async ({ query, userId }: IExploreListService) => {
   const { type, lat, lng, minPrice, maxPrice, isPopular, ratings, isVip, search, page, limit, sort, date } = query;
   
   const skip = (page - 1) * limit;
@@ -78,6 +78,14 @@ export const exploreListService = async ({ query }: IExploreListService) => {
 
   const eventWhere = eventConditions.length ? Prisma.sql`WHERE ${Prisma.join(eventConditions, ' AND ')}` : Prisma.empty;
 
+  const wishlistSubqueryClub = userId
+    ? Prisma.sql`, EXISTS(SELECT 1 FROM "Wishlist" w WHERE w."clubId" = c.id AND w."userId" = ${userId}) as "isWishlist"`
+    : Prisma.empty;
+
+  const wishlistSubqueryEvent = userId
+    ? Prisma.sql`, EXISTS(SELECT 1 FROM "Wishlist" w WHERE w."eventId" = e.id AND w."userId" = ${userId}) as "isWishlist"`
+    : Prisma.empty;
+
   const clubQuery = Prisma.sql`
     SELECT 
       c.id, c.name, c.lat, c.lng, 'CLUB' as "type", 
@@ -86,6 +94,7 @@ export const exploreListService = async ({ query }: IExploreListService) => {
       COALESCE((SELECT MIN(price) FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true), 0) as "minPrice",
       COALESCE((SELECT MAX(price) FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true), 0) as "maxPrice",
       (SELECT currency FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true LIMIT 1) as currency
+      ${wishlistSubqueryClub}
     FROM "Club" c
     LEFT JOIN "ClubReview" r ON c.id = r."clubId"
     ${clubWhere}
@@ -101,6 +110,7 @@ export const exploreListService = async ({ query }: IExploreListService) => {
       e."eventPrice" as "minPrice", 
       e."eventPrice" as "maxPrice", 
       e.currency
+      ${wishlistSubqueryEvent}
     FROM "Event" e
     ${eventWhere}
   `;
@@ -137,21 +147,24 @@ export const exploreListService = async ({ query }: IExploreListService) => {
   `;
   const total = Number(countResult[0]?.count || 0);
 
+  const selectWishlist = userId ? Prisma.sql`, "isWishlist"` : Prisma.empty;
+
   // Data query
   const data = await prisma.$queryRaw<{ 
     id: string, name: string, lat: number, lng: number, type: "CLUB" | "EVENT", 
-    review: number, isVip: boolean, thumbnail: string, minPrice: number, maxPrice: number, currency: string 
+    review: number, isVip: boolean, thumbnail: string, minPrice: number, maxPrice: number, currency: string,
+    isWishlist?: boolean
   }[]>`
     WITH combined AS (
       ${combinedQuery}
     )
-    SELECT id, name, lat, lng, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency FROM combined
+    SELECT id, name, lat, lng, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency${selectWishlist} FROM combined
     ${orderBy}
     LIMIT ${limit} OFFSET ${skip}
   `;
 
   const formattedData: ILightweightExploreItem[] = data.map((item) => {
-    const base = {
+    const base: ILightweightExploreItem = {
       id: item.id,
       name: item.name,
       lat: Number(item.lat),
@@ -160,6 +173,10 @@ export const exploreListService = async ({ query }: IExploreListService) => {
       thumbnail: item.thumbnail,
       currency: item.currency || '',
     };
+
+    if (userId !== undefined) {
+      base.isWishlist = Boolean(item.isWishlist);
+    }
 
     if (item.type === 'CLUB') {
       return {
@@ -185,7 +202,7 @@ export const exploreListService = async ({ query }: IExploreListService) => {
  * Returns aggregated reviews for Clubs.
  * @returns Promise<Record<string, unknown>>
  */
-export const exploreDetailService = async ({ id, query }: IExploreDetailService) => {
+export const exploreDetailService = async ({ id, query, userId }: IExploreDetailService) => {
   if (query.type === 'CLUB') {
     const club = await prisma.club.findUnique({
       where: { id },
@@ -208,7 +225,15 @@ export const exploreDetailService = async ({ id, query }: IExploreDetailService)
       _count: { id: true }
     });
 
-    const { userId, createdAt, updatedAt, ...restClub } = club;
+    let isWishlist: boolean | undefined = undefined;
+    if (userId) {
+      const wishlistEntry = await prisma.wishlist.findUnique({
+        where: { userId_clubId: { userId, clubId: id } }
+      });
+      isWishlist = Boolean(wishlistEntry);
+    }
+
+    const { userId: ownerUserId, createdAt, updatedAt, ...restClub } = club;
     const publicClub = restClub as Record<string, unknown>;
     delete publicClub.deactivatedAt;
     delete publicClub.geog;
@@ -217,6 +242,7 @@ export const exploreDetailService = async ({ id, query }: IExploreDetailService)
       ...publicClub,
       aggregateRating: reviewAgg._avg.rating || 0,
       totalReviews: reviewAgg._count.id || 0,
+      ...(isWishlist !== undefined ? { isWishlist } : {}),
     };
   } else {
     const event = await prisma.event.findUnique({
@@ -227,11 +253,22 @@ export const exploreDetailService = async ({ id, query }: IExploreDetailService)
       return null;
     }
 
-    const { userId, createdAt, updatedAt, ...restEvent } = event;
+    let isWishlist: boolean | undefined = undefined;
+    if (userId) {
+      const wishlistEntry = await prisma.wishlist.findUnique({
+        where: { userId_eventId: { userId, eventId: id } }
+      });
+      isWishlist = Boolean(wishlistEntry);
+    }
+
+    const { userId: ownerUserId, createdAt, updatedAt, ...restEvent } = event;
     const publicEvent = restEvent as Record<string, unknown>;
     delete publicEvent.deactivatedAt;
     delete publicEvent.geog;
 
-    return publicEvent;
+    return {
+      ...publicEvent,
+      ...(isWishlist !== undefined ? { isWishlist } : {}),
+    };
   }
 };

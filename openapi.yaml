@@ -23,6 +23,8 @@ tags:
     description: Event management endpoints
   - name: Explore
     description: Public exploration endpoints
+  - name: Wishlist
+    description: User wishlist management endpoints
 components:
   securitySchemes:
     adminAuth:
@@ -43,6 +45,39 @@ components:
 
         '
   schemas:
+
+    CreateWishlistPayload:
+      type: object
+      required:
+        - type
+        - targetId
+      properties:
+        type:
+          type: string
+          enum:
+            - CLUB
+            - EVENT
+        targetId:
+          type: string
+          format: uuid
+
+    GetWishlistResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            meta:
+              $ref: '#/components/schemas/ExplorePaginationMeta'
+            data:
+              type: array
+              description: >
+                Array of saved items. The exact shape depends on the target type.
+                Stale records (deactivated Clubs, non-UPCOMING Events, deactivated Events) are excluded.
+                Ordered by wishlist creation time descending.
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/ExploreClubListItem'
+                  - $ref: '#/components/schemas/ExploreEventListItem'
 
     ClubOpeningHourPayload:
       type: object
@@ -295,6 +330,9 @@ components:
         currency:
           type: string
           description: The single shared currency derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is an empty string "".
+        isWishlist:
+          type: boolean
+          description: Whether the club is saved in the authenticated user's wishlist. Omitted for guest requests.
     ExploreEventListItem:
       type: object
       required:
@@ -327,6 +365,9 @@ components:
           type: number
         currency:
           type: string
+        isWishlist:
+          type: boolean
+          description: Whether the event is saved in the authenticated user's wishlist. Omitted for guest requests.
     ExploreClubDetailOpeningHour:
       type: object
       properties:
@@ -442,6 +483,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ExploreClubDetailPackage'
+        isWishlist:
+          type: boolean
+          description: Whether the club is saved in the authenticated user's wishlist. Omitted for guest requests.
     ExploreEventDetailResponse:
       type: object
       required:
@@ -492,6 +536,9 @@ components:
           type: number
         currency:
           type: string
+        isWishlist:
+          type: boolean
+          description: Whether the event is saved in the authenticated user's wishlist. Omitted for guest requests.
     ChangePasswordPayload:
       type: object
       required:
@@ -1480,6 +1527,151 @@ components:
           type: string
           format: uuid
 paths:
+
+  /api/v1/wishlist:
+    post:
+      tags:
+        - Wishlist
+      summary: Add to Wishlist
+      description: >
+        Adds a Club or Event to the user's wishlist.
+        This operation is idempotent: repeating the same save does not create a duplicate and does not return 409.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWishlistPayload'
+      responses:
+        '200':
+          description: Wishlist updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Target not found or unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+    get:
+      tags:
+        - Wishlist
+      summary: Get Wishlist
+      description: >
+        Retrieves the authenticated user's wishlist.
+        Mixed results are ordered by wishlist creation time descending.
+        Unavailable or stale saved items (deactivated Clubs, non-UPCOMING Events) are automatically excluded.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum:
+              - CLUB
+              - EVENT
+          required: false
+          description: Filter wishlist items by type.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+          description: Page number.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          required: false
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Wishlist retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWishlistResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  '/api/v1/wishlist/{type}/{targetId}':
+    delete:
+      tags:
+        - Wishlist
+      summary: Remove from Wishlist
+      description: >
+        Removes a Club or Event from the user's wishlist.
+        Deletion is scoped to the authenticated user.
+        Stale wishlist records can still be removed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+            enum:
+              - CLUB
+              - EVENT
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Removed from wishlist successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
   /health:
     get:
       tags:
@@ -3553,9 +3745,11 @@ paths:
     get:
       tags:
         - Explore
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       summary: List Clubs and Events
-      description: Returns a paginated list of public Clubs and Events. Event results returned by public Explore are always restricted to active Events with eventStatus=UPCOMING. Deactivated Clubs are excluded. Note that Club prices (minPrice, maxPrice, and currency) are derived ONLY from active packages.
+      description: Returns a paginated list of public Clubs and Events. Event results returned by public Explore are always restricted to active Events with eventStatus=UPCOMING. Deactivated Clubs are excluded. Note that Club prices (minPrice, maxPrice, and currency) are derived ONLY from active packages. If an optional bearer token is provided, each item will contain an `isWishlist` boolean indicator.
       parameters:
         - name: type
           in: query
@@ -3638,6 +3832,12 @@ paths:
                   traceId:
                     type: string
                     format: uuid
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
         '422':
           description: Validation error
           content:
@@ -3655,7 +3855,9 @@ paths:
     get:
       tags:
         - Explore
-      security: []
+      security:
+        - {}
+        - bearerAuth: []
       summary: Get specific Club or Event detail
       parameters:
         - name: id
@@ -3689,6 +3891,12 @@ paths:
                   traceId:
                     type: string
                     format: uuid
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
         '404':
           description: Not found
           content:

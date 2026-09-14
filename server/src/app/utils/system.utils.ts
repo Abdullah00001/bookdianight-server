@@ -187,6 +187,37 @@ export const validateReqQuery =
     }
   };
 
+export const validateReqParams =
+  <T>(schema: ZodType<T>) =>
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = schema.safeParse(req.params);
+
+      if (!result.success) {
+        const errors = result.error.issues.map((issue) => ({
+          field: issue.path.join('.') || 'params',
+          message: issue.message,
+        }));
+        res.status(422).json({
+          success: false,
+          message: 'Request params validation failed',
+          errors,
+        });
+        return;
+      }
+      
+      req.params = result.data as Record<string, string>;
+      next();
+    } catch (error) {
+      logger.error('CAUGHT ERROR in validateReqParams middleware:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error during param validation',
+      });
+    }
+  };
+
+
 export function extractS3KeyFromUrl(url: string): string {
   try {
     const parsedUrl = new URL(url);

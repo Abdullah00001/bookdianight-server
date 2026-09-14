@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:5005
     description: Local development server
-  - url: https://promised-shed-citizens-lewis.trycloudflare.com
+  - url: https://petition-orchestra-awards-adaptor.trycloudflare.com
     description: TryCloudflare server (temporary)
   - url: https://api.bookdianight.com
     description: Production server
@@ -17,6 +17,14 @@ tags:
     description: Authentication and device management endpoints
   - name: Media
     description: Public media and file upload endpoints
+  - name: Club
+    description: Club management endpoints
+  - name: Event
+    description: Event management endpoints
+  - name: Explore
+    description: Public exploration endpoints
+  - name: Wishlist
+    description: User wishlist management endpoints
 components:
   securitySchemes:
     adminAuth:
@@ -37,6 +45,500 @@ components:
 
         '
   schemas:
+
+    CreateWishlistPayload:
+      type: object
+      required:
+        - type
+        - targetId
+      properties:
+        type:
+          type: string
+          enum:
+            - CLUB
+            - EVENT
+        targetId:
+          type: string
+          format: uuid
+
+    GetWishlistResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            meta:
+              $ref: '#/components/schemas/ExplorePaginationMeta'
+            data:
+              type: array
+              description: >
+                Array of saved items. The exact shape depends on the target type.
+                Stale records (deactivated Clubs, non-UPCOMING Events, deactivated Events) are excluded.
+                Ordered by wishlist creation time descending.
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/ExploreClubListItem'
+                  - $ref: '#/components/schemas/ExploreEventListItem'
+
+    ClubOpeningHourPayload:
+      type: object
+      required:
+        - dayOfWeek
+        - isClosed
+        - closesNextDay
+      properties:
+        dayOfWeek:
+          type: integer
+          minimum: 0
+          maximum: 6
+        isClosed:
+          type: boolean
+        openTime:
+          type: string
+          format: date-time
+          nullable: true
+        closeTime:
+          type: string
+          format: date-time
+          nullable: true
+        closesNextDay:
+          type: boolean
+    ClubPackagePayload:
+      type: object
+      required:
+        - name
+        - capacity
+        - price
+        - currency
+        - features
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        capacity:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          minimum: 0
+        currency:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        sortOrder:
+          type: integer
+          default: 0
+    CreateClubPayload:
+      type: object
+      required:
+        - name
+        - thumbnail
+        - images
+        - dressCode
+        - isRecurring
+        - lat
+        - lng
+        - openingHours
+        - packages
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        dressCode:
+          type: string
+        isRecurring:
+          type: boolean
+        isVip:
+          type: boolean
+          default: false
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          minimum: -180
+          maximum: 180
+        openingHours:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClubOpeningHourPayload'
+          minItems: 7
+          maxItems: 7
+        packages:
+          type: array
+          description: List of packages. All packages within a club MUST share the exact same currency string. Mixed currencies will result in a 422 validation error.
+          items:
+            $ref: '#/components/schemas/ClubPackagePayload'
+    UpdateClubOpeningHourPayload:
+      allOf:
+        - $ref: '#/components/schemas/ClubOpeningHourPayload'
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              type: string
+              format: uuid
+    UpdateClubPackagePayload:
+      allOf:
+        - $ref: '#/components/schemas/ClubPackagePayload'
+        - type: object
+          required:
+            - id
+            - isActive
+          properties:
+            id:
+              type: string
+              format: uuid
+            isActive:
+              type: boolean
+    UpdateClubPayload:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        dressCode:
+          type: string
+        isRecurring:
+          type: boolean
+        isVip:
+          type: boolean
+        lat:
+          type: number
+          minimum: -90
+          maximum: 90
+        lng:
+          type: number
+          minimum: -180
+          maximum: 180
+        openingHours:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpdateClubOpeningHourPayload'
+          minItems: 7
+          maxItems: 7
+        packages:
+          type: array
+          description: List of packages to update. All packages within a club MUST share the exact same currency string. Mixed currencies will result in a 422 validation error.
+          items:
+            $ref: '#/components/schemas/UpdateClubPackagePayload'
+    ExplorePaginationMetaLinks:
+      type: object
+      required:
+        - currentPage
+        - nextPage
+        - previousPage
+        - firstPage
+        - lastPage
+      properties:
+        currentPage:
+          type: string
+          format: uri
+        nextPage:
+          type: string
+          format: uri
+          nullable: true
+        previousPage:
+          type: string
+          format: uri
+          nullable: true
+        firstPage:
+          type: string
+          format: uri
+        lastPage:
+          type: string
+          format: uri
+    ExplorePaginationMeta:
+      type: object
+      required:
+        - total
+        - totalPages
+        - links
+      properties:
+        total:
+          type: integer
+        totalPages:
+          type: integer
+        links:
+          $ref: '#/components/schemas/ExplorePaginationMetaLinks'
+    ExploreClubListItem:
+      type: object
+      required:
+        - id
+        - name
+        - lat
+        - lng
+        - type
+        - review
+        - isVip
+        - thumbnail
+        - minPrice
+        - maxPrice
+        - currency
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        type:
+          type: string
+          enum:
+            - CLUB
+        review:
+          type: number
+        isVip:
+          type: boolean
+        thumbnail:
+          type: string
+          format: uri
+        minPrice:
+          type: number
+          description: The minimum price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
+        maxPrice:
+          type: number
+          description: The maximum price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
+        currency:
+          type: string
+          description: The single shared currency derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is an empty string "".
+        isWishlist:
+          type: boolean
+          description: Whether the club is saved in the authenticated user's wishlist. Omitted for guest requests.
+    ExploreEventListItem:
+      type: object
+      required:
+        - id
+        - name
+        - lat
+        - lng
+        - type
+        - thumbnail
+        - price
+        - currency
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        type:
+          type: string
+          enum:
+            - EVENT
+        thumbnail:
+          type: string
+          format: uri
+        price:
+          type: number
+        currency:
+          type: string
+        isWishlist:
+          type: boolean
+          description: Whether the event is saved in the authenticated user's wishlist. Omitted for guest requests.
+    ExploreClubDetailOpeningHour:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clubId:
+          type: string
+          format: uuid
+        dayOfWeek:
+          type: integer
+        isClosed:
+          type: boolean
+        openTime:
+          type: string
+          format: date-time
+          nullable: true
+        closeTime:
+          type: string
+          format: date-time
+          nullable: true
+        closesNextDay:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ExploreClubDetailPackage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clubId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        capacity:
+          type: integer
+        price:
+          type: number
+        currency:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        sortOrder:
+          type: integer
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ExploreClubDetailResponse:
+      type: object
+      required:
+        - id
+        - name
+        - thumbnail
+        - images
+        - dressCode
+        - isRecurring
+        - isVip
+        - lat
+        - lng
+        - totalReviews
+        - clubOpeningHours
+        - clubPackages
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        dressCode:
+          type: string
+        isRecurring:
+          type: boolean
+        isVip:
+          type: boolean
+        lat:
+          type: number
+        lng:
+          type: number
+        totalReviews:
+          type: integer
+        clubOpeningHours:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExploreClubDetailOpeningHour'
+        clubPackages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExploreClubDetailPackage'
+        isWishlist:
+          type: boolean
+          description: Whether the club is saved in the authenticated user's wishlist. Omitted for guest requests.
+    ExploreEventDetailResponse:
+      type: object
+      required:
+        - id
+        - eventName
+        - thumbnail
+        - images
+        - eventStatus
+        - lat
+        - lng
+        - startAt
+        - endAt
+        - dressCode
+        - eventPrice
+        - currency
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+        isWishlist:
+          type: boolean
+          description: Whether the event is saved in the authenticated user's wishlist. Omitted for guest requests.
     ChangePasswordPayload:
       type: object
       required:
@@ -61,7 +563,7 @@ components:
       properties:
         serviceType:
           type: string
-          enum: [EVENT, CLUB]
+          enum: [ EVENT, CLUB ]
         chargePercentage:
           type: number
     CheckAccessResponse:
@@ -701,7 +1203,475 @@ components:
         traceId:
           type: string
           format: uuid
+    ClubListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        meta:
+          $ref: "#/components/schemas/ExplorePaginationMeta"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClubDetailPayload"
+        traceId:
+          type: string
+          format: uuid
+    ClubDetailPayload:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        dressCode:
+          type: string
+        isRecurring:
+          type: boolean
+        isVip:
+          type: boolean
+        lat:
+          type: number
+        lng:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deactivatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        clubOpeningHours:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpdateClubOpeningHourPayload"
+        clubPackages:
+          type: array
+          items:
+            $ref: "#/components/schemas/UpdateClubPackagePayload"
+    ClubDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/ClubDetailPayload"
+        traceId:
+          type: string
+          format: uuid
+    CreateClubResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            userId:
+              type: string
+              format: uuid
+            name:
+              type: string
+            description:
+              type: string
+              nullable: true
+            thumbnail:
+              type: string
+              format: uri
+            images:
+              type: array
+              items:
+                type: string
+                format: uri
+            dressCode:
+              type: string
+            isRecurring:
+              type: boolean
+            isVip:
+              type: boolean
+            lat:
+              type: number
+            lng:
+              type: number
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            deactivatedAt:
+              type: string
+              format: date-time
+              nullable: true
+        traceId:
+          type: string
+          format: uuid
+
+    CreateEventPayload:
+      type: object
+      required:
+        - eventName
+        - thumbnail
+        - images
+        - lat
+        - lng
+        - startAt
+        - endAt
+        - dressCode
+        - eventPrice
+        - currency
+      properties:
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+          enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+          default: UPCOMING
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values.
+        endAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values. endAt must be after startAt.
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+    UpdateEventPayload:
+      type: object
+      properties:
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+          enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values.
+        endAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values. If provided, endAt must be after startAt.
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+        isActive:
+          type: boolean
+          description: Controls activation/deactivation through deactivatedAt.
+    EventDetailPayload:
+      type: object
+      required:
+        - id
+        - userId
+        - eventName
+        - thumbnail
+        - images
+        - eventStatus
+        - lat
+        - lng
+        - startAt
+        - endAt
+        - dressCode
+        - eventPrice
+        - currency
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+          enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deactivatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CreateEventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/EventDetailPayload"
+        traceId:
+          type: string
+          format: uuid
+    UpdateEventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/EventDetailPayload"
+        traceId:
+          type: string
+          format: uuid
+    EventDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/EventDetailPayload"
+        traceId:
+          type: string
+          format: uuid
 paths:
+
+  /api/v1/wishlist:
+    post:
+      tags:
+        - Wishlist
+      summary: Add to Wishlist
+      description: >
+        Adds a Club or Event to the user's wishlist.
+        This operation is idempotent: repeating the same save does not create a duplicate and does not return 409.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWishlistPayload'
+      responses:
+        '200':
+          description: Wishlist updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Target not found or unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+    get:
+      tags:
+        - Wishlist
+      summary: Get Wishlist
+      description: >
+        Retrieves the authenticated user's wishlist.
+        Mixed results are ordered by wishlist creation time descending.
+        Unavailable or stale saved items (deactivated Clubs, non-UPCOMING Events) are automatically excluded.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum:
+              - CLUB
+              - EVENT
+          required: false
+          description: Filter wishlist items by type.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+          description: Page number.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          required: false
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Wishlist retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWishlistResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  '/api/v1/wishlist/{type}/{targetId}':
+    delete:
+      tags:
+        - Wishlist
+      summary: Remove from Wishlist
+      description: >
+        Removes a Club or Event from the user's wishlist.
+        Deletion is scoped to the authenticated user.
+        Stale wishlist records can still be removed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: type
+          required: true
+          schema:
+            type: string
+            enum:
+              - CLUB
+              - EVENT
+        - in: path
+          name: targetId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Removed from wishlist successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
   /health:
     get:
       tags:
@@ -2288,3 +3258,661 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/club:
+    post:
+      tags:
+        - Club
+      summary: Create a new Club
+      description: Creates a new club with opening hours and packages.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClubPayload'
+      responses:
+        '201':
+          description: Club created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateClubResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: createClub
+    get:
+      tags:
+        - Club
+      summary: List own Clubs
+      description: Returns all clubs owned by the authenticated Club Owner. When isActive is omitted, both active and deactivated Clubs are returned.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+        - name: isActive
+          in: query
+          description: true returns active Clubs only, false returns deactivated Clubs only. The backend safely parses "true" and "false" query strings.
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Clubs retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubListResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getClubList
+  '/api/v1/club/{id}':
+    put:
+      tags:
+        - Club
+      summary: Update an existing Club
+      description: Updates an existing club, opening hours, and packages in-place.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClubPayload'
+      responses:
+        '200':
+          description: Club updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  traceId:
+                    type: string
+                    format: uuid
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: updateClub
+    get:
+      tags:
+        - Club
+      summary: Get own Club detail
+      description: Returns the full aggregate of a club if owned by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Club retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubDetailResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getClubDetail
+  /api/v1/event:
+    post:
+      tags:
+        - Event
+      summary: Create a new Event
+      description: Create a new Event. Event management is restricted to the authenticated user's owned Events.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventPayload'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateEventResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: createEvent
+    get:
+      tags:
+        - Event
+      summary: List owned Events
+      description: Returns a paginated list of Events owned by the authenticated user. When eventStatus and isActive are omitted, all Event statuses and both active and deactivated Events are returned. GET list is ordered by createdAt DESC.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+        - name: eventStatus
+          in: query
+          description: When supplied, only Events matching that status are returned.
+          schema:
+            type: string
+            enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+        - name: isActive
+          in: query
+          description: true returns active Events only, false returns deactivated Events only. The backend safely parses "true" and "false" query strings.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/ExplorePaginationMeta'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EventDetailPayload'
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: getEventList
+  '/api/v1/event/{id}':
+    put:
+      tags:
+        - Event
+      summary: Update an existing Event
+      description: Updates an existing Event in-place. Event management is restricted to the authenticated user's owned Events.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventPayload'
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateEventResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: updateEvent
+    get:
+      tags:
+        - Event
+      summary: Get own Event detail
+      description: Returns the full aggregate of an Event if owned by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Event retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetailResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getEventDetail
+  /api/v1/explore:
+    get:
+      tags:
+        - Explore
+      security:
+        - {}
+        - bearerAuth: []
+      summary: List Clubs and Events
+      description: Returns a paginated list of public Clubs and Events. Event results returned by public Explore are always restricted to active Events with eventStatus=UPCOMING. Deactivated Clubs are excluded. Note that Club prices (minPrice, maxPrice, and currency) are derived ONLY from active packages. If an optional bearer token is provided, each item will contain an `isWishlist` boolean indicator.
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [ CLUB, EVENT ]
+        - name: date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+        - name: isPopular
+          in: query
+          schema:
+            type: boolean
+        - name: ratings
+          in: query
+          schema:
+            type: number
+        - name: isVip
+          in: query
+          schema:
+            type: boolean
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [ newest, oldest ]
+      responses:
+        '200':
+          description: Data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/ExplorePaginationMeta'
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/ExploreClubListItem'
+                        - $ref: '#/components/schemas/ExploreEventListItem'
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: getExploreList
+  '/api/v1/explore/{id}':
+    get:
+      tags:
+        - Explore
+      security:
+        - {}
+        - bearerAuth: []
+      summary: Get specific Club or Event detail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [ CLUB, EVENT ]
+      responses:
+        '200':
+          description: Data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    oneOf:
+                      - $ref: '#/components/schemas/ExploreClubDetailResponse'
+                      - $ref: '#/components/schemas/ExploreEventDetailResponse'
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Authentication error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: getExploreDetail

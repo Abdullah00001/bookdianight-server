@@ -1,14 +1,23 @@
-/*
-  Warnings:
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "fuzzystrmatch";
 
-  - Added the required column `name` to the `User` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateExtension
 CREATE EXTENSION IF NOT EXISTS "postgis";
 
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "postgis_tiger_geocoder";
+
+-- CreateExtension
+CREATE EXTENSION IF NOT EXISTS "postgis_topology";
+
 -- CreateEnum
-CREATE TYPE "Platform" AS ENUM ('GOOGLE', 'APPLE');
+CREATE TYPE "AccountStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'BLOCKED');
+
+-- CreateEnum
+CREATE TYPE "AccountRole" AS ENUM ('USER', 'ADMIN', 'CLUB_OWNER');
+
+-- CreateEnum
+CREATE TYPE "Platform" AS ENUM ('ANDROID', 'IOS');
 
 -- CreateEnum
 CREATE TYPE "Service" AS ENUM ('EVENT', 'CLUB');
@@ -28,13 +37,21 @@ CREATE TYPE "EventStatus" AS ENUM ('UPCOMING', 'ONGOING', 'COMPLETED', 'CANCELED
 -- CreateEnum
 CREATE TYPE "LegalContentType" AS ENUM ('ABOUT_US', 'TERMS_AND_CONDITION', 'PRIVACY_AND_POLICY');
 
--- AlterEnum
-ALTER TYPE "AccountRole" ADD VALUE 'CLUB_OWNER';
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phoneNumber" TEXT NOT NULL,
+    "accountStatus" "AccountStatus" NOT NULL DEFAULT 'ACTIVE',
+    "accountRole" "AccountRole" NOT NULL DEFAULT 'USER',
+    "isVerified" BOOLEAN NOT NULL DEFAULT false,
+    "password" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- AlterTable
-ALTER TABLE "User" ADD COLUMN     "isVerified" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "name" TEXT NOT NULL,
-ADD COLUMN     "password" TEXT;
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "Profile" (
@@ -55,11 +72,13 @@ CREATE TABLE "Profile" (
 CREATE TABLE "Device" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
+    "deviceIdentifier" TEXT NOT NULL,
     "fcmToken" TEXT,
     "platform" "Platform" NOT NULL,
     "authProvider" "AuthProvider" NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "isLogout" BOOLEAN NOT NULL DEFAULT false,
+    "lastSeenAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -118,6 +137,7 @@ CREATE TABLE "Club" (
     "geog" geography(Point, 4326),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "isVip" BOOLEAN NOT NULL DEFAULT false,
 
     CONSTRAINT "Club_pkey" PRIMARY KEY ("id")
 );
@@ -161,7 +181,6 @@ CREATE TABLE "ClubPackage" (
     "currency" TEXT NOT NULL,
     "features" TEXT[],
     "sortOrder" INTEGER NOT NULL DEFAULT 0,
-    "isVip" BOOLEAN NOT NULL DEFAULT false,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -205,13 +224,28 @@ CREATE TABLE "Wishlist" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE INDEX "User_accountRole_idx" ON "User"("accountRole");
+
+-- CreateIndex
+CREATE INDEX "User_accountStatus_idx" ON "User"("accountStatus");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Device_fcmToken_key" ON "Device"("fcmToken");
+CREATE UNIQUE INDEX "Device_deviceIdentifier_key" ON "Device"("deviceIdentifier");
 
 -- CreateIndex
 CREATE INDEX "Device_userId_idx" ON "Device"("userId");
+
+-- CreateIndex
+CREATE INDEX "Device_userId_isActive_idx" ON "Device"("userId", "isActive");
+
+-- CreateIndex
+CREATE INDEX "Device_isActive_lastSeenAt_idx" ON "Device"("isActive", "lastSeenAt");
 
 -- CreateIndex
 CREATE INDEX "Notification_userId_isRead_idx" ON "Notification"("userId", "isRead");
@@ -275,12 +309,6 @@ CREATE UNIQUE INDEX "Wishlist_userId_eventId_key" ON "Wishlist"("userId", "event
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Wishlist_userId_clubId_key" ON "Wishlist"("userId", "clubId");
-
--- CreateIndex
-CREATE INDEX "User_accountRole_idx" ON "User"("accountRole");
-
--- CreateIndex
-CREATE INDEX "User_accountStatus_idx" ON "User"("accountStatus");
 
 -- AddForeignKey
 ALTER TABLE "Profile" ADD CONSTRAINT "Profile_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

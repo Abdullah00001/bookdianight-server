@@ -175,7 +175,8 @@ model Club {
   geog        Unsupported("geography(Point, 4326)")?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
+  isVip       Boolean  @default(false)
+  deactivatedAt DateTime?
   // Back Relations
   reviews          ClubReview[]
   clubOpeningHours ClubOpeningHour[]
@@ -228,7 +229,6 @@ model ClubPackage {
   currency    String
   features    String[]
   sortOrder   Int      @default(0) // controls display order within a club, lower shows first
-  isVip       Boolean  @default(false)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -256,6 +256,7 @@ model Event {
   currency         String
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  deactivatedAt    DateTime?
 
   // Back Relations
   wishlists Wishlist[]

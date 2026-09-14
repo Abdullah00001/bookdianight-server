@@ -13,7 +13,7 @@ import { getRedisClient } from '@/app/configs/redis.configs';
 import { AuthErrorType, REDIS_PREFIXES } from '@/const';
 import { JwtPayload } from 'jsonwebtoken';
 import { compareOtp } from '@/app/utils/otp.utils';
-import { User } from '@prisma/client';
+import { User, AccountRole } from '@prisma/client';
 import { comparePassword } from '@/app/utils/password.utils';
 
 /**
@@ -230,6 +230,59 @@ export const checkUserAccessTokenMiddleware = asyncHandler(
 );
 
 /**
+ * This middleware is used to optionally check if the user access token is valid and not expired.
+ * If no token is provided in the request, it proceeds as a guest context (calls next()).
+ * If an access token is explicitly provided but invalid, expired, or blacklisted, it returns a 401 response.
+ * If a valid access token is provided, it attaches the decoded JWT payload to req.user and proceeds.
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction
+ */
+export const optionalUserAccessTokenMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const token = extractToken(req);
+    if (!token) {
+      return next();
+    }
+    const redisClient = getRedisClient();
+    const isBlackListed = await redisClient.get(
+      createRedisKey(REDIS_PREFIXES.blacklist, token)
+    );
+    if (isBlackListed) {
+      res.status(401).json({
+        success: false,
+        message: 'Token has been revoked',
+        errorType: AuthErrorType.TOKEN_BLACKLISTED,
+        traceId,
+      });
+      return;
+    }
+    const decoded = verifyAccessToken(token);
+    if (decoded.error) {
+      if (decoded.error === AuthErrorType.TOKEN_EXPIRED) {
+        res.status(401).json({
+          success: false,
+          message: 'Token has been expired',
+          errorType: AuthErrorType.TOKEN_EXPIRED,
+          traceId,
+        });
+        return;
+      }
+      res.status(401).json({
+        success: false,
+        message: 'Token is invalid',
+        errorType: AuthErrorType.TOKEN_INVALID,
+        traceId,
+      });
+      return;
+    }
+    req.user = decoded.data as JwtPayload;
+    return next();
+  }
+);
+
+/**
  * This middleware is used to check if the password is valid.
  * If the password is not valid, it will return a 401 response.
  * If the password is valid, it will call return next() for further process.
@@ -360,6 +413,33 @@ export const checkDeviceContextMiddleware = asyncHandler(
     }
 
     req.device = device;
+    next();
+  }
+);
+
+/**
+ * Validates that the pre-authenticated user has the CLUB_OWNER role.
+ * 
+ * @param {Request} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ * @returns {Promise<void>}
+ */
+export const checkClubOwnerRoleMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+
+    if (user.accountRole !== AccountRole.CLUB_OWNER) {
+      res.status(403).json({
+        success: false,
+        message: 'Access denied: Requires club owner privileges',
+        errorType: AuthErrorType.ACCESS_DENIED,
+        traceId,
+      });
+      return;
+    }
+
     next();
   }
 );

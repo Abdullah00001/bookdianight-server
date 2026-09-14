@@ -5,8 +5,14 @@ import recoverRoutes from '@/app/modules/recover/recover.routes';
 import adminRoutes from '@/app/modules/admin/admin.routes';
 import profileRoutes from '@/app/modules/profile/profile.routes';
 import legalRoutes from '@/app/modules/legal/legal.routes';
+import clubRoutes from '@/app/modules/club/club.routes';
+import eventRoutes from '@/app/modules/event/event.routes';
+import exploreRoutes from '@/app/modules/explore/explore.routes';
 
 const routes: Router[] = [
+  exploreRoutes,
+  eventRoutes,
+  clubRoutes,
   legalRoutes,
   profileRoutes,
   adminRoutes,

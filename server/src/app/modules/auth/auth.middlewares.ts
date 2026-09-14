@@ -13,7 +13,7 @@ import { getRedisClient } from '@/app/configs/redis.configs';
 import { AuthErrorType, REDIS_PREFIXES } from '@/const';
 import { JwtPayload } from 'jsonwebtoken';
 import { compareOtp } from '@/app/utils/otp.utils';
-import { User } from '@prisma/client';
+import { User, AccountRole } from '@prisma/client';
 import { comparePassword } from '@/app/utils/password.utils';
 
 /**
@@ -360,6 +360,33 @@ export const checkDeviceContextMiddleware = asyncHandler(
     }
 
     req.device = device;
+    next();
+  }
+);
+
+/**
+ * Validates that the pre-authenticated user has the CLUB_OWNER role.
+ * 
+ * @param {Request} req
+ * @param {Response} res
+ * @param {NextFunction} next
+ * @returns {Promise<void>}
+ */
+export const checkClubOwnerRoleMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+
+    if (user.accountRole !== AccountRole.CLUB_OWNER) {
+      res.status(403).json({
+        success: false,
+        message: 'Access denied: Requires club owner privileges',
+        errorType: AuthErrorType.ACCESS_DENIED,
+        traceId,
+      });
+      return;
+    }
+
     next();
   }
 );

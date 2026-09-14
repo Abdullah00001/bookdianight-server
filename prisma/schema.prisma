@@ -176,6 +176,7 @@ model Club {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   isVip       Boolean  @default(false)
+  deactivatedAt DateTime?
   // Back Relations
   reviews          ClubReview[]
   clubOpeningHours ClubOpeningHour[]
@@ -255,6 +256,7 @@ model Event {
   currency         String
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
+  deactivatedAt    DateTime?
 
   // Back Relations
   wishlists Wishlist[]

@@ -32,7 +32,14 @@ export const createClubSchema = z.object({
     (hours) => new Set(hours.map((h) => h.dayOfWeek)).size === 7,
     { message: 'openingHours must contain exactly one entry for each day of the week (0-6)' }
   ),
-  packages: z.array(clubPackageSchema),
+  packages: z.array(clubPackageSchema).refine(
+    (pkgs) => {
+      if (pkgs.length <= 1) return true;
+      const firstCurrency = pkgs[0].currency;
+      return pkgs.every((pkg) => pkg.currency === firstCurrency);
+    },
+    { message: 'All packages within a club must have the same currency' }
+  ),
 });
 
 export const updateClubOpeningHourSchema = clubOpeningHourSchema.extend({
@@ -58,7 +65,14 @@ export const updateClubSchema = z.object({
     (hours) => new Set(hours.map((h) => h.dayOfWeek)).size === 7,
     { message: 'openingHours must contain exactly one entry for each day of the week (0-6)' }
   ).optional(),
-  packages: z.array(updateClubPackageSchema).optional(),
+  packages: z.array(updateClubPackageSchema).refine(
+    (pkgs) => {
+      if (pkgs.length <= 1) return true;
+      const firstCurrency = pkgs[0].currency;
+      return pkgs.every((pkg) => pkg.currency === firstCurrency);
+    },
+    { message: 'All packages within a club must have the same currency' }
+  ).optional(),
 });
 
 export type TCreateClubPayload = z.infer<typeof createClubSchema>;
@@ -72,9 +86,16 @@ export type TClubPackagePayload = z.infer<typeof clubPackageSchema>;
 export type TUpdateClubOpeningHourPayload = z.infer<typeof updateClubOpeningHourSchema>;
 export type TUpdateClubPackagePayload = z.infer<typeof updateClubPackageSchema>;
 
+const booleanQuery = z.preprocess((val) => {
+  if (val === 'true' || val === true) return true;
+  if (val === 'false' || val === false) return false;
+  return val;
+}, z.boolean().optional());
+
 export const clubListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),
+  isActive: booleanQuery,
 });
 
 export type TClubListQuery = z.infer<typeof clubListQuerySchema>;

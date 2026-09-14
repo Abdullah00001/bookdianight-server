@@ -1,5 +1,5 @@
 import prisma from '@/app/configs/db.configs';
-import { ICreateEventService, IUpdateEventService } from '@/app/modules/event/event.types';
+import { ICreateEventService, IUpdateEventService, IGetEventListService, IGetEventDetailService } from '@/app/modules/event/event.types';
 import { Event } from '@prisma/client';
 
 /**
@@ -70,5 +70,44 @@ export const updateEventService = async ({ eventId, userId, payload }: IUpdateEv
     }
 
     return updatedEvent;
+  });
+};
+
+/**
+ * Service for fetching a paginated list of Events belonging to an owner.
+ * @returns Promise<{ data: Event[], total: number }>
+ */
+export const getEventListService = async ({ userId, query }: IGetEventListService) => {
+  const { page, limit, eventStatus, isActive } = query;
+  const skip = (page - 1) * limit;
+
+  const where: any = { userId };
+  if (eventStatus !== undefined) {
+    where.eventStatus = eventStatus;
+  }
+  if (isActive !== undefined) {
+    where.deactivatedAt = isActive ? null : { not: null };
+  }
+
+  const [total, data] = await prisma.$transaction([
+    prisma.event.count({ where }),
+    prisma.event.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    })
+  ]);
+
+  return { data, total };
+};
+
+/**
+ * Service for fetching full details of a specific Event belonging to an owner.
+ * @returns Promise<Event>
+ */
+export const getEventDetailService = async ({ eventId, userId }: IGetEventDetailService): Promise<Event> => {
+  return await prisma.event.findUniqueOrThrow({
+    where: { id: eventId, userId }
   });
 };

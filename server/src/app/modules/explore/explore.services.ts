@@ -54,7 +54,10 @@ export const exploreListService = async ({ query }: IExploreListService) => {
   const clubHaving = ratings ? Prisma.sql`HAVING COALESCE(AVG(r.rating), 0) >= ${ratings}` : Prisma.empty;
 
   // Build Event Conditions
-  const eventConditions: Prisma.Sql[] = [Prisma.sql`e."deactivatedAt" IS NULL`];
+  const eventConditions: Prisma.Sql[] = [
+    Prisma.sql`e."deactivatedAt" IS NULL`,
+    Prisma.sql`e."eventStatus" = 'UPCOMING'`
+  ];
   
   if (lat !== undefined && lng !== undefined) {
     eventConditions.push(Prisma.sql`ST_DWithin(e.geog, ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326), 20000)`);
@@ -76,7 +79,13 @@ export const exploreListService = async ({ query }: IExploreListService) => {
   const eventWhere = eventConditions.length ? Prisma.sql`WHERE ${Prisma.join(eventConditions, ' AND ')}` : Prisma.empty;
 
   const clubQuery = Prisma.sql`
-    SELECT c.id, c.name, c.lat, c.lng, 'CLUB' as "type", COALESCE(AVG(r.rating), 0) as review, c."createdAt"
+    SELECT 
+      c.id, c.name, c.lat, c.lng, 'CLUB' as "type", 
+      COALESCE(AVG(r.rating), 0) as review, c."createdAt",
+      c."isVip", c.thumbnail, 
+      COALESCE((SELECT MIN(price) FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true), 0) as "minPrice",
+      COALESCE((SELECT MAX(price) FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true), 0) as "maxPrice",
+      (SELECT currency FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true LIMIT 1) as currency
     FROM "Club" c
     LEFT JOIN "ClubReview" r ON c.id = r."clubId"
     ${clubWhere}
@@ -85,7 +94,13 @@ export const exploreListService = async ({ query }: IExploreListService) => {
   `;
 
   const eventQuery = Prisma.sql`
-    SELECT e.id, e."eventName" as name, e.lat, e.lng, 'EVENT' as "type", 0 as review, e."createdAt"
+    SELECT 
+      e.id, e."eventName" as name, e.lat, e.lng, 'EVENT' as "type", 
+      0 as review, e."createdAt",
+      false as "isVip", e.thumbnail, 
+      e."eventPrice" as "minPrice", 
+      e."eventPrice" as "maxPrice", 
+      e.currency
     FROM "Event" e
     ${eventWhere}
   `;
@@ -123,23 +138,44 @@ export const exploreListService = async ({ query }: IExploreListService) => {
   const total = Number(countResult[0]?.count || 0);
 
   // Data query
-  const data = await prisma.$queryRaw<{ id: string, name: string, lat: number, lng: number, type: "CLUB" | "EVENT", review: number }[]>`
+  const data = await prisma.$queryRaw<{ 
+    id: string, name: string, lat: number, lng: number, type: "CLUB" | "EVENT", 
+    review: number, isVip: boolean, thumbnail: string, minPrice: number, maxPrice: number, currency: string 
+  }[]>`
     WITH combined AS (
       ${combinedQuery}
     )
-    SELECT id, name, lat, lng, "type", review FROM combined
+    SELECT id, name, lat, lng, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency FROM combined
     ${orderBy}
     LIMIT ${limit} OFFSET ${skip}
   `;
 
-  const formattedData: ILightweightExploreItem[] = data.map((item) => ({
-    id: item.id,
-    name: item.name,
-    lat: Number(item.lat),
-    lng: Number(item.lng),
-    type: item.type,
-    ...(item.type === 'CLUB' && { review: Number(item.review) })
-  }));
+  const formattedData: ILightweightExploreItem[] = data.map((item) => {
+    const base = {
+      id: item.id,
+      name: item.name,
+      lat: Number(item.lat),
+      lng: Number(item.lng),
+      type: item.type,
+      thumbnail: item.thumbnail,
+      currency: item.currency || '',
+    };
+
+    if (item.type === 'CLUB') {
+      return {
+        ...base,
+        review: Number(item.review),
+        isVip: Boolean(item.isVip),
+        minPrice: Number(item.minPrice),
+        maxPrice: Number(item.maxPrice),
+      };
+    } else {
+      return {
+        ...base,
+        price: Number(item.minPrice), // minPrice acts as the price placeholder for Events
+      };
+    }
+  });
 
   return { data: formattedData, total };
 };

@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+const booleanQuery = z.preprocess((val) => {
+  if (val === 'true' || val === true) return true;
+  if (val === 'false' || val === false) return false;
+  return val;
+}, z.boolean().optional());
+
 export const exploreQuerySchema = z.object({
   type: z.enum(['CLUB', 'EVENT']).optional(),
   date: z.string().datetime().optional(),
@@ -7,9 +13,9 @@ export const exploreQuerySchema = z.object({
   lng: z.coerce.number().min(-180).max(180).optional(),
   minPrice: z.coerce.number().nonnegative().optional(),
   maxPrice: z.coerce.number().nonnegative().optional(),
-  isPopular: z.coerce.boolean().optional(),
+  isPopular: booleanQuery,
   ratings: z.coerce.number().min(0).max(5).optional(),
-  isVip: z.coerce.boolean().optional(),
+  isVip: booleanQuery,
   search: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(10),

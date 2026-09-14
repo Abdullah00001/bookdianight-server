@@ -17,4 +17,10 @@ export interface ILightweightExploreItem {
   lng: number;
   type: 'CLUB' | 'EVENT';
   review?: number;
+  isVip?: boolean;
+  thumbnail: string;
+  minPrice?: number;
+  maxPrice?: number;
+  price?: number;
+  currency: string;
 }

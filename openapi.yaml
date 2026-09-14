@@ -145,6 +145,7 @@ components:
           maxItems: 7
         packages:
           type: array
+          description: List of packages. All packages within a club MUST share the exact same currency string. Mixed currencies will result in a 422 validation error.
           items:
             $ref: '#/components/schemas/ClubPackagePayload'
     UpdateClubOpeningHourPayload:
@@ -208,6 +209,7 @@ components:
           maxItems: 7
         packages:
           type: array
+          description: List of packages to update. All packages within a club MUST share the exact same currency string. Mixed currencies will result in a 422 validation error.
           items:
             $ref: '#/components/schemas/UpdateClubPackagePayload'
     ExplorePaginationMetaLinks:
@@ -286,10 +288,13 @@ components:
           format: uri
         minPrice:
           type: number
+          description: The minimum price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
         maxPrice:
           type: number
+          description: The maximum price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
         currency:
           type: string
+          description: The single shared currency derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is an empty string "".
     ExploreEventListItem:
       type: object
       required:
@@ -1278,6 +1283,199 @@ components:
               type: string
               format: date-time
               nullable: true
+        traceId:
+          type: string
+          format: uuid
+
+    CreateEventPayload:
+      type: object
+      required:
+        - eventName
+        - thumbnail
+        - images
+        - lat
+        - lng
+        - startAt
+        - endAt
+        - dressCode
+        - eventPrice
+        - currency
+      properties:
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+          enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+          default: UPCOMING
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values.
+        endAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values. endAt must be after startAt.
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+    UpdateEventPayload:
+      type: object
+      properties:
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+          enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values.
+        endAt:
+          type: string
+          format: date-time
+          description: Event timestamps are expected as UTC ISO datetime values. If provided, endAt must be after startAt.
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+        isActive:
+          type: boolean
+          description: Controls activation/deactivation through deactivatedAt.
+    EventDetailPayload:
+      type: object
+      required:
+        - id
+        - userId
+        - eventName
+        - thumbnail
+        - images
+        - eventStatus
+        - lat
+        - lng
+        - startAt
+        - endAt
+        - dressCode
+        - eventPrice
+        - currency
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        eventName:
+          type: string
+        eventDescription:
+          type: string
+          nullable: true
+        thumbnail:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        eventStatus:
+          type: string
+          enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+        lat:
+          type: number
+        lng:
+          type: number
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        dressCode:
+          type: string
+        eventPrice:
+          type: number
+        currency:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deactivatedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CreateEventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/EventDetailPayload"
+        traceId:
+          type: string
+          format: uuid
+    UpdateEventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/EventDetailPayload"
+        traceId:
+          type: string
+          format: uuid
+    EventDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: "#/components/schemas/EventDetailPayload"
         traceId:
           type: string
           format: uuid
@@ -2925,8 +3123,7 @@ paths:
       tags:
         - Club
       summary: List own Clubs
-      description: Returns all clubs owned by the authenticated Club Owner. Includes
-        deactivated clubs.
+      description: Returns all clubs owned by the authenticated Club Owner. When isActive is omitted, both active and deactivated Clubs are returned.
       security:
         - bearerAuth: []
       parameters:
@@ -2941,6 +3138,11 @@ paths:
             type: integer
             default: 10
             maximum: 50
+        - name: isActive
+          in: query
+          description: true returns active Clubs only, false returns deactivated Clubs only. The backend safely parses "true" and "false" query strings.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Clubs retrieved successfully
@@ -3100,12 +3302,260 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
       operationId: getClubDetail
+  /api/v1/event:
+    post:
+      tags:
+        - Event
+      summary: Create a new Event
+      description: Create a new Event. Event management is restricted to the authenticated user's owned Events.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventPayload'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateEventResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: createEvent
+    get:
+      tags:
+        - Event
+      summary: List owned Events
+      description: Returns a paginated list of Events owned by the authenticated user. When eventStatus and isActive are omitted, all Event statuses and both active and deactivated Events are returned. GET list is ordered by createdAt DESC.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+        - name: eventStatus
+          in: query
+          description: When supplied, only Events matching that status are returned.
+          schema:
+            type: string
+            enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
+        - name: isActive
+          in: query
+          description: true returns active Events only, false returns deactivated Events only. The backend safely parses "true" and "false" query strings.
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  meta:
+                    $ref: '#/components/schemas/ExplorePaginationMeta'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/EventDetailPayload'
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: getEventList
+  '/api/v1/event/{id}':
+    put:
+      tags:
+        - Event
+      summary: Update an existing Event
+      description: Updates an existing Event in-place. Event management is restricted to the authenticated user's owned Events.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventPayload'
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateEventResponse"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      operationId: updateEvent
+    get:
+      tags:
+        - Event
+      summary: Get own Event detail
+      description: Returns the full aggregate of an Event if owned by the authenticated user.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Event retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetailResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthErrorResponse"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+      operationId: getEventDetail
   /api/v1/explore:
     get:
       tags:
         - Explore
       security: []
       summary: List Clubs and Events
+      description: Returns a paginated list of public Clubs and Events. Event results returned by public Explore are always restricted to active Events with eventStatus=UPCOMING. Deactivated Clubs are excluded. Note that Club prices (minPrice, maxPrice, and currency) are derived ONLY from active packages.
       parameters:
         - name: type
           in: query

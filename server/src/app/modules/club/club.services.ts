@@ -11,6 +11,14 @@ import { Club } from '@prisma/client';
 export const createClubService = async ({ userId, payload }: ICreateClubService): Promise<Club> => {
   const { openingHours, packages, ...clubData } = payload;
 
+  if (packages && packages.length > 1) {
+    const firstCurrency = packages[0].currency;
+    const hasMixedCurrency = packages.some(pkg => pkg.currency !== firstCurrency);
+    if (hasMixedCurrency) {
+      throw { status: 422, message: 'All packages within a club must have the same currency' };
+    }
+  }
+
   return await prisma.$transaction(async (tx) => {
     // 1. Create the base Club record
     const club = await tx.club.create({
@@ -61,6 +69,14 @@ export const createClubService = async ({ userId, payload }: ICreateClubService)
  */
 export const updateClubService = async ({ clubId, userId, payload }: IUpdateClubService): Promise<Club> => {
   const { openingHours, packages, ...clubData } = payload;
+
+  if (packages && packages.length > 1) {
+    const firstCurrency = packages[0].currency;
+    const hasMixedCurrency = packages.some(pkg => pkg.currency !== firstCurrency);
+    if (hasMixedCurrency) {
+      throw { status: 422, message: 'All packages within a club must have the same currency' };
+    }
+  }
 
   // Verify ownership and existence
   await prisma.club.findUniqueOrThrow({
@@ -119,15 +135,18 @@ export const updateClubService = async ({ clubId, userId, payload }: IUpdateClub
  * @returns Promise<{ data: Club[], total: number }>
  */
 export const getClubListService = async ({ userId, query }: IGetClubListService) => {
-  const { page, limit } = query;
+  const { page, limit, isActive } = query;
   const skip = (page - 1) * limit;
 
+  const where: any = { userId };
+  if (isActive !== undefined) {
+    where.deactivatedAt = isActive ? null : { not: null };
+  }
+
   const [total, data] = await prisma.$transaction([
-    prisma.club.count({
-      where: { userId }
-    }),
+    prisma.club.count({ where }),
     prisma.club.findMany({
-      where: { userId },
+      where,
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,

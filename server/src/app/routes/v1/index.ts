@@ -9,8 +9,12 @@ import clubRoutes from '@/app/modules/club/club.routes';
 import eventRoutes from '@/app/modules/event/event.routes';
 import exploreRoutes from '@/app/modules/explore/explore.routes';
 import wishlistRoutes from '@/app/modules/wishlist/wishlist.routes';
+import serviceChargeRoutes from '@/app/modules/serviceCharge/serviceCharge.routes';
+import connectRoutes from '@/app/modules/connect/connect.routes';
 
 const routes: Router[] = [
+  connectRoutes,
+  serviceChargeRoutes,
   wishlistRoutes,
   exploreRoutes,
   eventRoutes,

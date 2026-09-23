@@ -64,7 +64,7 @@ export const getEventListController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const user = req.user as User;
-    const query = req.query as unknown as TEventListQuery;
+    const query = (req.validatedQuery || req.query) as TEventListQuery;
 
     const { data, total } = await getEventListService({ userId: user.id, query });
     

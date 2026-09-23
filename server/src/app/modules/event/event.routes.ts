@@ -8,6 +8,7 @@ import {
   checkAccountStatus,
   checkClubOwnerRoleMiddleware
 } from '@/app/modules/auth/auth.middlewares';
+import { checkConnectReadinessMiddleware } from '@/app/modules/connect/connect.middlewares';
 
 
 const router = Router();
@@ -18,6 +19,7 @@ router.post(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqBody(createEventSchema),
   createEventController
 );
@@ -28,6 +30,7 @@ router.put(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqParams(eventIdParamsSchema),
   validateReqBody(updateEventSchema),
   updateEventController
@@ -39,6 +42,7 @@ router.get(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqQuery(eventListQuerySchema),
   getEventListController
 );
@@ -49,6 +53,7 @@ router.get(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqParams(eventIdParamsSchema),
   getEventDetailController
 );

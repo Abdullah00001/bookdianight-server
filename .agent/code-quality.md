@@ -361,6 +361,11 @@ response
 
 Controllers should not duplicate business logic already handled by middleware or services.
 
+Controllers may only collect request data or trusted middleware context, call a
+service, and send the response or redirect. They must not contain provider
+processing, domain existence checks, business-condition branches, or duplicate
+validation.
+
 Use the project's existing:
 
 asyncHandler
@@ -394,6 +399,11 @@ Validate once at the appropriate boundary.
 
 Do not create redundant checks simply because they feel safer.
 
+Authentication, authorization, request validation, and domain
+existence/context checks belong at this boundary. Follow existing
+`check*ExistenceMiddleware` patterns and attach trusted context for downstream
+code; do not move service business processing into middleware.
+
 14. Authentication & Authorization
 
 Follow the actual authentication middleware chains already established in the repository.
@@ -426,6 +436,11 @@ standard response envelopes
 established error status mappings
 
 Services must follow the existing try/catch/rethrow convention where the surrounding module uses it.
+
+Business rules and external-provider operations belong in services. Use the
+typed parameter interfaces from `*.types.ts`, propagate errors without
+swallowing them, and do not repeat validation or existence checks already
+established by middleware.
 
 Do not replace project-specific errors with generic:
 

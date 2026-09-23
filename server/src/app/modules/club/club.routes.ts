@@ -8,6 +8,7 @@ import {
   checkAccountStatus,
   checkClubOwnerRoleMiddleware
 } from '@/app/modules/auth/auth.middlewares';
+import { checkConnectReadinessMiddleware } from '@/app/modules/connect/connect.middlewares';
 
 
 const router = Router();
@@ -18,6 +19,7 @@ router.get(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqQuery(clubListQuerySchema),
   getClubListController
 );
@@ -28,6 +30,7 @@ router.get(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqParams(clubIdParamsSchema),
   getClubDetailController
 );
@@ -38,6 +41,7 @@ router.post(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqBody(createClubSchema),
   createClubController
 );
@@ -48,6 +52,7 @@ router.put(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqParams(clubIdParamsSchema),
   validateReqBody(updateClubSchema),
   updateClubController

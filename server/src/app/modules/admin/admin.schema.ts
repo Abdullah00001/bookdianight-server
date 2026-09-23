@@ -53,7 +53,10 @@ export type TChangeAdminPasswordPayload = z.infer<typeof changeAdminPasswordSche
 export const updateCommissionSchema = z
   .object({
     serviceType: z.enum(['EVENT', 'CLUB']),
-    chargePercentage: z.number(),
+    chargePercentage: z
+      .number()
+      .finite('Charge percentage must be a finite number')
+      .multipleOf(0.01, 'Charge percentage must have at most 2 decimal places'),
   })
   .strict();
 

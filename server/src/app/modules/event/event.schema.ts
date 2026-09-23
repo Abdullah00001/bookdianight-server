@@ -6,13 +6,14 @@ export const eventStatusEnum = z.enum(['UPCOMING', 'ONGOING', 'COMPLETED', 'CANC
 export const createEventSchema = z.object({
   eventName: z.string().min(1),
   eventDescription: z.string().nullable().optional(),
-  thumbnail: z.string().url(),
-  images: z.array(z.string().url()),
+  thumbnail: z.url(),
+  images: z.array(z.url()),
   eventStatus: eventStatusEnum.default('UPCOMING'),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
-  startAt: z.string().datetime(),
-  endAt: z.string().datetime(),
+  location: z.string().min(1),
+  startAt: z.date(),
+  endAt: z.date(),
   dressCode: z.string(),
   eventPrice: z.number().nonnegative(),
   currency: z.string().min(1),
@@ -24,13 +25,14 @@ export const createEventSchema = z.object({
 export const updateEventSchema = z.object({
   eventName: z.string().min(1).optional(),
   eventDescription: z.string().nullable().optional(),
-  thumbnail: z.string().url().optional(),
-  images: z.array(z.string().url()).optional(),
+  thumbnail: z.url().optional(),
+  images: z.array(z.url()).optional(),
   eventStatus: eventStatusEnum.optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
-  startAt: z.string().datetime().optional(),
-  endAt: z.string().datetime().optional(),
+  location: z.string().min(1).optional(),
+  startAt: z.date().optional(),
+  endAt: z.date().optional(),
   dressCode: z.string().optional(),
   eventPrice: z.number().nonnegative().optional(),
   currency: z.string().min(1).optional(),
@@ -52,7 +54,7 @@ export type TCreateEventPayload = z.infer<typeof createEventSchema>;
 export type TUpdateEventPayload = z.infer<typeof updateEventSchema>;
 
 export const eventIdParamsSchema = z.object({
-  id: z.string().uuid()
+  id: z.uuid()
 });
 
 const booleanQuery = z.preprocess((val) => {

@@ -24,7 +24,8 @@ export const corsWhiteList = [
   'http://localhost:5006',
   'http://localhost:5007',
   'http://localhost:5008',
-  'https://petition-orchestra-awards-adaptor.trycloudflare.com',
+  'https://jump-look-speech-cam.trycloudflare.com',
+  'https://jump-look-speech-cam.trycloudflare.com',
 ];
 export const saltRound = 10;
 export const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
@@ -279,6 +280,7 @@ export const REDIS_PREFIXES = {
   location: 'user:location',
   locations: 'users:locations',
   adminSession: 'admin:session',
+  connectOnboarding: 'connect:onboarding',
 } as const;
 
 /**

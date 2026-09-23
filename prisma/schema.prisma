@@ -67,6 +67,60 @@ enum LegalContentType {
   PRIVACY_AND_POLICY
 }
 
+enum StripeConnectAccountStatus {
+  PENDING
+  ACTIVE
+  RESTRICTED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PAYMENT_FAILED
+}
+
+enum ClubBookingStatus {
+  HOLD
+  BOOKED
+  EXPIRED
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+}
+
+enum SellerTransferStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum RefundStatus {
+  SCHEDULED
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum TicketPdfStatus {
+  PENDING
+  GENERATED
+  FAILED
+}
+
+enum EventPurchaseAttendeeType {
+  BUYER
+  FRIEND
+}
+
 model User {
   id            String        @id @default(uuid())
   name          String
@@ -87,6 +141,9 @@ model User {
   clubReviews  ClubReview[]
   events       Event[]
   wishlists    Wishlist[]
+  stripeConnectAccount StripeConnectAccount?
+  buyerOrders  Order[] @relation("OrderBuyer")
+  sellerOrders Order[] @relation("OrderSeller")
 
   @@index([accountRole])
   @@index([accountStatus])
@@ -152,12 +209,17 @@ model LegalContent {
 
 model ApplicationCharge {
   id                String   @id @default(uuid())
-  serviceType       Service
-  chargePercentage  Float
+  serviceType       Service  @unique
+  chargePercentage  Decimal  @db.Decimal(5, 2)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
 
-  @@index([serviceType])
+model ServiceCharge {
+  id        String   @id @default("GLOBAL")
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Club {
@@ -172,6 +234,7 @@ model Club {
   isRecurring Boolean  @default(false)
   lat         Float
   lng         Float
+  location    String   @default("")
   geog        Unsupported("geography(Point, 4326)")?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -182,6 +245,7 @@ model Club {
   clubOpeningHours ClubOpeningHour[]
   clubPackages     ClubPackage[]
   wishlists        Wishlist[]
+  clubBookings     ClubBooking[]
 
   @@index([userId])
   @@index([lat, lng])
@@ -232,6 +296,7 @@ model ClubPackage {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  clubBookings ClubBooking[]
 
   @@unique([clubId, name])            // no duplicate package names per club
   @@index([clubId, isActive, sortOrder])
@@ -248,6 +313,7 @@ model Event {
   eventStatus      EventStatus @default(UPCOMING)
   lat              Float
   lng              Float
+  location         String      @default("")
   geog             Unsupported("geography(Point, 4326)")?
   startAt          DateTime
   endAt            DateTime
@@ -259,7 +325,8 @@ model Event {
   deactivatedAt    DateTime?
 
   // Back Relations
-  wishlists Wishlist[]
+  wishlists      Wishlist[]
+  eventPurchases EventPurchase[]
 
   @@index([userId])
   @@index([eventStatus, startAt])
@@ -283,4 +350,192 @@ model Wishlist {
   @@index([userId])
   @@index([eventId])
   @@index([clubId])
+}
+
+model StripeConnectAccount {
+  id                   String                     @id @default(uuid())
+  userId               String                     @unique
+  user                 User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  stripeAccountId      String                     @unique
+  status               StripeConnectAccountStatus @default(PENDING)
+  onboardingCompletedAt DateTime?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  @@index([status])
+}
+
+model Order {
+  id                  String      @id @default(uuid())
+  buyerUserId         String
+  buyer               User        @relation("OrderBuyer", fields: [buyerUserId], references: [id], onDelete: Restrict)
+  sellerUserId        String
+  seller              User        @relation("OrderSeller", fields: [sellerUserId], references: [id], onDelete: Restrict)
+  serviceType         Service
+  status              OrderStatus @default(PENDING_PAYMENT)
+  buyerName           String
+  buyerPhoneNumber    String
+  buyerDateOfBirth    DateTime?
+  buyerGender         Gender?
+  buyerImage          String?
+  grossAmount         Decimal     @db.Decimal(10, 2)
+  serviceChargeAmount Decimal     @db.Decimal(10, 2)
+  buyerTotal          Decimal     @db.Decimal(10, 2)
+  commissionRate      Decimal     @db.Decimal(5, 2)
+  commissionAmount    Decimal     @db.Decimal(10, 2)
+  sellerEarnings      Decimal     @db.Decimal(10, 2)
+  currency            String
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  clubBooking        ClubBooking?
+  eventPurchase      EventPurchase?
+  paymentTransaction PaymentTransaction?
+  sellerTransfer     SellerTransfer?
+  refund             Refund?
+  ticketPdf          TicketPdf?
+
+  @@index([buyerUserId, createdAt])
+  @@index([sellerUserId, createdAt])
+  @@index([serviceType, status, createdAt])
+}
+
+model ClubBooking {
+  id              String            @id @default(uuid())
+  orderId         String            @unique
+  order           Order             @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  clubId          String
+  club            Club              @relation(fields: [clubId], references: [id], onDelete: Restrict)
+  clubPackageId   String
+  clubPackage     ClubPackage       @relation(fields: [clubPackageId], references: [id], onDelete: Restrict)
+  status          ClubBookingStatus @default(HOLD)
+  startAt         DateTime
+  endAt           DateTime
+  holdExpiresAt   DateTime
+  guestCount      Int
+  clubName        String
+  clubLocation    String
+  packageName     String
+  packageCapacity Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([clubPackageId, status, startAt, endAt])
+  @@index([status, holdExpiresAt])
+  @@index([clubId, startAt])
+}
+
+model EventPurchase {
+  id                 String              @id @default(uuid())
+  orderId            String              @unique
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  eventId            String
+  event              Event               @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  personCount        Int
+  eventName          String
+  eventLocation      String
+  eventStartAt       DateTime
+  eventEndAt         DateTime
+  pricePerPerson     Decimal             @db.Decimal(10, 2)
+  transferEligibleAt DateTime
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  attendees EventPurchaseAttendee[]
+
+  @@index([eventId, createdAt])
+  @@index([transferEligibleAt])
+}
+
+model EventPurchaseAttendee {
+  id              String                    @id @default(uuid())
+  eventPurchaseId String
+  eventPurchase   EventPurchase             @relation(fields: [eventPurchaseId], references: [id], onDelete: Restrict)
+  attendeeType    EventPurchaseAttendeeType
+  position        Int
+  name            String
+  phoneNumber     String
+  gender          Gender?
+  age             Int?
+  image           String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@unique([eventPurchaseId, position])
+  @@index([eventPurchaseId, attendeeType])
+}
+
+model PaymentTransaction {
+  id                    String                   @id @default(uuid())
+  orderId               String                   @unique
+  order                 Order                    @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  stripePaymentIntentId String?                  @unique
+  stripeChargeId        String?                  @unique
+  idempotencyKey        String                   @unique
+  status                PaymentTransactionStatus @default(PENDING)
+  amount                Decimal                  @db.Decimal(10, 2)
+  currency              String
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model WebhookEvent {
+  id            String             @id @default(uuid())
+  stripeEventId String             @unique
+  eventType     String
+  status        WebhookEventStatus @default(RECEIVED)
+  payload       Json
+  processedAt   DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model SellerTransfer {
+  id               String               @id @default(uuid())
+  orderId          String               @unique
+  order            Order                @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  stripeTransferId String?              @unique
+  idempotencyKey   String               @unique
+  status           SellerTransferStatus @default(PENDING)
+  amount           Decimal              @db.Decimal(10, 2)
+  currency         String
+  completedAt      DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model Refund {
+  id             String       @id @default(uuid())
+  orderId        String       @unique
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  stripeRefundId String?      @unique
+  idempotencyKey String       @unique
+  status         RefundStatus @default(SCHEDULED)
+  amount         Decimal      @db.Decimal(10, 2)
+  currency       String
+  scheduledFor   DateTime
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, scheduledFor])
+}
+
+model TicketPdf {
+  id         String          @id @default(uuid())
+  orderId    String          @unique
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  status     TicketPdfStatus @default(PENDING)
+  storageKey String?
+  generatedAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([status, createdAt])
 }

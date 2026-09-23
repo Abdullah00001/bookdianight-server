@@ -1,4 +1,4 @@
-import { Profile, User, Device } from '@prisma/client';
+import { Profile, User, Device, ServiceCharge } from '@prisma/client';
 import { JwtPayload } from 'jsonwebtoken';
 
 declare global {
@@ -15,7 +15,9 @@ declare global {
       jwtPayload?: JwtPayload;
       profile:Profile
       device?: Device;
+      serviceCharge: ServiceCharge;
       validatedQuery?: unknown;
+      connectCallbackUserId: string;
     }
   }
 }

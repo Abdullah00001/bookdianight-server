@@ -67,7 +67,7 @@ export const getWishlistController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const user = req.user as User;
-    const query = req.query as unknown as TGetWishlistQuery;
+    const query = (req.validatedQuery || req.query) as unknown as TGetWishlistQuery;
 
     const result = await getWishlistService({
       userId: user.id,

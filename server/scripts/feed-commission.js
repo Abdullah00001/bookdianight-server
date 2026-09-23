@@ -16,6 +16,11 @@ const commissionRecords = [
   },
 ];
 
+const globalServiceCharge = {
+  id: 'GLOBAL',
+  amount: '5.50',
+};
+
 const feedCommissionConfiguration = async () => {
   try {
     await prisma.$connect();
@@ -44,6 +49,13 @@ const feedCommissionConfiguration = async () => {
           console.log(`✓ Commission for ${record.serviceType} created with ${record.chargePercentage}%`);
         }
       }
+
+      await tx.serviceCharge.upsert({
+        where: { id: globalServiceCharge.id },
+        create: globalServiceCharge,
+        update: {},
+      });
+      console.log('✓ Global Service Charge initialized or already exists — preserved');
     });
 
     console.log('\nCommission configuration initialization completed successfully.');

@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:5005
     description: Local development server
-  - url: https://petition-orchestra-awards-adaptor.trycloudflare.com
+  - url: https://jump-look-speech-cam.trycloudflare.com
     description: TryCloudflare server (temporary)
   - url: https://api.bookdianight.com
     description: Production server
@@ -25,6 +25,8 @@ tags:
     description: Public exploration endpoints
   - name: Wishlist
     description: User wishlist management endpoints
+  - name: Connect
+    description: Stripe Connect onboarding, callback, and webhook endpoints
 components:
   securitySchemes:
     adminAuth:
@@ -141,6 +143,7 @@ components:
         - isRecurring
         - lat
         - lng
+        - location
         - openingHours
         - packages
       properties:
@@ -172,6 +175,8 @@ components:
           type: number
           minimum: -180
           maximum: 180
+        location:
+          type: string
         openingHours:
           type: array
           items:
@@ -236,6 +241,8 @@ components:
           type: number
           minimum: -180
           maximum: 180
+        location:
+          type: string
         openingHours:
           type: array
           items:
@@ -293,12 +300,12 @@ components:
         - name
         - lat
         - lng
+        - location
         - type
         - review
         - isVip
         - thumbnail
-        - minPrice
-        - maxPrice
+        - priceRange
         - currency
       properties:
         id:
@@ -310,6 +317,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         type:
           type: string
           enum:
@@ -321,12 +330,19 @@ components:
         thumbnail:
           type: string
           format: uri
-        minPrice:
-          type: number
-          description: The minimum price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
-        maxPrice:
-          type: number
-          description: The maximum price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
+        priceRange:
+          type: object
+          required:
+            - minPrice
+            - maxPrice
+          properties:
+            minPrice:
+              type: number
+              description: The minimum package price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
+            maxPrice:
+              type: number
+              description: The maximum package price derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is 0.
+          description: Object containing the minimum and maximum package prices for the club.
         currency:
           type: string
           description: The single shared currency derived strictly from ACTIVE packages. If a club has no active packages, this fallback value is an empty string "".
@@ -340,6 +356,7 @@ components:
         - name
         - lat
         - lng
+        - location
         - type
         - thumbnail
         - price
@@ -354,6 +371,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         type:
           type: string
           enum:
@@ -443,6 +462,7 @@ components:
         - isVip
         - lat
         - lng
+        - location
         - totalReviews
         - clubOpeningHours
         - clubPackages
@@ -473,6 +493,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         totalReviews:
           type: integer
         clubOpeningHours:
@@ -496,6 +518,7 @@ components:
         - eventStatus
         - lat
         - lng
+        - location
         - startAt
         - endAt
         - dressCode
@@ -524,6 +547,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         startAt:
           type: string
           format: date-time
@@ -566,6 +591,51 @@ components:
           enum: [ EVENT, CLUB ]
         chargePercentage:
           type: number
+          format: decimal
+          multipleOf: 0.01
+          description: Decimal commission percentage with up to two decimal places.
+          example: 20.25
+    UpdateServiceChargePayload:
+      type: object
+      additionalProperties: false
+      required:
+        - amount
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+          exclusiveMinimum: true
+          maximum: 99999999.99
+          multipleOf: 0.01
+          description: Fixed global Service Charge amount. Must be greater than 0.00 and have no more than two decimal places.
+          example: 5.5
+    ServiceCharge:
+      type: object
+      required:
+        - id
+        - amount
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          enum: [ GLOBAL ]
+          description: The fixed singleton identifier for the global configuration.
+        amount:
+          type: number
+          format: decimal
+          minimum: 0
+          exclusiveMinimum: true
+          multipleOf: 0.01
+          description: Fixed global Service Charge amount. No currency is stored with this configuration.
+          example: 5.5
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     CheckAccessResponse:
       type: object
       properties:
@@ -1221,6 +1291,20 @@ components:
           format: uuid
     ClubDetailPayload:
       type: object
+      required:
+        - id
+        - userId
+        - name
+        - thumbnail
+        - images
+        - dressCode
+        - isRecurring
+        - isVip
+        - lat
+        - lng
+        - location
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -1251,6 +1335,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -1320,6 +1406,8 @@ components:
               type: number
             lng:
               type: number
+            location:
+              type: string
             createdAt:
               type: string
               format: date-time
@@ -1342,6 +1430,7 @@ components:
         - images
         - lat
         - lng
+        - location
         - startAt
         - endAt
         - dressCode
@@ -1369,6 +1458,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         startAt:
           type: string
           format: date-time
@@ -1406,6 +1497,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         startAt:
           type: string
           format: date-time
@@ -1434,6 +1527,7 @@ components:
         - eventStatus
         - lat
         - lng
+        - location
         - startAt
         - endAt
         - dressCode
@@ -1468,6 +1562,8 @@ components:
           type: number
         lng:
           type: number
+        location:
+          type: string
         startAt:
           type: string
           format: date-time
@@ -1526,6 +1622,43 @@ components:
         traceId:
           type: string
           format: uuid
+    ConnectStatus:
+      type: object
+      required: [state, onboardingCompletedAt, requiresOnboarding, canCreateListings]
+      properties:
+        state:
+          type: string
+          enum: [SETUP_REQUIRED, IN_PROGRESS, ACTION_REQUIRED, READY, RESTRICTED]
+          description: Sanitized provider-derived state. READY requires active transfers capability and payout readiness.
+        onboardingCompletedAt:
+          type: string
+          format: date-time
+          nullable: true
+        requiresOnboarding:
+          type: boolean
+        canCreateListings:
+          type: boolean
+    ConnectOnboardingResponse:
+      type: object
+      required: [success, message, data, traceId]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        traceId: { type: string, format: uuid }
+        data:
+          type: object
+          required: [onboardingUrl, status]
+          properties:
+            onboardingUrl: { type: string, format: uri, nullable: true }
+            status: { $ref: '#/components/schemas/ConnectStatus' }
+    ConnectStatusResponse:
+      type: object
+      required: [success, message, data, traceId]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        traceId: { type: string, format: uuid }
+        data: { $ref: '#/components/schemas/ConnectStatus' }
 paths:
 
   /api/v1/wishlist:
@@ -2807,6 +2940,132 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/service-charge:
+    get:
+      tags:
+        - Admin Auth
+      summary: Get global Service Charge
+      operationId: getServiceCharge
+      description: Retrieves the single fixed Service Charge configuration used for both Club and Event purchases.
+      security:
+        - adminAuth: []
+      responses:
+        '200':
+          description: Service Charge retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - data
+                  - traceId
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Service Charge retrieved successfully
+                  data:
+                    $ref: '#/components/schemas/ServiceCharge'
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Service Charge configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Admin Auth
+      summary: Update global Service Charge
+      operationId: updateServiceCharge
+      description: Updates the single fixed Service Charge configuration. The amount must be greater than 0.00 and may contain no more than two decimal places.
+      security:
+        - adminAuth: []
+      parameters:
+        - in: header
+          name: X-CSRF-Token
+          required: true
+          schema:
+            type: string
+          description: CSRF token for mutating requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateServiceChargePayload'
+      responses:
+        '200':
+          description: Service Charge updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - data
+                  - traceId
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Service Charge updated successfully
+                  data:
+                    $ref: '#/components/schemas/ServiceCharge'
+                  traceId:
+                    type: string
+                    format: uuid
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: CSRF Token Invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Service Charge configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/admin/profile:
     get:
       tags:
@@ -3916,3 +4175,91 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
       operationId: getExploreDetail
+  /api/v1/connect/onboarding:
+    post:
+      tags: [Connect]
+      summary: Create or resume Stripe Connect onboarding
+      description: Authenticated CLUB_OWNER operation. Returns only a single-use onboarding URL and sanitized state; it never exposes a Stripe account ID or secret.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Sanitized Connect state and a single-use onboarding URL when required.
+          content: { application/json: { schema: { $ref: '#/components/schemas/ConnectOnboardingResponse' } } }
+        '401': { description: Authentication error, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
+        '403': { description: Active CLUB_OWNER role required, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
+        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  /api/v1/connect/status:
+    get:
+      tags: [Connect]
+      summary: Retrieve authoritative sanitized Stripe Connect status
+      description: Authenticated CLUB_OWNER operation. Flutter must call this after the browser returns; the return redirect alone does not establish READY.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Connect status.
+          content: { application/json: { schema: { $ref: '#/components/schemas/ConnectStatusResponse' } } }
+        '401': { description: Authentication error, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
+        '403': { description: Active CLUB_OWNER role required, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
+        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  /api/v1/connect/return:
+    get:
+      tags: [Connect]
+      summary: Stripe Connect browser return
+      description: Backend callback only. It validates the opaque callback token, refreshes authoritative account state, then redirects to the configured Flutter HTTPS App Link. It does not itself prove READY.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          description: Opaque, short-lived callback token generated with the Account Link; it is not a Stripe account ID.
+          schema: { type: string, format: uuid }
+      responses:
+        '303':
+          description: Redirect to the configured Flutter HTTPS App Link. Flutter then calls Connect status.
+          headers:
+            Location:
+              description: Configured Flutter App Link.
+              schema: { type: string, format: uri }
+        '400': { description: Invalid or expired callback token, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '422': { description: Invalid callback query, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  /api/v1/connect/refresh:
+    get:
+      tags: [Connect]
+      summary: Refresh an expired or consumed Stripe Account Link
+      description: Backend callback only. Validates the opaque callback token, reuses the local Connect account, creates a fresh single-use Account Link, and redirects to Stripe. Flutter does not supply a Stripe account ID.
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '303':
+          description: Redirect to a fresh Stripe onboarding Account Link.
+          headers:
+            Location:
+              description: Single-use Stripe-hosted onboarding URL.
+              schema: { type: string, format: uri }
+        '400': { description: Invalid or expired callback token, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '422': { description: Invalid callback query, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+  /api/v1/connect/webhook:
+    post:
+      tags: [Connect]
+      summary: Stripe Connect webhook receiver
+      description: No user authentication applies. Stripe sends a raw JSON body signed with Stripe-Signature. The receiver accepts account.updated, account.external_account.updated, and capability.updated, and never exposes raw provider payloads through user APIs.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe Event JSON. The server verifies the original raw request bytes before parsing.
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Event received and durably processed or deduplicated }
+        '500': { description: Invalid signature, payload, Stripe, or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }

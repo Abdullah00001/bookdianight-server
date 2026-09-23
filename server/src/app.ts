@@ -27,7 +27,10 @@ const app: Application = express();
 
 app.use(traceMiddleware);
 app.use((req, res, next) => {
-  if (req.originalUrl.includes('/webhooks/payment/stripe')) {
+  if (
+    req.originalUrl.includes('/webhooks/payment/stripe') ||
+    req.path === '/api/v1/connect/webhook'
+  ) {
     next(); // skip json() — raw() in the route handles it
   } else {
     json()(req, res, next);

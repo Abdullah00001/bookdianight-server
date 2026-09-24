@@ -13,8 +13,9 @@ import serviceChargeRoutes from '@/app/modules/serviceCharge/serviceCharge.route
 import connectRoutes from '@/app/modules/connect/connect.routes';
 import purchaseRoutes from '@/app/modules/purchase/purchase.routes';
 import paymentRoutes from '@/app/modules/payment/payment.routes';
-
+import webhookRoutes from '@/app/modules/webhook/webhook.routes';
 const routes: Router[] = [
+  webhookRoutes,
   paymentRoutes,
   purchaseRoutes,
   connectRoutes,

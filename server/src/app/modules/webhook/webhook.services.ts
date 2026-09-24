@@ -1,6 +1,8 @@
 import { env } from '@/env';
 import { stripe } from '@/app/configs/stripe.configs';
 import prisma from '@/app/configs/db.configs';
+import { getSystemQueue } from '@/app/queues/system/system.queue';
+import { QUEUE_JOBS } from '@/const';
 
 export interface IProcessPaymentWebhookService {
   payload: any;
@@ -153,6 +155,44 @@ export const processPaymentWebhookService = async ({
             }
           }
         });
+
+        // 4. Fulfillment (PDF Generation)
+        // WHY: Enqueue this strictly AFTER the transaction commits to guarantee the worker only operates on fully persisted PAID states.
+        if (event.type === 'payment_intent.succeeded') {
+          await getSystemQueue().add(
+            QUEUE_JOBS.GENERATE_TICKET_PDF,
+            { orderId: order.id },
+            {
+              jobId: `ticket-pdf-${order.id}`,
+              removeOnComplete: true,
+              removeOnFail: false,
+            }
+          );
+
+          // 5. Seller Transfer
+          // WHY: Transfer is safely enqueued only after DB transaction commits.
+          // Club is immediate, Event waits until transferEligibleAt.
+          let transferDelay = 0;
+          if (order.serviceType === 'EVENT') {
+            const ep = await prisma.eventPurchase.findUnique({
+              where: { orderId: order.id },
+            });
+            if (ep) {
+              transferDelay = Math.max(0, ep.transferEligibleAt.getTime() - Date.now());
+            }
+          }
+
+          await getSystemQueue().add(
+            QUEUE_JOBS.PROCESS_SELLER_TRANSFER,
+            { orderId: order.id },
+            {
+              jobId: `seller-transfer-${order.id}`,
+              delay: transferDelay,
+              removeOnComplete: true,
+              removeOnFail: false,
+            }
+          );
+        }
       }
 
       await prisma.webhookEvent.update({

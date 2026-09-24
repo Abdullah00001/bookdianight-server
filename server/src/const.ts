@@ -301,6 +301,8 @@ export const QUEUE_JOBS = {
   RESEND_VERIFICATION_OTP: 'resend-verification-otp',
   SIGNUP_USER_VERIFICATION_SUCCESSFUL: 'signup-user-verification-successful',
   SEND_SIGNUP_SUCCESS_EMAIL: 'send-signup-success-email',
+  GENERATE_TICKET_PDF: 'generate-ticket-pdf',
+  PROCESS_SELLER_TRANSFER: 'process-seller-transfer',
   // AUTO-GENERATED-JOBS-END
 } as const;
 

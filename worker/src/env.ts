@@ -24,5 +24,11 @@ export const env: TEnv = {
   SMTP_PORT: Number(getEnv('SMTP_PORT')),
   SMTP_USER: getEnv('SMTP_USER'),
   SMTP_PASS: getEnv('SMTP_PASS'),
+  S3_REGION: getEnv('S3_REGION'),
+  S3_ENDPOINT: getEnv('S3_ENDPOINT'),
+  S3_ACCESS_KEY: getEnv('S3_ACCESS_KEY'),
+  S3_SECRET_KEY: getEnv('S3_SECRET_KEY'),
+  S3_BUCKET_NAME: getEnv('S3_BUCKET_NAME'),
   S3_PUBLIC_URL: getEnv('S3_PUBLIC_URL'),
+  STRIPE_SECRET_KEY: getEnv('STRIPE_SECRET_KEY'),
 };

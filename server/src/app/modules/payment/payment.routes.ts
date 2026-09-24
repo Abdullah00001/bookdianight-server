@@ -1,8 +1,5 @@
-import { Router, raw } from 'express';
-import {
-  createPaymentIntentController,
-  paymentWebhookController,
-} from '@/app/modules/payment/payment.controllers';
+import { Router } from 'express';
+import { createPaymentIntentController } from '@/app/modules/payment/payment.controllers';
 import {
   checkAccountStatus,
   checkUserAccessTokenMiddleware,
@@ -28,11 +25,5 @@ router
     checkPaymentOrderValidityMiddleware,
     createPaymentIntentController
   );
-
-router.post(
-  '/webhooks/payment/stripe',
-  raw({ type: 'application/json' }),
-  paymentWebhookController
-);
 
 export default router;

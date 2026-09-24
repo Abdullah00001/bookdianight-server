@@ -4542,7 +4542,7 @@ paths:
           }
   /api/v1/webhooks/payment/stripe:
     post:
-      tags: [Payment]
+      tags: [Webhook]
       summary: Stripe Payment webhook receiver
       description: No user authentication applies. Stripe sends a raw JSON body signed with Stripe-Signature. The receiver accepts payment_intent.succeeded, payment_intent.payment_failed, and payment_intent.canceled.
       operationId: processPaymentWebhook

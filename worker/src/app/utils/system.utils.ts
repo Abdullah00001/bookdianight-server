@@ -1,6 +1,7 @@
 import { TFirebaseCredentials } from '@/app/@types/system.types';
 import { env } from '@/env';
 import { SendMailOptions } from 'nodemailer';
+import { unlink } from 'fs/promises';
 
 export function mailOption({
   to,
@@ -48,4 +49,16 @@ export function getFirebaseCredentials(): TFirebaseCredentials {
     universe_domain: env.FIREBASE_UNIVERSE_DOMAIN,
     client_email: env.FIREBASE_CLIENT_EMAIL,
   };
+}
+
+export async function unlinkFile({
+  filePath,
+}: {
+  filePath: string;
+}): Promise<void> {
+  try {
+    await unlink(filePath);
+  } catch (error) {
+    // Ignore if file doesn't exist
+  }
 }

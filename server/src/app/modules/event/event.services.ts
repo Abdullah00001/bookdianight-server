@@ -7,6 +7,7 @@ import {
 } from '@/app/modules/event/event.types';
 import { Event } from '@prisma/client';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
+import { getEmailQueue } from '@/app/queues/email/email.queue';
 import { QUEUE_JOBS } from '@/const';
 
 /**
@@ -80,6 +81,7 @@ export const updateEventService = async ({
   }
 
   let createdRefunds: { refundId: string; scheduledFor: Date }[] = [];
+  let createdEmails: any[] = [];
 
   try {
     const updatedEvent = await prisma.$transaction(async (tx) => {
@@ -112,6 +114,9 @@ export const updateEventService = async ({
               eventId: eventId,
             },
           },
+          include: {
+            buyer: true,
+          },
         });
 
         const scheduledFor = new Date(
@@ -136,6 +141,19 @@ export const updateEventService = async ({
             refundId: refund.id,
             scheduledFor: refund.scheduledFor,
           });
+
+          createdEmails.push({
+            orderId: order.id,
+            buyerName: order.buyerName,
+            buyerEmail: order.buyer.email,
+            eventName: eventToReturn.eventName,
+            eventLocation: eventToReturn.location,
+            eventStartAt: eventToReturn.startAt.toISOString(),
+            refundAmount: refund.amount.toFixed(2), // WHY: Exact persisted refund Decimal formatted as a string
+            refundCurrency: refund.currency,
+            refundScheduledFor: refund.scheduledFor.toISOString(),
+            traceId: `cancel-email-${order.id}-${cancellationTimestamp.getTime()}`,
+          });
         }
       }
 
@@ -145,6 +163,7 @@ export const updateEventService = async ({
     // 4. Enqueue background jobs AFTER successful transaction
     if (isCancellation && createdRefunds.length > 0) {
       const systemQueue = getSystemQueue();
+      const emailQueue = getEmailQueue();
       for (const refundData of createdRefunds) {
         // WHY: Delay execution until the persisted scheduledFor time
         const delay = Math.max(
@@ -158,6 +177,19 @@ export const updateEventService = async ({
           {
             jobId: `process-refund-${refundData.refundId}`,
             delay,
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
+      }
+
+      for (const emailData of createdEmails) {
+        // WHY: Enqueued only after Event DB commit successfully so we never email users for failed cancellations.
+        await emailQueue.add(
+          QUEUE_JOBS.SEND_EVENT_CANCELLATION_EMAIL,
+          emailData,
+          {
+            jobId: `send-cancel-email-${emailData.orderId}`,
             removeOnComplete: true,
             removeOnFail: false,
           }

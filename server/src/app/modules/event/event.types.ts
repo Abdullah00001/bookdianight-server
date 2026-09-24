@@ -1,4 +1,8 @@
-import { TCreateEventPayload, TUpdateEventPayload, TEventListQuery } from '@/app/modules/event/event.schema';
+import {
+  TCreateEventPayload,
+  TUpdateEventPayload,
+  TEventListQuery,
+} from '@/app/modules/event/event.schema';
 
 export interface ICreateEventService {
   userId: string;
@@ -9,6 +13,7 @@ export interface IUpdateEventService {
   eventId: string;
   userId: string;
   payload: TUpdateEventPayload;
+  trustedCancellationContext?: any;
 }
 
 export interface IGetEventListService {

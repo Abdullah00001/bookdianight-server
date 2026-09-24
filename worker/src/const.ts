@@ -34,5 +34,7 @@ export const QUEUE_JOBS = {
   SEND_SIGNUP_SUCCESS_EMAIL: 'send-signup-success-email',
   GENERATE_TICKET_PDF: 'generate-ticket-pdf',
   PROCESS_SELLER_TRANSFER: 'process-seller-transfer',
+  PROCESS_REFUND: 'process-refund',
+  SEND_EVENT_CANCELLATION_EMAIL: 'send-event-cancellation-email',
   // AUTO-GENERATED-JOBS-END
 } as const;

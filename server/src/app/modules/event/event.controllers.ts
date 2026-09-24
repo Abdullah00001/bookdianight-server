@@ -2,8 +2,17 @@ import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { User } from '@prisma/client';
-import { createEventService, updateEventService, getEventListService, getEventDetailService } from '@/app/modules/event/event.services';
-import { TCreateEventPayload, TUpdateEventPayload, TEventListQuery } from '@/app/modules/event/event.schema';
+import {
+  createEventService,
+  updateEventService,
+  getEventListService,
+  getEventDetailService,
+} from '@/app/modules/event/event.services';
+import {
+  TCreateEventPayload,
+  TUpdateEventPayload,
+  TEventListQuery,
+} from '@/app/modules/event/event.schema';
 import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 
 /**
@@ -44,7 +53,13 @@ export const updateEventController = asyncHandler(
     const id = req.params.id as string;
     const payload = req.body as TUpdateEventPayload;
 
-    const event = await updateEventService({ eventId: id, userId: user.id, payload });
+    const trustedCancellationContext = (req as any).trustedCancellationContext;
+    const event = await updateEventService({
+      eventId: id,
+      userId: user.id,
+      payload,
+      trustedCancellationContext,
+    });
 
     res.status(200).json({
       success: true,
@@ -66,8 +81,11 @@ export const getEventListController = asyncHandler(
     const user = req.user as User;
     const query = (req.validatedQuery || req.query) as TEventListQuery;
 
-    const { data, total } = await getEventListService({ userId: user.id, query });
-    
+    const { data, total } = await getEventListService({
+      userId: user.id,
+      query,
+    });
+
     const totalPages = Math.ceil(total / query.limit);
     const links = buildPaginationLinks(req, query.page, totalPages);
 

@@ -11,7 +11,14 @@ export const clubAvailabilityQuerySchema = z
     endAt: fixedCstDateTime,
     guestCount: z.coerce.number().int().positive(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (data) => new Date(data.startAt).getTime() < new Date(data.endAt).getTime(),
+    {
+      message: 'endAt must be strictly after startAt',
+      path: ['endAt'],
+    }
+  );
 export const createClubPurchaseSchema = clubAvailabilityQuerySchema;
 export const friendSchema = z
   .object({

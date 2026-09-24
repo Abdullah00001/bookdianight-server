@@ -4,10 +4,8 @@ info:
   version: 1.0.0
   description: API documentation for the BookDiaNight backend.
 servers:
-  - url: http://localhost:5005
+  - url: https://bookdianight.localbox.online
     description: Local development server
-  - url: https://jump-look-speech-cam.trycloudflare.com
-    description: TryCloudflare server (temporary)
   - url: https://api.bookdianight.com
     description: Production server
 tags:

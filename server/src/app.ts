@@ -153,6 +153,62 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 // V1 ROUTES
 app.use(baseUrl.v1, v1Routes);
 
+// Flutter App Link fallback — in production this URL is intercepted by the native OS
+// before the browser renders it. This HTML page is only visible in a plain browser
+// (e.g. during dev/testing) where the Flutter App Link is not registered.
+app.get('/connect/complete', (_req: Request, res: Response) => {
+  res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BookDiaNight — Return to App</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f13;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 16px;
+      padding: 40px 32px;
+      text-align: center;
+      max-width: 380px;
+      width: 100%;
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+    p { font-size: 15px; line-height: 1.6; color: #9090aa; margin-bottom: 24px; }
+    .note {
+      font-size: 12px;
+      color: #5a5a70;
+      background: #111118;
+      border-radius: 8px;
+      padding: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✅</div>
+    <h1>Setup Complete</h1>
+    <p>Your payout account has been processed.<br/>Please return to the <strong>BookDiaNight</strong> app to continue.</p>
+    <div class="note">If you are on a mobile device with the app installed, it should have opened automatically.</div>
+  </div>
+</body>
+</html>`);
+});
+
+
+
 app.use((req: Request, res: Response) => {
   res.status(404).json({
     success: false,

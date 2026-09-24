@@ -1,4 +1,4 @@
-import { TFirebaseCredentials, TMailOption } from '@/app/@types/system.types';
+import { TFirebaseCredentials } from '@/app/@types/system.types';
 import { env } from '@/env';
 import { SendMailOptions } from 'nodemailer';
 

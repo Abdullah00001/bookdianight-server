@@ -10,6 +10,9 @@ import {
   ICreateEventPurchaseService,
   IEventPurchaseResult,
 } from '@/app/modules/purchase/purchase.types';
+import { getSystemQueue } from '@/app/queues/system/system.queue';
+import { QUEUE_JOBS } from '@/const';
+import { IExpireClubBookingHold } from '@/app/queues/system/system.types';
 
 /**
  * Reads the active Club booking that overlaps an already-validated fixed-CST
@@ -80,7 +83,7 @@ export const createClubPurchaseService = async ({
     }
 
     const realNow = new Date();
-    return await prisma.$transaction(
+    const result = await prisma.$transaction(
       async (tx) => {
         // Expiry time alone does not release PostgreSQL's active HOLD/BOOKED
         // exclusion constraint. Persist EXPIRED before acquiring another Hold.
@@ -166,6 +169,25 @@ export const createClubPurchaseService = async ({
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
     );
+
+    // Schedule delayed expiration job strictly AFTER the database transaction commits.
+    // The hold logic runs 10 minutes from now. We override job attempts to allow grace period retries.
+    // Fixed backoff of 1 minute allows up to 5 additional retries (for max 15m lifetime).
+    if (!result.replayed) {
+      const payload: IExpireClubBookingHold = { bookingId: result.booking.id };
+      await getSystemQueue().add(
+        QUEUE_JOBS.EXPIRE_CLUB_BOOKING_HOLD,
+        payload,
+        {
+          jobId: result.booking.id,
+          delay: 10 * 60 * 1000,
+          attempts: 6,
+          backoff: { type: 'fixed', delay: 60 * 1000 },
+        }
+      );
+    }
+
+    return result;
   } catch (error) {
     throw error;
   }

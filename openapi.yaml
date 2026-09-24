@@ -4540,6 +4540,37 @@ paths:
                   },
               },
           }
+  /api/v1/webhooks/payment/stripe:
+    post:
+      tags: [Payment]
+      summary: Stripe Payment webhook receiver
+      description: No user authentication applies. Stripe sends a raw JSON body signed with Stripe-Signature. The receiver accepts payment_intent.succeeded, payment_intent.payment_failed, and payment_intent.canceled.
+      operationId: processPaymentWebhook
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe Event JSON. The server verifies the original raw request bytes before parsing.
+      parameters:
+        - name: Stripe-Signature
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          { description: Event received and durably processed or deduplicated }
+        '500':
+          {
+            description: Invalid signature or server error,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
   /api/v1/connect/onboarding:
     post:
       tags: [Connect]

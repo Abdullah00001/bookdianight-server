@@ -10,6 +10,7 @@ import {
   checkUserExistenceMiddleware,
 } from '@/app/modules/auth/auth.middlewares';
 import {
+  checkClubPurchaseAvailabilityMiddleware,
   checkClubPurchaseIdempotencyMiddleware,
   checkEventPurchaseBuyerProfileMiddleware,
   checkEventPurchaseIdempotencyMiddleware,
@@ -47,6 +48,7 @@ router
     validateReqBody(createClubPurchaseSchema),
     checkPurchasableClubPackageMiddleware,
     checkClubPurchaseIdempotencyMiddleware,
+    checkClubPurchaseAvailabilityMiddleware,
     createClubPurchaseController
   );
 

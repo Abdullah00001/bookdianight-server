@@ -7,6 +7,7 @@ import {
   currentFixedCstWallClock,
   parseFixedCstWallClock,
 } from '@/app/modules/purchase/purchase.helpers';
+import { getClubPurchaseAvailabilityService } from '@/app/modules/purchase/purchase.services';
 
 /**
  * This middleware validates and attaches the idempotency key to the request.
@@ -220,5 +221,45 @@ export const checkEventPurchaseIdempotencyMiddleware = asyncHandler(
       message: 'Idempotency-Key has already been used for a different purchase',
       traceId: getTraceId(),
     });
+  }
+);
+
+/**
+ * Checks for overlapping active Club bookings (HOLD or BOOKED) before proceeding with a purchase.
+ * Prevents Prisma 23P01 exclusion constraint violations by rejecting conflicts at the middleware layer.
+ * Allows safe replays if the conflicting booking belongs to the same user and idempotency key.
+ */
+export const checkClubPurchaseAvailabilityMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const payload = req.body as {
+      clubPackageId: string;
+      startAt: string;
+      endAt: string;
+      guestCount: number;
+    };
+
+    const conflictingBooking = await getClubPurchaseAvailabilityService({
+      userId: (req.user as { id: string }).id,
+      query: payload,
+    });
+
+    if (conflictingBooking) {
+      if (
+        conflictingBooking.order.buyerUserId === (req.user as { id: string }).id &&
+        conflictingBooking.order.idempotencyKey === req.purchaseIdempotencyKey
+      ) {
+        // This is a replay of the same successful purchase, so allow it to proceed
+        return next();
+      }
+
+      res.status(409).json({
+        success: false,
+        message: 'The requested time interval is already booked or held by someone else.',
+        traceId: getTraceId(),
+      });
+      return;
+    }
+
+    next();
   }
 );

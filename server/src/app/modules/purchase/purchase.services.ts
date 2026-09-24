@@ -1,7 +1,6 @@
 import { Prisma, Service } from '@prisma/client';
 import prisma from '@/app/configs/db.configs';
 import {
-  currentFixedCstWallClock,
   parseFixedCstWallClock,
 } from '@/app/modules/purchase/purchase.helpers';
 import {
@@ -27,12 +26,17 @@ export const getClubPurchaseAvailabilityService = async ({
     const startAt = parseFixedCstWallClock(query.startAt);
     const endAt = parseFixedCstWallClock(query.endAt);
 
+    const realNow = new Date();
+
     return await prisma.clubBooking.findFirst({
       where: {
         clubPackageId: query.clubPackageId,
-        status: { in: ['HOLD', 'BOOKED'] },
         startAt: { lt: endAt },
         endAt: { gt: startAt },
+        OR: [
+          { status: 'BOOKED' },
+          { status: 'HOLD', holdExpiresAt: { gt: realNow } },
+        ],
       },
       include: { order: true },
     });
@@ -75,7 +79,7 @@ export const createClubPurchaseService = async ({
       };
     }
 
-    const now = currentFixedCstWallClock();
+    const realNow = new Date();
     return await prisma.$transaction(
       async (tx) => {
         // Expiry time alone does not release PostgreSQL's active HOLD/BOOKED
@@ -84,7 +88,7 @@ export const createClubPurchaseService = async ({
           where: {
             clubPackageId: payload.clubPackageId,
             status: 'HOLD',
-            holdExpiresAt: { lte: now },
+            holdExpiresAt: { lte: realNow },
           },
           data: { status: 'EXPIRED' },
         });
@@ -147,7 +151,10 @@ export const createClubPurchaseService = async ({
             clubPackageId: clubPackage.id,
             startAt,
             endAt,
-            holdExpiresAt: new Date(now.getTime() + 10 * 60 * 1000),
+            // The booking Hold expires 10 minutes from the real current instant;
+            // fixed CST wall-clock conversion is for business-time values and
+            // must not be used as the expiration base.
+            holdExpiresAt: new Date(realNow.getTime() + 10 * 60 * 1000),
             guestCount: payload.guestCount,
             clubName: clubPackage.club.name,
             clubLocation: clubPackage.club.location,

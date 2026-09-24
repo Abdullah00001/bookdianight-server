@@ -385,6 +385,7 @@ model Order {
   commissionAmount    Decimal     @db.Decimal(10, 2)
   sellerEarnings      Decimal     @db.Decimal(10, 2)
   currency            String
+  idempotencyKey      String
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 
@@ -398,6 +399,7 @@ model Order {
   @@index([buyerUserId, createdAt])
   @@index([sellerUserId, createdAt])
   @@index([serviceType, status, createdAt])
+  @@unique([buyerUserId, idempotencyKey])
 }
 
 model ClubBooking {

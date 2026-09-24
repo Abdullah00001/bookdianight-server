@@ -450,6 +450,19 @@ unless the repository's existing pattern requires it.
 
 Do not invent new error types without approval.
 
+### Readability and transport boundaries
+
+Keep a service's main execution path readable in business order. Domain-critical
+financial, timing, snapshot, and transaction logic must not be hidden behind
+vague helpers. Helpers need explicit domain names and must earn their use.
+
+Comments explain **why** a non-obvious rule or transaction exists, not what an
+obvious statement does. Follow the repository's established service error
+handling convention, including its catch/rethrow pattern where used.
+
+Services return domain data and do not construct HTTP status/message/data
+responses unless an established repository convention explicitly requires it.
+
 16. Database Access
 
 Follow the existing Prisma/database patterns.

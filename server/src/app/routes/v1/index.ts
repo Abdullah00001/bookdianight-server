@@ -11,8 +11,10 @@ import exploreRoutes from '@/app/modules/explore/explore.routes';
 import wishlistRoutes from '@/app/modules/wishlist/wishlist.routes';
 import serviceChargeRoutes from '@/app/modules/serviceCharge/serviceCharge.routes';
 import connectRoutes from '@/app/modules/connect/connect.routes';
+import purchaseRoutes from '@/app/modules/purchase/purchase.routes';
 
 const routes: Router[] = [
+  purchaseRoutes,
   connectRoutes,
   serviceChargeRoutes,
   wishlistRoutes,

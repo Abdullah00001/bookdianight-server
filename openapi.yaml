@@ -27,6 +27,8 @@ tags:
     description: User wishlist management endpoints
   - name: Connect
     description: Stripe Connect onboarding, callback, and webhook endpoints
+  - name: Purchase
+    description: Payment-ready pending Club and Event purchase creation
 components:
   securitySchemes:
     adminAuth:
@@ -595,6 +597,29 @@ components:
           multipleOf: 0.01
           description: Decimal commission percentage with up to two decimal places.
           example: 20.25
+    ClubPurchaseRequest:
+      type: object
+      required: [clubPackageId, startAt, endAt, guestCount]
+      properties:
+        clubPackageId: { type: string, format: uuid }
+        startAt: { type: string, format: date-time, description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset. }
+        endAt: { type: string, format: date-time, description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset. }
+        guestCount: { type: integer, minimum: 1 }
+    EventPurchaseFriend:
+      type: object
+      required: [name, phoneNumber, gender, age]
+      properties:
+        name: { type: string }
+        phoneNumber: { type: string }
+        gender: { type: string, enum: [MALE, FEMALE, OTHER] }
+        age: { type: integer, minimum: 1 }
+        image: { type: string, format: uri }
+    EventPurchaseRequest:
+      type: object
+      required: [eventId]
+      properties:
+        eventId: { type: string, format: uuid }
+        friends: { type: array, maxItems: 4, items: { $ref: '#/components/schemas/EventPurchaseFriend' } }
     UpdateServiceChargePayload:
       type: object
       additionalProperties: false
@@ -4175,6 +4200,47 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
       operationId: getExploreDetail
+  /api/v1/purchase/club/availability:
+    get:
+      tags: [Purchase]
+      summary: Check Club package availability
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: clubPackageId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: startAt, required: true, schema: { type: string, format: date-time }, description: Fixed CST ISO-8601 value ending in -06:00. }
+        - { in: query, name: endAt, required: true, schema: { type: string, format: date-time }, description: Fixed CST ISO-8601 value ending in -06:00. }
+        - { in: query, name: guestCount, required: true, schema: { type: integer, minimum: 1 } }
+      responses:
+        '200': { description: Availability state AVAILABLE, HELD, UNAVAILABLE, BOOKED, or EXPIRED, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
+        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
+        '404': { description: Club package unavailable, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '422': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+  /api/v1/purchase/club:
+    post:
+      tags: [Purchase]
+      summary: Create a pending Club purchase hold
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: header, name: Idempotency-Key, required: true, schema: { type: string, maxLength: 255 } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ClubPurchaseRequest' } } } }
+      responses:
+        '201': { description: Pending Club Order and 10-minute HOLD created, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
+        '200': { description: Idempotent replay returned the original pending purchase, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
+        '409': { description: Idempotency or active booking conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '422': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+  /api/v1/purchase/event:
+    post:
+      tags: [Purchase]
+      summary: Create a pending Event purchase
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: header, name: Idempotency-Key, required: true, schema: { type: string, maxLength: 255 } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EventPurchaseRequest' } } } }
+      responses:
+        '201': { description: Pending Event Order and attendee snapshots created; buyer age is server-derived and never accepted from the client., content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
+        '200': { description: Idempotent replay returned the original pending purchase, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
+        '409': { description: Idempotency conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '422': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
   /api/v1/connect/onboarding:
     post:
       tags: [Connect]

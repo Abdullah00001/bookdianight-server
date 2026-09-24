@@ -43,12 +43,14 @@ router.get(
   checkConnectCallbackTokenMiddleware,
   returnFromConnectOnboardingController
 );
+
 router.get(
   '/connect/refresh',
   validateReqQuery(connectCallbackQuerySchema),
   checkConnectCallbackTokenMiddleware,
   refreshConnectOnboardingController
 );
+
 router.post(
   '/connect/webhook',
   raw({ type: 'application/json' }),

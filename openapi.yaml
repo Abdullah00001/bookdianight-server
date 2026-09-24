@@ -29,6 +29,16 @@ tags:
     description: Stripe Connect onboarding, callback, and webhook endpoints
   - name: Purchase
     description: Payment-ready pending Club and Event purchase creation
+  - name: Recover
+    description: Account recovery endpoints
+  - name: Admin Auth
+    description: Admin authentication endpoints
+  - name: Profile
+    description: User profile endpoints
+  - name: Admin Legal
+    description: Admin legal endpoints
+  - name: Public Legal
+    description: Public Legal endpoints
 components:
   securitySchemes:
     adminAuth:
@@ -49,7 +59,6 @@ components:
 
         '
   schemas:
-
     CreateWishlistPayload:
       type: object
       required:
@@ -590,7 +599,7 @@ components:
       properties:
         serviceType:
           type: string
-          enum: [ EVENT, CLUB ]
+          enum: [EVENT, CLUB]
         chargePercentage:
           type: number
           format: decimal
@@ -602,8 +611,18 @@ components:
       required: [clubPackageId, startAt, endAt, guestCount]
       properties:
         clubPackageId: { type: string, format: uuid }
-        startAt: { type: string, format: date-time, description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset. }
-        endAt: { type: string, format: date-time, description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset. }
+        startAt:
+          {
+            type: string,
+            format: date-time,
+            description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset.,
+          }
+        endAt:
+          {
+            type: string,
+            format: date-time,
+            description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset.,
+          }
         guestCount: { type: integer, minimum: 1 }
     EventPurchaseFriend:
       type: object
@@ -619,7 +638,12 @@ components:
       required: [eventId]
       properties:
         eventId: { type: string, format: uuid }
-        friends: { type: array, maxItems: 4, items: { $ref: '#/components/schemas/EventPurchaseFriend' } }
+        friends:
+          {
+            type: array,
+            maxItems: 4,
+            items: { $ref: '#/components/schemas/EventPurchaseFriend' },
+          }
     UpdateServiceChargePayload:
       type: object
       additionalProperties: false
@@ -645,7 +669,7 @@ components:
       properties:
         id:
           type: string
-          enum: [ GLOBAL ]
+          enum: [GLOBAL]
           description: The fixed singleton identifier for the global configuration.
         amount:
           type: number
@@ -960,7 +984,8 @@ components:
         deviceIdentifier:
           type: string
           minLength: 1
-          description: Client-generated app-installation identifier used to validate the
+          description:
+            Client-generated app-installation identifier used to validate the
             authenticated device context.
     CheckAccessPayload:
       type: object
@@ -1019,7 +1044,8 @@ components:
           $ref: '#/components/schemas/AdminUserResponse'
         csrfToken:
           type: string
-          description: CSRF token provided for easier Swagger testing. Usually sent via
+          description:
+            CSRF token provided for easier Swagger testing. Usually sent via
             cookie.
         traceId:
           type: string
@@ -1294,7 +1320,7 @@ components:
           type: object
           properties:
             legalContent:
-              $ref: "#/components/schemas/LegalContent"
+              $ref: '#/components/schemas/LegalContent'
         traceId:
           type: string
           format: uuid
@@ -1306,11 +1332,11 @@ components:
         message:
           type: string
         meta:
-          $ref: "#/components/schemas/ExplorePaginationMeta"
+          $ref: '#/components/schemas/ExplorePaginationMeta'
         data:
           type: array
           items:
-            $ref: "#/components/schemas/ClubDetailPayload"
+            $ref: '#/components/schemas/ClubDetailPayload'
         traceId:
           type: string
           format: uuid
@@ -1375,11 +1401,11 @@ components:
         clubOpeningHours:
           type: array
           items:
-            $ref: "#/components/schemas/UpdateClubOpeningHourPayload"
+            $ref: '#/components/schemas/UpdateClubOpeningHourPayload'
         clubPackages:
           type: array
           items:
-            $ref: "#/components/schemas/UpdateClubPackagePayload"
+            $ref: '#/components/schemas/UpdateClubPackagePayload'
     ClubDetailResponse:
       type: object
       properties:
@@ -1388,7 +1414,7 @@ components:
         message:
           type: string
         data:
-          $ref: "#/components/schemas/ClubDetailPayload"
+          $ref: '#/components/schemas/ClubDetailPayload'
         traceId:
           type: string
           format: uuid
@@ -1619,7 +1645,7 @@ components:
         message:
           type: string
         data:
-          $ref: "#/components/schemas/EventDetailPayload"
+          $ref: '#/components/schemas/EventDetailPayload'
         traceId:
           type: string
           format: uuid
@@ -1631,7 +1657,7 @@ components:
         message:
           type: string
         data:
-          $ref: "#/components/schemas/EventDetailPayload"
+          $ref: '#/components/schemas/EventDetailPayload'
         traceId:
           type: string
           format: uuid
@@ -1643,17 +1669,19 @@ components:
         message:
           type: string
         data:
-          $ref: "#/components/schemas/EventDetailPayload"
+          $ref: '#/components/schemas/EventDetailPayload'
         traceId:
           type: string
           format: uuid
     ConnectStatus:
       type: object
-      required: [state, onboardingCompletedAt, requiresOnboarding, canCreateListings]
+      required:
+        [state, onboardingCompletedAt, requiresOnboarding, canCreateListings]
       properties:
         state:
           type: string
-          enum: [SETUP_REQUIRED, IN_PROGRESS, ACTION_REQUIRED, READY, RESTRICTED]
+          enum:
+            [SETUP_REQUIRED, IN_PROGRESS, ACTION_REQUIRED, READY, RESTRICTED]
           description: Sanitized provider-derived state. READY requires active transfers capability and payout readiness.
         onboardingCompletedAt:
           type: string
@@ -1685,7 +1713,6 @@ components:
         traceId: { type: string, format: uuid }
         data: { $ref: '#/components/schemas/ConnectStatus' }
 paths:
-
   /api/v1/wishlist:
     post:
       tags:
@@ -1835,7 +1862,8 @@ paths:
       tags:
         - Health
       summary: Health check endpoint
-      description: Reports the health status of the application and its dependencies
+      description:
+        Reports the health status of the application and its dependencies
         (Database, Redis).
       responses:
         '200':
@@ -1946,7 +1974,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/ValidationErrorResponse'
         '500':
-          description: 'Internal Service Errors (Currently thrown as native Errors caught
+          description:
+            'Internal Service Errors (Currently thrown as native Errors caught
             by global 500 handler).
 
             Includes: "Invalid credentials", "Account is blocked or inactive".
@@ -2240,7 +2269,8 @@ paths:
       tags:
         - Recover
       summary: Find user by email and send OTP
-      description: Validates email, checks account status, generates OTP, and sends it
+      description:
+        Validates email, checks account status, generates OTP, and sends it
         via email queue.
       requestBody:
         required: true
@@ -2325,7 +2355,8 @@ paths:
       tags:
         - Recover
       summary: Reset user password
-      description: Resets the password after OTP verification. Blacklists the reset
+      description:
+        Resets the password after OTP verification. Blacklists the reset
         token and sends success email.
       security:
         - bearerAuth: []
@@ -2429,7 +2460,8 @@ paths:
               $ref: '#/components/schemas/LogoutPayload'
       responses:
         '200':
-          description: Logout successful. The JWT is revoked and the device context is
+          description:
+            Logout successful. The JWT is revoked and the device context is
             inactive.
           content:
             application/json:
@@ -2550,7 +2582,8 @@ paths:
       tags:
         - Admin Auth
       summary: Refresh Admin Tokens
-      description: Atomically rotates refresh tokens. Requires valid CSRF and refresh
+      description:
+        Atomically rotates refresh tokens. Requires valid CSRF and refresh
         cookies.
       parameters:
         - name: X-CSRF-Token
@@ -2574,7 +2607,8 @@ paths:
                     example: Admin tokens refreshed successfully
                   csrfToken:
                     type: string
-                    description: CSRF token provided for easier Swagger testing. Usually sent via
+                    description:
+                      CSRF token provided for easier Swagger testing. Usually sent via
                       cookie.
                   traceId:
                     type: string
@@ -2607,7 +2641,8 @@ paths:
       tags:
         - Admin Auth
       summary: Admin Logout
-      description: Invalidates the current admin session, blacklists access token,
+      description:
+        Invalidates the current admin session, blacklists access token,
         clears cookies
       parameters:
         - name: X-CSRF-Token
@@ -3189,36 +3224,36 @@ paths:
       summary: Get Terms & Conditions
       description: Retrieves the Terms & Conditions content
       responses:
-        "200":
+        '200':
           description: Successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "401":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "404":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       security:
         - adminAuth: []
     patch:
@@ -3231,44 +3266,44 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLegalContentPayload"
+              $ref: '#/components/schemas/UpdateLegalContentPayload'
       responses:
-        "200":
+        '200':
           description: Successfully updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "401":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden (CSRF Invalid or Access Denied)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "404":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValidationErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       security:
         - adminAuth: []
       parameters:
@@ -3284,36 +3319,36 @@ paths:
       summary: Get Privacy Policy
       description: Retrieves the Privacy Policy content
       responses:
-        "200":
+        '200':
           description: Successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "401":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "404":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       security:
         - adminAuth: []
     patch:
@@ -3326,44 +3361,44 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLegalContentPayload"
+              $ref: '#/components/schemas/UpdateLegalContentPayload'
       responses:
-        "200":
+        '200':
           description: Successfully updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "401":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden (CSRF Invalid or Access Denied)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "404":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValidationErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       security:
         - adminAuth: []
       parameters:
@@ -3379,36 +3414,36 @@ paths:
       summary: Get About Us
       description: Retrieves the About Us content
       responses:
-        "200":
+        '200':
           description: Successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "401":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "404":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       security:
         - adminAuth: []
     patch:
@@ -3421,44 +3456,44 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLegalContentPayload"
+              $ref: '#/components/schemas/UpdateLegalContentPayload'
       responses:
-        "200":
+        '200':
           description: Successfully updated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "401":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden (CSRF Invalid or Access Denied)
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "404":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValidationErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       security:
         - adminAuth: []
       parameters:
@@ -3474,24 +3509,24 @@ paths:
       summary: Get Terms & Conditions
       description: Retrieves the Terms & Conditions content
       responses:
-        "200":
+        '200':
           description: Successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "404":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/privacy:
     get:
       tags:
@@ -3499,24 +3534,24 @@ paths:
       summary: Get Privacy Policy
       description: Retrieves the Privacy Policy content
       responses:
-        "200":
+        '200':
           description: Successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "404":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/about-us:
     get:
       tags:
@@ -3524,24 +3559,24 @@ paths:
       summary: Get About Us
       description: Retrieves the About Us content
       responses:
-        "200":
+        '200':
           description: Successfully retrieved
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LegalContentResponse"
-        "404":
+                $ref: '#/components/schemas/LegalContentResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/club:
     post:
@@ -3563,7 +3598,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateClubResponse"
+                $ref: '#/components/schemas/CreateClubResponse'
         '400':
           description: Bad request
           content:
@@ -3620,36 +3655,36 @@ paths:
           schema:
             type: boolean
       responses:
-        "200":
+        '200':
           description: Clubs retrieved successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClubListResponse"
-        "401":
+                $ref: '#/components/schemas/ClubListResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValidationErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       operationId: getClubList
   '/api/v1/club/{id}':
     put:
@@ -3741,42 +3776,42 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: Club retrieved successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ClubDetailResponse"
-        "401":
+                $ref: '#/components/schemas/ClubDetailResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValidationErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       operationId: getClubDetail
   /api/v1/event:
     post:
@@ -3798,7 +3833,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreateEventResponse"
+                $ref: '#/components/schemas/CreateEventResponse'
         '400':
           description: Bad request
           content:
@@ -3935,7 +3970,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UpdateEventResponse"
+                $ref: '#/components/schemas/UpdateEventResponse'
         '400':
           description: Bad request
           content:
@@ -3988,42 +4023,42 @@ paths:
             type: string
             format: uuid
       responses:
-        "200":
+        '200':
           description: Event retrieved successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/EventDetailResponse"
-        "401":
+                $ref: '#/components/schemas/EventDetailResponse'
+        '401':
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthErrorResponse"
-        "403":
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ValidationErrorResponse"
-        "500":
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
       operationId: getEventDetail
   /api/v1/explore:
     get:
@@ -4039,7 +4074,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ CLUB, EVENT ]
+            enum: [CLUB, EVENT]
         - name: date
           in: query
           schema:
@@ -4092,7 +4127,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [ newest, oldest ]
+            enum: [newest, oldest]
       responses:
         '200':
           description: Data retrieved successfully
@@ -4155,7 +4190,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [ CLUB, EVENT ]
+            enum: [CLUB, EVENT]
       responses:
         '200':
           description: Data retrieved successfully
@@ -4206,41 +4241,204 @@ paths:
       summary: Check Club package availability
       security: [{ bearerAuth: [] }]
       parameters:
-        - { in: query, name: clubPackageId, required: true, schema: { type: string, format: uuid } }
-        - { in: query, name: startAt, required: true, schema: { type: string, format: date-time }, description: Fixed CST ISO-8601 value ending in -06:00. }
-        - { in: query, name: endAt, required: true, schema: { type: string, format: date-time }, description: Fixed CST ISO-8601 value ending in -06:00. }
-        - { in: query, name: guestCount, required: true, schema: { type: integer, minimum: 1 } }
+        - {
+            in: query,
+            name: clubPackageId,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
+        - {
+            in: query,
+            name: startAt,
+            required: true,
+            schema: { type: string, format: date-time },
+            description: Fixed CST ISO-8601 value ending in -06:00.,
+          }
+        - {
+            in: query,
+            name: endAt,
+            required: true,
+            schema: { type: string, format: date-time },
+            description: Fixed CST ISO-8601 value ending in -06:00.,
+          }
+        - {
+            in: query,
+            name: guestCount,
+            required: true,
+            schema: { type: integer, minimum: 1 },
+          }
       responses:
-        '200': { description: Availability state AVAILABLE, HELD, UNAVAILABLE, BOOKED, or EXPIRED, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
-        '401': { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
-        '404': { description: Club package unavailable, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-        '422': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+        '200':
+          {
+            description: Availability state AVAILABLE,
+            HELD,
+            UNAVAILABLE,
+            BOOKED,
+            or EXPIRED,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/SuccessResponse' } },
+              },
+          }
+        '401':
+          {
+            description: Unauthorized,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: '#/components/schemas/AuthErrorResponse' },
+                  },
+              },
+          }
+        '404':
+          {
+            description: Club package unavailable,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '422':
+          {
+            description: Validation error,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: '#/components/schemas/ValidationErrorResponse' },
+                  },
+              },
+          }
   /api/v1/purchase/club:
     post:
       tags: [Purchase]
       summary: Create a pending Club purchase hold
       security: [{ bearerAuth: [] }]
       parameters:
-        - { in: header, name: Idempotency-Key, required: true, schema: { type: string, maxLength: 255 } }
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ClubPurchaseRequest' } } } }
+        - {
+            in: header,
+            name: Idempotency-Key,
+            required: true,
+            schema: { type: string, maxLength: 255 },
+          }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/ClubPurchaseRequest' },
+                },
+            },
+        }
       responses:
-        '201': { description: Pending Club Order and 10-minute HOLD created, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
-        '200': { description: Idempotent replay returned the original pending purchase, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
-        '409': { description: Idempotency or active booking conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-        '422': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+        '201':
+          {
+            description: Pending Club Order and 10-minute HOLD created,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/SuccessResponse' } },
+              },
+          }
+        '200':
+          {
+            description: Idempotent replay returned the original pending purchase,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/SuccessResponse' } },
+              },
+          }
+        '409':
+          {
+            description: Idempotency or active booking conflict,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '422':
+          {
+            description: Validation error,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: '#/components/schemas/ValidationErrorResponse' },
+                  },
+              },
+          }
   /api/v1/purchase/event:
     post:
       tags: [Purchase]
       summary: Create a pending Event purchase
       security: [{ bearerAuth: [] }]
       parameters:
-        - { in: header, name: Idempotency-Key, required: true, schema: { type: string, maxLength: 255 } }
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EventPurchaseRequest' } } } }
+        - {
+            in: header,
+            name: Idempotency-Key,
+            required: true,
+            schema: { type: string, maxLength: 255 },
+          }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/EventPurchaseRequest' },
+                },
+            },
+        }
       responses:
-        '201': { description: Pending Event Order and attendee snapshots created; buyer age is server-derived and never accepted from the client., content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
-        '200': { description: Idempotent replay returned the original pending purchase, content: { application/json: { schema: { $ref: '#/components/schemas/SuccessResponse' } } } }
-        '409': { description: Idempotency conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-        '422': { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
+        '201':
+          {
+            description: Pending Event Order and attendee snapshots created; buyer age is server-derived and never accepted from the client.,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/SuccessResponse' } },
+              },
+          }
+        '200':
+          {
+            description: Idempotent replay returned the original pending purchase,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/SuccessResponse' } },
+              },
+          }
+        '409':
+          {
+            description: Idempotency conflict,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '422':
+          {
+            description: Validation error,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: '#/components/schemas/ValidationErrorResponse' },
+                  },
+              },
+          }
   /api/v1/connect/onboarding:
     post:
       tags: [Connect]
@@ -4250,10 +4448,45 @@ paths:
       responses:
         '200':
           description: Sanitized Connect state and a single-use onboarding URL when required.
-          content: { application/json: { schema: { $ref: '#/components/schemas/ConnectOnboardingResponse' } } }
-        '401': { description: Authentication error, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
-        '403': { description: Active CLUB_OWNER role required, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
-        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    { $ref: '#/components/schemas/ConnectOnboardingResponse' },
+                },
+            }
+        '401':
+          {
+            description: Authentication error,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: '#/components/schemas/AuthErrorResponse' },
+                  },
+              },
+          }
+        '403':
+          {
+            description: Active CLUB_OWNER role required,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: '#/components/schemas/AuthErrorResponse' },
+                  },
+              },
+          }
+        '500':
+          {
+            description: Stripe or server error,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
   /api/v1/connect/status:
     get:
       tags: [Connect]
@@ -4263,10 +4496,45 @@ paths:
       responses:
         '200':
           description: Connect status.
-          content: { application/json: { schema: { $ref: '#/components/schemas/ConnectStatusResponse' } } }
-        '401': { description: Authentication error, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
-        '403': { description: Active CLUB_OWNER role required, content: { application/json: { schema: { $ref: '#/components/schemas/AuthErrorResponse' } } } }
-        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+          content:
+            {
+              application/json:
+                {
+                  schema:
+                    { $ref: '#/components/schemas/ConnectStatusResponse' },
+                },
+            }
+        '401':
+          {
+            description: Authentication error,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: '#/components/schemas/AuthErrorResponse' },
+                  },
+              },
+          }
+        '403':
+          {
+            description: Active CLUB_OWNER role required,
+            content:
+              {
+                application/json:
+                  {
+                    schema: { $ref: '#/components/schemas/AuthErrorResponse' },
+                  },
+              },
+          }
+        '500':
+          {
+            description: Stripe or server error,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
   /api/v1/connect/return:
     get:
       tags: [Connect]
@@ -4285,9 +4553,36 @@ paths:
             Location:
               description: Configured Flutter App Link.
               schema: { type: string, format: uri }
-        '400': { description: Invalid or expired callback token, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-        '422': { description: Invalid callback query, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
-        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '400':
+          {
+            description: Invalid or expired callback token,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '422':
+          {
+            description: Invalid callback query,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: '#/components/schemas/ValidationErrorResponse' },
+                  },
+              },
+          }
+        '500':
+          {
+            description: Stripe or server error,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
   /api/v1/connect/refresh:
     get:
       tags: [Connect]
@@ -4305,9 +4600,36 @@ paths:
             Location:
               description: Single-use Stripe-hosted onboarding URL.
               schema: { type: string, format: uri }
-        '400': { description: Invalid or expired callback token, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-        '422': { description: Invalid callback query, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationErrorResponse' } } } }
-        '500': { description: Stripe or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '400':
+          {
+            description: Invalid or expired callback token,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '422':
+          {
+            description: Invalid callback query,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: '#/components/schemas/ValidationErrorResponse' },
+                  },
+              },
+          }
+        '500':
+          {
+            description: Stripe or server error,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
   /api/v1/connect/webhook:
     post:
       tags: [Connect]
@@ -4327,5 +4649,17 @@ paths:
           required: true
           schema: { type: string }
       responses:
-        '200': { description: Event received and durably processed or deduplicated }
-        '500': { description: Invalid signature, payload, Stripe, or server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        '200':
+          { description: Event received and durably processed or deduplicated }
+        '500':
+          {
+            description: Invalid signature,
+            payload,
+            Stripe,
+            or server error,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }

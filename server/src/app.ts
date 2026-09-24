@@ -12,14 +12,17 @@ import morgan from 'morgan';
 import fs from 'fs';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
+import { parse as parseYAML } from 'yaml';
 
 import corsConfiguration from '@/app/configs/cors.configs';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { traceMiddleware } from '@/app/middlewares/trace.middlewares';
 import { baseUrl } from '@/const';
 import { globalErrorMiddleware } from '@/app/middlewares/globalError.middlewares';
-import { morganMessageFormat, streamConfig } from '@/app/configs/morgan.configs';
+import {
+  morganMessageFormat,
+  streamConfig,
+} from '@/app/configs/morgan.configs';
 import v1Routes from '@/app/routes/v1';
 import prisma from '@/app/configs/db.configs';
 import { getRedisClient } from '@/app/configs/redis.configs';
@@ -56,7 +59,12 @@ app.get('/health', async (_req: Request, res: Response) => {
   const withTimeout = <T>(promise: Promise<T>, ms: number, label: string) => {
     return Promise.race([
       promise,
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms))
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`${label} timed out after ${ms}ms`)),
+          ms
+        )
+      ),
     ]);
   };
 
@@ -78,11 +86,18 @@ app.get('/health', async (_req: Request, res: Response) => {
   try {
     const redisClient = getRedisClient();
     if (redisClient) {
-      const pingResult = await withTimeout(redisClient.ping(), timeoutMs, 'Redis');
+      const pingResult = await withTimeout(
+        redisClient.ping(),
+        timeoutMs,
+        'Redis'
+      );
       if (pingResult === 'PONG') {
         status.redis = 'up';
       } else {
-        console.error(`[HealthCheck] Redis returned unexpected ping result:`, pingResult);
+        console.error(
+          `[HealthCheck] Redis returned unexpected ping result:`,
+          pingResult
+        );
         isHealthy = false;
       }
     } else {
@@ -127,10 +142,12 @@ while (!fs.existsSync(yamlPath) && currentDir !== path.parse(currentDir).root) {
 }
 
 if (!fs.existsSync(yamlPath)) {
-  throw new Error('Failed to locate openapi.yaml for Swagger UI. Ensure it is copied to the runtime environment.');
+  throw new Error(
+    'Failed to locate openapi.yaml for Swagger UI. Ensure it is copied to the runtime environment.'
+  );
 }
 
-const swaggerDocument = YAML.load(yamlPath);
+const swaggerDocument = parseYAML(fs.readFileSync(yamlPath, 'utf-8'));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // V1 ROUTES

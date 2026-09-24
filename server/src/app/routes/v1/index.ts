@@ -12,8 +12,10 @@ import wishlistRoutes from '@/app/modules/wishlist/wishlist.routes';
 import serviceChargeRoutes from '@/app/modules/serviceCharge/serviceCharge.routes';
 import connectRoutes from '@/app/modules/connect/connect.routes';
 import purchaseRoutes from '@/app/modules/purchase/purchase.routes';
+import paymentRoutes from '@/app/modules/payment/payment.routes';
 
 const routes: Router[] = [
+  paymentRoutes,
   purchaseRoutes,
   connectRoutes,
   serviceChargeRoutes,

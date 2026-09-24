@@ -27,6 +27,8 @@ tags:
     description: Stripe Connect onboarding, callback, and webhook endpoints
   - name: Purchase
     description: Payment-ready pending Club and Event purchase creation
+  - name: Payment
+    description: Stripe payment initialization for pending Orders
   - name: Recover
     description: Account recovery endpoints
   - name: Admin Auth
@@ -1710,6 +1712,26 @@ components:
         message: { type: string }
         traceId: { type: string, format: uuid }
         data: { $ref: '#/components/schemas/ConnectStatus' }
+    PaymentIntentRequest:
+      type: object
+      required: [orderId]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+    PaymentIntentResponse:
+      type: object
+      required: [success, message, data]
+      properties:
+        success: { type: boolean, example: true }
+        message: { type: string, example: 'Payment initialization successful' }
+        data:
+          type: object
+          required: [clientSecret, transactionId, orderId]
+          properties:
+            clientSecret: { type: string }
+            transactionId: { type: string, format: uuid }
+            orderId: { type: string, format: uuid }
 paths:
   /api/v1/wishlist:
     post:
@@ -4419,6 +4441,87 @@ paths:
         '409':
           {
             description: Idempotency conflict,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '422':
+          {
+            description: Validation error,
+            content:
+              {
+                application/json:
+                  {
+                    schema:
+                      { $ref: '#/components/schemas/ValidationErrorResponse' },
+                  },
+              },
+          }
+  /api/v1/payment/intent:
+    post:
+      tags: [Payment]
+      summary: Initialize Stripe PaymentIntent for a pending Order
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - {
+            in: header,
+            name: Idempotency-Key,
+            required: true,
+            schema: { type: string, maxLength: 255 },
+          }
+      requestBody:
+        {
+          required: true,
+          content:
+            {
+              application/json:
+                {
+                  schema: { $ref: '#/components/schemas/PaymentIntentRequest' },
+                },
+            },
+        }
+      responses:
+        '201':
+          {
+            description: Payment initialized successfully,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/PaymentIntentResponse' } },
+              },
+          }
+        '200':
+          {
+            description: Payment initialization retrieved successfully (idempotent replay),
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/PaymentIntentResponse' } },
+              },
+          }
+        '403':
+          {
+            description: Unauthorized to pay for this order,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '404':
+          {
+            description: Order not found,
+            content:
+              {
+                application/json:
+                  { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+              },
+          }
+        '409':
+          {
+            description: Order cannot be initialized for payment in its current state,
             content:
               {
                 application/json:

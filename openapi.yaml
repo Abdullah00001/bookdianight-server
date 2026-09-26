@@ -4095,6 +4095,337 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
       operationId: getEventDetail
+  /api/v1/bookings:
+    get:
+      operationId: getBookingList
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      summary: List user bookings
+      description: Returns a paginated list of unified Club and Event bookings for the authenticated user, sorted by createdAt DESC.
+      parameters:
+        - name: tab
+          in: query
+          description: Filter bookings by tab.
+          schema:
+            type: string
+            enum: [UPCOMING, COMPLETED, CANCELED]
+            default: UPCOMING
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        '200':
+          description: Successful retrieval of bookings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "All bookings retrieve successful"
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      totalPages:
+                        type: integer
+                      links:
+                        type: object
+                        properties:
+                          currentPage:
+                            type: string
+                          nextPage:
+                            type: string
+                            nullable: true
+                          previousPage:
+                            type: string
+                            nullable: true
+                          firstPage:
+                            type: string
+                          lastPage:
+                            type: string
+                  data:
+                    type: array
+                    items:
+                      oneOf:
+                        - allOf:
+                            - $ref: '#/components/schemas/ExploreClubListItem'
+                            - type: object
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                  description: The Booking ID (ClubBooking.id)
+                        - allOf:
+                            - $ref: '#/components/schemas/ExploreEventListItem'
+                            - type: object
+                              properties:
+                                id:
+                                  type: string
+                                  format: uuid
+                                  description: The Booking ID (EventPurchase.id)
+                  traceId:
+                    type: string
+                    format: uuid
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+
+  /api/v1/bookings/{id}:
+    get:
+      operationId: getBookingDetail
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      summary: Get single booking details
+      description: Returns detailed booking and presentation fields for a specific booking.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The Booking ID (ClubBooking.id or EventPurchase.id)
+          schema:
+            type: string
+            format: uuid
+        - name: type
+          in: query
+          required: true
+          description: The type of booking
+          schema:
+            type: string
+            enum: [CLUB, EVENT]
+      responses:
+        '200':
+          description: Successful retrieval of booking details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Retrieve single booking successful"
+                  data:
+                    oneOf:
+                      - allOf:
+                          - $ref: '#/components/schemas/ExploreClubDetailResponse'
+                          - type: object
+                            properties:
+                              id:
+                                type: string
+                                format: uuid
+                                description: The Booking ID (ClubBooking.id)
+                              clubId:
+                                type: string
+                                format: uuid
+                              type:
+                                type: string
+                                enum: [CLUB]
+                              booking:
+                                type: object
+                                properties:
+                                  serviceType:
+                                    type: string
+                                    enum: [CLUB]
+                                  purchaseDate:
+                                    type: string
+                                    format: date-time
+                                  status:
+                                    type: string
+                                    enum: [UPCOMING, COMPLETED, CANCELED]
+                                  clubBooking:
+                                    type: object
+                                    properties:
+                                      startAt:
+                                        type: string
+                                        format: date-time
+                                      endAt:
+                                        type: string
+                                        format: date-time
+                                      guestCount:
+                                        type: integer
+                                      clubName:
+                                        type: string
+                                      clubLocation:
+                                        type: string
+                                      packageName:
+                                        type: string
+                                        nullable: true
+                                      packageCapacity:
+                                        type: integer
+                                        nullable: true
+                                  payment:
+                                    type: object
+                                    properties:
+                                      status:
+                                        type: string
+                                      grossAmount:
+                                        type: number
+                                      serviceChargeAmount:
+                                        type: number
+                                      buyerTotal:
+                                        type: number
+                                      currency:
+                                        type: string
+                                  ticketState:
+                                    type: string
+                                    enum: [NOT_AVAILABLE, PROCESSING, READY, FAILED]
+                                  reviewState:
+                                    type: string
+                                    enum: [NOT_ELIGIBLE, CAN_REVIEW, ALREADY_REVIEWED]
+                                  refund:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      status:
+                                        type: string
+                                      amount:
+                                        type: number
+                                      scheduledFor:
+                                        type: string
+                                        format: date-time
+                                        nullable: true
+                      - allOf:
+                          - $ref: '#/components/schemas/ExploreEventDetailResponse'
+                          - type: object
+                            properties:
+                              id:
+                                type: string
+                                format: uuid
+                                description: The Booking ID (EventPurchase.id)
+                              eventId:
+                                type: string
+                                format: uuid
+                              type:
+                                type: string
+                                enum: [EVENT]
+                              booking:
+                                type: object
+                                properties:
+                                  serviceType:
+                                    type: string
+                                    enum: [EVENT]
+                                  purchaseDate:
+                                    type: string
+                                    format: date-time
+                                  status:
+                                    type: string
+                                    enum: [UPCOMING, COMPLETED, CANCELED]
+                                  eventPurchase:
+                                    type: object
+                                    properties:
+                                      eventName:
+                                        type: string
+                                      eventLocation:
+                                        type: string
+                                      personCount:
+                                        type: integer
+                                      pricePerPerson:
+                                        type: number
+                                      eventStartAt:
+                                        type: string
+                                        format: date-time
+                                      eventEndAt:
+                                        type: string
+                                        format: date-time
+                                      attendees:
+                                        type: array
+                                        items:
+                                          type: object
+                                          properties:
+                                            id:
+                                              type: string
+                                              format: uuid
+                                            name:
+                                              type: string
+                                            gender:
+                                              type: string
+                                            age:
+                                              type: string
+                                            phoneNumber:
+                                              type: string
+                                  payment:
+                                    type: object
+                                    properties:
+                                      status:
+                                        type: string
+                                      grossAmount:
+                                        type: number
+                                      serviceChargeAmount:
+                                        type: number
+                                      buyerTotal:
+                                        type: number
+                                      currency:
+                                        type: string
+                                  ticketState:
+                                    type: string
+                                    enum: [NOT_AVAILABLE, PROCESSING, READY, FAILED]
+                                  reviewState:
+                                    type: string
+                                    enum: [NOT_ELIGIBLE]
+                                  refund:
+                                    type: object
+                                    nullable: true
+                                    properties:
+                                      status:
+                                        type: string
+                                      amount:
+                                        type: number
+                                      scheduledFor:
+                                        type: string
+                                        format: date-time
+                                        nullable: true
+                  traceId:
+                    type: string
+                    format: uuid
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/explore:
     get:
       tags:

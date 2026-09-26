@@ -29,12 +29,9 @@ const handler: IJobHandler = {
     }
 
     if (!ticketPdf) {
-      ticketPdf = await prisma.ticketPdf.create({
-        data: {
-          orderId,
-          status: 'PENDING',
-        },
-      });
+      throw new Error(
+        `[generateTicketPdf] TicketPdf record unexpectedly missing for order ${orderId}. Ensure payment transaction correctly persisted the PENDING state.`
+      );
     }
 
     let tempFilePath = '';

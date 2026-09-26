@@ -126,6 +126,15 @@ export const processPaymentWebhookService = async ({
 
             // Note: EventPurchase inherently relies on the parent Order's status.
             // Seller transfers are intentionally omitted from this phase.
+
+            // WHY: Persist TicketPdf state during the same transaction so it's durably PENDING
+            // even if Redis fails and the queue dispatch is lost.
+            await tx.ticketPdf.create({
+              data: {
+                orderId: order.id,
+                status: 'PENDING',
+              },
+            });
           } else if (
             event.type === 'payment_intent.payment_failed' ||
             event.type === 'payment_intent.canceled'

@@ -624,6 +624,21 @@ components:
             description: Fixed CST wall-clock ISO-8601 value with required -06:00 offset.,
           }
         guestCount: { type: integer, minimum: 1 }
+    ClubAvailabilityResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          required: [data]
+          properties:
+            data:
+              type: object
+              required: [availablePackages]
+              properties:
+                availablePackages:
+                  type: array
+                  description: Active packages that satisfy the requested guest count and interval.
+                  items:
+                    $ref: '#/components/schemas/ExploreClubDetailPackage'
     EventPurchaseFriend:
       type: object
       required: [name, phoneNumber, gender, age]
@@ -4258,12 +4273,12 @@ paths:
   /api/v1/purchase/club/availability:
     get:
       tags: [Purchase]
-      summary: Check Club package availability
+      summary: List available Club packages for a requested interval
       security: [{ bearerAuth: [] }]
       parameters:
         - {
             in: query,
-            name: clubPackageId,
+            name: clubId,
             required: true,
             schema: { type: string, format: uuid },
           }
@@ -4290,15 +4305,11 @@ paths:
       responses:
         '200':
           {
-            description: Availability state AVAILABLE,
-            HELD,
-            UNAVAILABLE,
-            BOOKED,
-            or EXPIRED,
+            description: Active Club packages with sufficient capacity and no active overlapping HOLD or BOOKED interval,
             content:
               {
                 application/json:
-                  { schema: { $ref: '#/components/schemas/SuccessResponse' } },
+                  { schema: { $ref: '#/components/schemas/ClubAvailabilityResponse' } },
               },
           }
         '401':
@@ -4314,7 +4325,7 @@ paths:
           }
         '404':
           {
-            description: Club package unavailable,
+            description: Club not found or unavailable,
             content:
               {
                 application/json:

@@ -12,6 +12,7 @@ import {
 import {
   checkClubPurchaseAvailabilityMiddleware,
   checkClubPurchaseIdempotencyMiddleware,
+  checkPurchasableClubMiddleware,
   checkEventPurchaseBuyerProfileMiddleware,
   checkEventPurchaseIdempotencyMiddleware,
   checkPurchasableClubPackageMiddleware,
@@ -34,7 +35,7 @@ router
     checkUserExistenceMiddleware,
     checkAccountStatus,
     validateReqQuery(clubAvailabilityQuerySchema),
-    checkPurchasableClubPackageMiddleware,
+    checkPurchasableClubMiddleware,
     getClubPurchaseAvailabilityController
   );
 

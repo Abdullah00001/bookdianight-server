@@ -271,26 +271,19 @@ export const getOwnerPaymentsService = async ({
   const orConditions: Prisma.OrderWhereInput[] = [];
 
   if (!type || type === 'CLUB') {
-    orConditions.push({
-      clubBooking: {
-        club: {
-          deactivatedAt: null,
-          ...(clubId ? { id: clubId } : {}),
-        },
-      },
-    });
+    if (clubId) {
+      orConditions.push({ clubBooking: { clubId } });
+    } else {
+      orConditions.push({ serviceType: 'CLUB' });
+    }
   }
 
   if (!type || type === 'EVENT') {
-    orConditions.push({
-      eventPurchase: {
-        event: {
-          deactivatedAt: null,
-          eventStatus: { not: 'CANCELED' },
-          ...(eventId ? { id: eventId } : {}),
-        },
-      },
-    });
+    if (eventId) {
+      orConditions.push({ eventPurchase: { eventId } });
+    } else {
+      orConditions.push({ serviceType: 'EVENT' });
+    }
   }
 
   whereCondition.OR = orConditions;

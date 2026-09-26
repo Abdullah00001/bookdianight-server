@@ -14,44 +14,22 @@ import {
 } from '@/app/modules/purchase/purchase.schema';
 
 /**
- * This controller is used to get the availability of a club package.
- * It calls the getClubPurchaseAvailabilityService which returns the availability of the club package.
- * and returns the availability of the club package.
+ * This controller returns the packages available in a Club for a requested interval.
  * @param req Request
  * @param res Response
  * @returns Promise<void>
  */
 export const getClubPurchaseAvailabilityController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
-    const user = req.user as User;
     const query = req.validatedQuery as TClubAvailabilityQuery;
     const traceId = getTraceId();
 
-    // Call the service to get the availability of the club package.
-    const booking = await getClubPurchaseAvailabilityService({
-      userId: user.id,
-      query,
-    });
-    // Check if the booking is own hold
-    const ownHold =
-      booking?.status === 'HOLD' && booking.order.buyerUserId === user.id;
-    
-    // Return the availability of the club package.
+    const availablePackages = await getClubPurchaseAvailabilityService({ query });
+
     res.status(200).json({
       success: true,
       message: 'Club availability retrieved successfully',
-      data: {
-        state: !booking
-          ? 'AVAILABLE'
-          : booking.status === 'BOOKED'
-            ? 'BOOKED'
-            : ownHold
-              ? 'HELD'
-              : 'UNAVAILABLE',
-        ...(ownHold
-          ? { bookingId: booking.id, holdExpiresAt: booking.holdExpiresAt }
-          : {}),
-      },
+      data: { availablePackages },
       traceId,
     });
     return;

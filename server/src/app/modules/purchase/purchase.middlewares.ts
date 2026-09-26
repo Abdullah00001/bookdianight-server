@@ -7,7 +7,6 @@ import {
   currentFixedCstWallClock,
   parseFixedCstWallClock,
 } from '@/app/modules/purchase/purchase.helpers';
-import { getClubPurchaseAvailabilityService } from '@/app/modules/purchase/purchase.services';
 
 /**
  * This middleware validates and attaches the idempotency key to the request.
@@ -70,6 +69,25 @@ export const checkPurchasableClubPackageMiddleware = asyncHandler(
       return;
     }
     req.purchaseClubPackage = packageRecord;
+    next();
+  }
+);
+
+/**
+ * Resolves an active Club before checking the availability of its packages.
+ */
+export const checkPurchasableClubMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const clubId = (req.validatedQuery as { clubId: string }).clubId;
+    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    if (!club || club.deactivatedAt) {
+      res.status(404).json({
+        success: false,
+        message: 'Club not found or unavailable',
+        traceId: getTraceId(),
+      });
+      return;
+    }
     next();
   }
 );
@@ -238,9 +256,19 @@ export const checkClubPurchaseAvailabilityMiddleware = asyncHandler(
       guestCount: number;
     };
 
-    const conflictingBooking = await getClubPurchaseAvailabilityService({
-      userId: (req.user as { id: string }).id,
-      query: payload,
+    const startAt = parseFixedCstWallClock(payload.startAt);
+    const endAt = parseFixedCstWallClock(payload.endAt);
+    const conflictingBooking = await prisma.clubBooking.findFirst({
+      where: {
+        clubPackageId: payload.clubPackageId,
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+        OR: [
+          { status: 'BOOKED' },
+          { status: 'HOLD', holdExpiresAt: { gt: new Date() } },
+        ],
+      },
+      include: { order: true },
     });
 
     if (conflictingBooking) {

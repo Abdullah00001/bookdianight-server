@@ -5,7 +5,6 @@ import {
 } from '@/app/modules/purchase/purchase.schema';
 import { ClubBooking, EventPurchase, EventPurchaseAttendee, Order } from '@prisma/client';
 export interface IClubAvailabilityService {
-  userId: string;
   query: TClubAvailabilityQuery;
 }
 export interface ICreateClubPurchaseService {

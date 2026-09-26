@@ -6,6 +6,21 @@ const fixedCstDateTime = z
   .regex(/-06:00$/, 'Date/time must use the fixed CST offset -06:00');
 export const clubAvailabilityQuerySchema = z
   .object({
+    clubId: z.uuid(),
+    startAt: fixedCstDateTime,
+    endAt: fixedCstDateTime,
+    guestCount: z.coerce.number().int().positive(),
+  })
+  .strict()
+  .refine(
+    (data) => new Date(data.startAt).getTime() < new Date(data.endAt).getTime(),
+    {
+      message: 'endAt must be strictly after startAt',
+      path: ['endAt'],
+    }
+  );
+export const createClubPurchaseSchema = z
+  .object({
     clubPackageId: z.uuid(),
     startAt: fixedCstDateTime,
     endAt: fixedCstDateTime,
@@ -19,7 +34,6 @@ export const clubAvailabilityQuerySchema = z
       path: ['endAt'],
     }
   );
-export const createClubPurchaseSchema = clubAvailabilityQuerySchema;
 export const friendSchema = z
   .object({
     name: z.string().trim().min(1),

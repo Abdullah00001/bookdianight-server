@@ -15,10 +15,10 @@ import { QUEUE_JOBS } from '@/const';
 import { IExpireClubBookingHold } from '@/app/queues/system/system.types';
 
 /**
- * Reads the active Club booking that overlaps an already-validated fixed-CST
- * interval. The controller owns the buyer-facing availability-state response.
+ * Reads active Club packages that have capacity and no active overlapping
+ * booking for an already-validated fixed-CST interval.
  * @param query Validated Club availability query.
- * @returns The overlapping active booking, or null when the interval is free.
+ * @returns Persisted ClubPackage records available for the requested interval.
  */
 export const getClubPurchaseAvailabilityService = async ({
   query,
@@ -30,18 +30,23 @@ export const getClubPurchaseAvailabilityService = async ({
     const endAt = parseFixedCstWallClock(query.endAt);
 
     const realNow = new Date();
-
-    return await prisma.clubBooking.findFirst({
+    return await prisma.clubPackage.findMany({
       where: {
-        clubPackageId: query.clubPackageId,
-        startAt: { lt: endAt },
-        endAt: { gt: startAt },
-        OR: [
-          { status: 'BOOKED' },
-          { status: 'HOLD', holdExpiresAt: { gt: realNow } },
-        ],
+        clubId: query.clubId,
+        isActive: true,
+        capacity: { gte: query.guestCount },
+        clubBookings: {
+          none: {
+            startAt: { lt: endAt },
+            endAt: { gt: startAt },
+            OR: [
+              { status: 'BOOKED' },
+              { status: 'HOLD', holdExpiresAt: { gt: realNow } },
+            ],
+          },
+        },
       },
-      include: { order: true },
+      orderBy: { sortOrder: 'asc' },
     });
   } catch (error) {
     throw error;

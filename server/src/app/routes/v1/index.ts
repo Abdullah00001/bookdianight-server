@@ -14,7 +14,9 @@ import connectRoutes from '@/app/modules/connect/connect.routes';
 import purchaseRoutes from '@/app/modules/purchase/purchase.routes';
 import paymentRoutes from '@/app/modules/payment/payment.routes';
 import webhookRoutes from '@/app/modules/webhook/webhook.routes';
+import bookingsRoutes from '@/app/modules/bookings/bookings.routes';
 const routes: Router[] = [
+  bookingsRoutes,
   webhookRoutes,
   paymentRoutes,
   purchaseRoutes,

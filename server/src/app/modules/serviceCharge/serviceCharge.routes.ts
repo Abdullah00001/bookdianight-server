@@ -15,6 +15,10 @@ import { checkServiceChargeExistenceMiddleware } from '@/app/modules/serviceChar
 const router = Router();
 
 router
+  .route('/service-charge')
+  .get(checkServiceChargeExistenceMiddleware, getServiceChargeController);
+
+router
   .route('/admin/service-charge')
   .get(
     checkAdminAccessTokenMiddleware,

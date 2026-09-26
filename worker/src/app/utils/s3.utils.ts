@@ -17,10 +17,12 @@ export async function singleUploadToS3({
   filePath,
   key,
   mimeType,
+  acl = 'public-read',
 }: {
   filePath: string;
   mimeType: string;
   key: string;
+  acl?: 'public-read' | 'private';
 }): Promise<string> {
   try {
     const fileStats = statSync(filePath);
@@ -32,7 +34,7 @@ export async function singleUploadToS3({
       ContentType: contentType || `application/${mimeType.replace(/^\./, '')}`,
       Body: stream,
       ContentLength: fileStats.size,
-      ACL: 'public-read',
+      ACL: acl,
     });
     await s3Client.send(command);
     stream.destroy();

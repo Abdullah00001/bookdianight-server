@@ -75,3 +75,7 @@ export interface IBookingDetailResponse {
     refund: { status: string; amount: number; scheduledFor: Date | null } | null;
   };
 }
+
+export interface IRetrieveLoggedInUserTicketService {
+  id: string;
+}

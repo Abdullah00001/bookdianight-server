@@ -1748,6 +1748,101 @@ components:
             transactionId: { type: string, format: uuid }
             orderId: { type: string, format: uuid }
 paths:
+  /api/v1/reviews:
+    post:
+      summary: Create a Club review
+      description: Create a review for a Club. User must have at least one paid and completed booking for the club.
+      tags:
+        - Reviews
+      operationId: createClubReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - clubId
+                - rating
+              properties:
+                clubId:
+                  type: string
+                  format: uuid
+                rating:
+                  type: number
+                  minimum: 1
+                  maximum: 5
+                review:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        format: uuid
+                      userId:
+                        type: string
+                        format: uuid
+                      clubId:
+                        type: string
+                        format: uuid
+                      rating:
+                        type: number
+                      review:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                      updatedAt:
+                        type: string
+                        format: date-time
+                  traceId:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden (Not eligible to review)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict (Duplicate review)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Unprocessable Entity (Validation failed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
   /api/v1/wishlist:
     post:
       tags:
@@ -4421,6 +4516,55 @@ paths:
                 $ref: '#/components/schemas/AuthErrorResponse'
         '404':
           description: Booking not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/bookings/{id}/ticket:
+    get:
+      operationId: getBookingTicket
+      tags:
+        - Bookings
+      security:
+        - bearerAuth: []
+      summary: Retrieve booking ticket PDF
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: The Booking ID (ClubBooking.id or EventPurchase.id)
+      responses:
+        '200':
+          description: Ticket PDF retrieved successfully
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '404':
+          description: Booking or ticket not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Ticket generation pending or failed
           content:
             application/json:
               schema:

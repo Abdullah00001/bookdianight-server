@@ -163,6 +163,7 @@ const handler: IJobHandler = {
         filePath: tempFilePath,
         key,
         mimeType: 'application/pdf',
+        acl: 'private',
       });
 
       // 5. Update DB strictly AFTER successful upload

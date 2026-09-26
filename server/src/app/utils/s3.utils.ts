@@ -1,6 +1,6 @@
 import { createReadStream, statSync } from 'fs';
 
-import { DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { lookup } from 'mime-types';
 
 import s3Client from '@/app/configs/s3Client.configs';
@@ -54,5 +54,20 @@ export async function singleDeleteToS3({ key }: { key: string }): Promise<void> 
   } catch (error) {
     if (error instanceof Error) throw error;
     throw new Error('Unknown Error Occurred In S3 Single File Delete Utility');
+  }
+}
+
+export async function singleReadStreamFromS3({ key }: { key: string }) {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+
+    const response = await s3Client.send(command);
+    return response;
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('Unknown Error Occurred In S3 Single File Read Utility');
   }
 }

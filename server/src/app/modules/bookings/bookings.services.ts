@@ -3,6 +3,7 @@ import {
   IRetrieveLoggedInUserBookingsService,
   IRetrieveLoggedInUserSingleBookingsService,
   IBookingDetailResponse,
+  IRetrieveLoggedInUserTicketService,
   TExploreData,
   TExplorePresentation,
 } from '@/app/modules/bookings/bookings.types';
@@ -10,6 +11,8 @@ import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { exploreDetailService } from '@/app/modules/explore/explore.services';
 import { Prisma } from '@prisma/client';
 import { currentFixedCstWallClock } from '@/app/modules/purchase/purchase.helpers';
+import { singleReadStreamFromS3 } from '@/app/utils/s3.utils';
+import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 
 /**
  * This service is used to retrieve all bookings of logged in user
@@ -18,7 +21,11 @@ import { currentFixedCstWallClock } from '@/app/modules/purchase/purchase.helper
 export const retrieveLoggedInUserBookingsService = async ({
   query,
   userId,
-}: IRetrieveLoggedInUserBookingsService): Promise<{ data: ILightweightExploreItem[]; total: number; totalPages: number }> => {
+}: IRetrieveLoggedInUserBookingsService): Promise<{
+  data: ILightweightExploreItem[];
+  total: number;
+  totalPages: number;
+}> => {
   const { tab, page, limit } = query;
   const skip = (page - 1) * limit;
   const now = currentFixedCstWallClock();
@@ -96,7 +103,11 @@ export const retrieveLoggedInUserBookingsService = async ({
   });
 
   const formattedData: ILightweightExploreItem[] = orders.map((order) => {
-    if (order.serviceType === 'CLUB' && order.clubBooking && order.clubBooking.club) {
+    if (
+      order.serviceType === 'CLUB' &&
+      order.clubBooking &&
+      order.clubBooking.club
+    ) {
       const { clubBooking } = order;
       const { club } = clubBooking;
 
@@ -106,7 +117,8 @@ export const retrieveLoggedInUserBookingsService = async ({
 
       const reviewAvg =
         club.reviews.length > 0
-          ? club.reviews.reduce((acc, curr) => acc + curr.rating, 0) / club.reviews.length
+          ? club.reviews.reduce((acc, curr) => acc + curr.rating, 0) /
+            club.reviews.length
           : 0;
 
       return {
@@ -126,7 +138,11 @@ export const retrieveLoggedInUserBookingsService = async ({
           maxPrice,
         },
       };
-    } else if (order.serviceType === 'EVENT' && order.eventPurchase && order.eventPurchase.event) {
+    } else if (
+      order.serviceType === 'EVENT' &&
+      order.eventPurchase &&
+      order.eventPurchase.event
+    ) {
       const { eventPurchase } = order;
       const { event } = eventPurchase;
 
@@ -179,14 +195,23 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
       },
     });
 
-    const exploreData = await exploreDetailService({ id: clubBooking.clubId, query: { type }, userId });
+    const exploreData = await exploreDetailService({
+      id: clubBooking.clubId,
+      query: { type },
+      userId,
+    });
     if (!exploreData) throw new Error('Explore data not found');
-    
+
     // Explicitly destructure to omit conflicting identity fields
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _exploreId, type: _exploreType, ...explorePresentation } = exploreData as TExploreData & { id?: string; type?: string };
+    const {
+      id: _exploreId,
+      type: _exploreType,
+      ...explorePresentation
+    } = exploreData as TExploreData & { id?: string; type?: string };
 
-    let reviewState: 'NOT_ELIGIBLE' | 'CAN_REVIEW' | 'ALREADY_REVIEWED' = 'NOT_ELIGIBLE';
+    let reviewState: 'NOT_ELIGIBLE' | 'CAN_REVIEW' | 'ALREADY_REVIEWED' =
+      'NOT_ELIGIBLE';
     if (clubBooking.order.status === 'PAID' && clubBooking.endAt <= now) {
       const existingReview = await prisma.clubReview.findFirst({
         where: { userId, clubId: clubBooking.clubId },
@@ -194,11 +219,15 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
       reviewState = existingReview ? 'ALREADY_REVIEWED' : 'CAN_REVIEW';
     }
 
-    let ticketState: 'NOT_AVAILABLE' | 'PROCESSING' | 'READY' | 'FAILED' = 'NOT_AVAILABLE';
+    let ticketState: 'NOT_AVAILABLE' | 'PROCESSING' | 'READY' | 'FAILED' =
+      'NOT_AVAILABLE';
     if (clubBooking.order.ticketPdf) {
-      if (clubBooking.order.ticketPdf.status === 'PENDING') ticketState = 'PROCESSING';
-      else if (clubBooking.order.ticketPdf.status === 'GENERATED') ticketState = 'READY';
-      else if (clubBooking.order.ticketPdf.status === 'FAILED') ticketState = 'FAILED';
+      if (clubBooking.order.ticketPdf.status === 'PENDING')
+        ticketState = 'PROCESSING';
+      else if (clubBooking.order.ticketPdf.status === 'GENERATED')
+        ticketState = 'READY';
+      else if (clubBooking.order.ticketPdf.status === 'FAILED')
+        ticketState = 'FAILED';
     }
 
     let status: 'UPCOMING' | 'COMPLETED' | 'CANCELED' = 'UPCOMING';
@@ -252,18 +281,30 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
       },
     });
 
-    const exploreData = await exploreDetailService({ id: eventPurchase.eventId, query: { type }, userId });
+    const exploreData = await exploreDetailService({
+      id: eventPurchase.eventId,
+      query: { type },
+      userId,
+    });
     if (!exploreData) throw new Error('Explore data not found');
 
     // Explicitly destructure to omit conflicting identity fields
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id: _exploreId, type: _exploreType, ...explorePresentation } = exploreData as TExploreData & { id?: string; type?: string };
+    const {
+      id: _exploreId,
+      type: _exploreType,
+      ...explorePresentation
+    } = exploreData as TExploreData & { id?: string; type?: string };
 
-    let ticketState: 'NOT_AVAILABLE' | 'PROCESSING' | 'READY' | 'FAILED' = 'NOT_AVAILABLE';
+    let ticketState: 'NOT_AVAILABLE' | 'PROCESSING' | 'READY' | 'FAILED' =
+      'NOT_AVAILABLE';
     if (eventPurchase.order.ticketPdf) {
-      if (eventPurchase.order.ticketPdf.status === 'PENDING') ticketState = 'PROCESSING';
-      else if (eventPurchase.order.ticketPdf.status === 'GENERATED') ticketState = 'READY';
-      else if (eventPurchase.order.ticketPdf.status === 'FAILED') ticketState = 'FAILED';
+      if (eventPurchase.order.ticketPdf.status === 'PENDING')
+        ticketState = 'PROCESSING';
+      else if (eventPurchase.order.ticketPdf.status === 'GENERATED')
+        ticketState = 'READY';
+      else if (eventPurchase.order.ticketPdf.status === 'FAILED')
+        ticketState = 'FAILED';
     }
 
     let status: 'UPCOMING' | 'COMPLETED' | 'CANCELED' = 'UPCOMING';
@@ -274,7 +315,10 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
     }
 
     let refundData = null;
-    if (eventPurchase.event.eventStatus === 'CANCELED' && eventPurchase.order.refund) {
+    if (
+      eventPurchase.event.eventStatus === 'CANCELED' &&
+      eventPurchase.order.refund
+    ) {
       refundData = {
         status: eventPurchase.order.refund.status,
         amount: Number(eventPurchase.order.grossAmount),
@@ -319,4 +363,53 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
       },
     };
   }
+};
+
+/**
+ * This service is used to retrieve ticket single booking of logged in user
+ * @returns Promise<void>
+ */
+export const retrieveLoggedInUserTicketService = async ({
+  id,
+}: IRetrieveLoggedInUserTicketService): Promise<{
+  status: 'GENERATED' | 'PENDING' | 'FAILED' | 'NOT_FOUND';
+  data?: GetObjectCommandOutput;
+}> => {
+  const [clubBooking, eventPurchase] = await Promise.all([
+    prisma.clubBooking.findUnique({
+      where: { id },
+      include: { order: { include: { ticketPdf: true } } },
+    }),
+    prisma.eventPurchase.findUnique({
+      where: { id },
+      include: { order: { include: { ticketPdf: true } } },
+    }),
+  ]);
+
+  const booking = clubBooking || eventPurchase;
+
+  if (!booking) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  const ticketPdf = booking.order.ticketPdf;
+
+  if (!ticketPdf) {
+    return { status: 'NOT_FOUND' };
+  }
+
+  if (ticketPdf.status === 'PENDING') {
+    return { status: 'PENDING' };
+  }
+
+  if (ticketPdf.status === 'FAILED') {
+    return { status: 'FAILED' };
+  }
+
+  if (ticketPdf.status === 'GENERATED' && ticketPdf.storageKey) {
+    const s3Response = await singleReadStreamFromS3({ key: ticketPdf.storageKey });
+    return { status: 'GENERATED', data: s3Response };
+  }
+
+  return { status: 'NOT_FOUND' };
 };

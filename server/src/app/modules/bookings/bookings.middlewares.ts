@@ -57,3 +57,42 @@ export const checkBookingExistenceAndOwnershipMiddleware = asyncHandler(
     next();
   }
 );
+
+/**
+ * Middleware to check if a booking ticket exists and belongs to the authenticated user.
+ * It checks both ClubBooking and EventPurchase without requiring a type parameter.
+ * @param req Request
+ * @param res Response
+ * @param next NextFunction
+ */
+export const checkTicketBookingExistenceAndOwnershipMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const traceId = getTraceId();
+    const id = req.params.id as string;
+    const userId = (req.user as JwtPayload).sub as string;
+
+    const [clubBooking, eventPurchase] = await Promise.all([
+      prisma.clubBooking.findUnique({
+        where: { id },
+        include: { order: true },
+      }),
+      prisma.eventPurchase.findUnique({
+        where: { id },
+        include: { order: true },
+      }),
+    ]);
+
+    const booking = clubBooking || eventPurchase;
+
+    if (!booking || booking.order.buyerUserId !== userId) {
+      res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+        traceId,
+      });
+      return;
+    }
+
+    next();
+  }
+);

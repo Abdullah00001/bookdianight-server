@@ -5,6 +5,8 @@ import {
   getClubReviewsService,
   createReviewService,
 } from '@/app/modules/reviews/reviews.services';
+import { User } from '@prisma/client';
+import { TCreateReviewPayload } from '@/app/modules/reviews/reviews.schema';
 
 /**
  * This controller is used to retrieve all reviews of a club
@@ -13,7 +15,7 @@ import {
  * @returns Promise<void>
  */
 export const getClubReviewsController = asyncHandler(
-  async (req: Request, res: Response): Promise<void> => {
+  async (_req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     await getClubReviewsService();
 
@@ -35,11 +37,18 @@ export const getClubReviewsController = asyncHandler(
 export const createReviewController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    await createReviewService();
+    const user = req.user as User;
+    const payload = req.body as TCreateReviewPayload;
+
+    const data = await createReviewService({
+      userId: user.id,
+      payload,
+    });
 
     res.status(201).json({
       success: true,
       message: 'Review created successfully.',
+      data,
       traceId,
     });
     return;

@@ -13,8 +13,12 @@ import {
 import {
   retrieveLoggedInUserBookingsController,
   retrieveLoggedInUserSingleBookingsController,
+  retrieveLoggedInUserTicketController,
 } from '@/app/modules/bookings/bookings.controllers';
-import { checkBookingExistenceAndOwnershipMiddleware } from '@/app/modules/bookings/bookings.middlewares';
+import {
+  checkBookingExistenceAndOwnershipMiddleware,
+  checkTicketBookingExistenceAndOwnershipMiddleware,
+} from '@/app/modules/bookings/bookings.middlewares';
 
 const router = Router();
 
@@ -38,6 +42,17 @@ router
     validateReqQuery(retrieveLoggedInUserSingleBookingsQuerySchema),
     checkBookingExistenceAndOwnershipMiddleware,
     retrieveLoggedInUserSingleBookingsController
+  );
+
+router
+  .route('/bookings/:id/ticket')
+  .get(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    validateReqParams(retrieveLoggedInUserSingleBookingsParamsSchema),
+    checkTicketBookingExistenceAndOwnershipMiddleware,
+    retrieveLoggedInUserTicketController
   );
 
 export default router;

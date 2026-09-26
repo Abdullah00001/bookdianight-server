@@ -3,41 +3,18 @@ import { QUEUE_JOBS } from '@/const';
 import prisma from '@/app/configs/db.configs';
 import logger from '@/app/configs/logger.configs';
 import { stripe } from '@/app/configs/stripe.configs';
+import { IProcessSellerTransfer } from '@/app/queues/system/system.types';
 
-const handler: IJobHandler = {
+const handler: IJobHandler<IProcessSellerTransfer> = {
   name: QUEUE_JOBS.PROCESS_SELLER_TRANSFER,
-  handler: async (data: any) => {
+  handler: async (data) => {
     const { orderId } = data;
-
-    // 1. Initial Idempotency Check & Lock
-    let transferRecord = await prisma.sellerTransfer.findUnique({
-      where: { orderId },
-    });
-
-    // WHY: SUCCEEDED transfer is a no-op, preventing duplicate payouts safely.
-    if (transferRecord && transferRecord.status === 'SUCCEEDED') {
-      logger.info(
-        `[processSellerTransfer] Transfer already succeeded for order ${orderId}`
-      );
-      return;
-    }
-
-    if (!transferRecord) {
-      // WHY: SellerTransfer is persisted before Stripe execution.
-      // This guarantees the idempotencyKey is recorded so retries reuse it.
-      transferRecord = await prisma.sellerTransfer.create({
-        data: {
-          orderId,
-          idempotencyKey: `transfer-${orderId}`,
-          amount: 0, // temporary, will be updated immediately
-          currency: 'EUR',
-          status: 'PENDING',
-        },
-      });
-    }
+    let transferRecord: Awaited<
+      ReturnType<typeof prisma.sellerTransfer.findUnique>
+    > = null;
 
     try {
-      // 2. Load CURRENT database state
+      // 1. Load CURRENT database state
       // WHY: Worker reloads current database state to ensure it doesn't operate on stale webhook data.
       const order = await prisma.order.findUnique({
         where: { id: orderId },
@@ -57,20 +34,43 @@ const handler: IJobHandler = {
         throw new Error(`Order ${orderId} is not PAID`);
       }
 
-      // Update transfer record with correct amounts if it was just created
-      if (Number(transferRecord.amount) !== Number(order.sellerEarnings)) {
-        transferRecord = await prisma.sellerTransfer.update({
-          where: { id: transferRecord.id },
+      transferRecord = await prisma.sellerTransfer.findUnique({
+        where: { orderId },
+      });
+
+      // WHY: SUCCEEDED transfer is a no-op, preventing duplicate payouts safely.
+      if (transferRecord?.status === 'SUCCEEDED') {
+        logger.info(
+          `[processSellerTransfer] Transfer already succeeded for order ${orderId}`
+        );
+        return;
+      }
+
+      if (!transferRecord) {
+        // Financial transfer values are immutable. Create the durable retry
+        // record from the Order snapshot rather than creating placeholders that
+        // would require a prohibited update before the Stripe call.
+        transferRecord = await prisma.sellerTransfer.create({
           data: {
+            orderId,
+            idempotencyKey: `transfer-${orderId}`,
             amount: order.sellerEarnings,
             currency: order.currency,
-            // Re-affirm PENDING status in case it previously FAILED and is now retrying
             status: 'PENDING',
           },
         });
+      } else if (
+        !transferRecord.amount.equals(order.sellerEarnings) ||
+        transferRecord.currency !== order.currency
+      ) {
+        // Existing mismatches are historical-data integrity failures. They must
+        // be repaired explicitly, never by mutating immutable transfer values.
+        throw new Error(
+          `SellerTransfer snapshot mismatch for order ${orderId}`
+        );
       }
 
-      // 3. Connect Account Readiness
+      // 2. Connect Account Readiness
       const connectAccount = await prisma.stripeConnectAccount.findUnique({
         where: { userId: order.sellerUserId },
       });
@@ -81,7 +81,7 @@ const handler: IJobHandler = {
         );
       }
 
-      // 4. Validate Event specific rules
+      // 3. Validate Event specific rules
       if (order.serviceType === 'EVENT') {
         if (!order.eventPurchase) {
           throw new Error(`Event purchase missing for order ${orderId}`);
@@ -109,7 +109,7 @@ const handler: IJobHandler = {
         }
       }
 
-      // 5. Execute Stripe Transfer
+      // 4. Execute Stripe Transfer
       // WHY: sellerEarnings is the transfer amount since Platform has already collected the buyer payment.
       const amountInCents = Math.round(Number(transferRecord.amount) * 100);
 
@@ -127,7 +127,7 @@ const handler: IJobHandler = {
         }
       );
 
-      // 6. Finalize Record
+      // 5. Finalize Record
       await prisma.sellerTransfer.update({
         where: { id: transferRecord.id },
         data: {
@@ -146,10 +146,12 @@ const handler: IJobHandler = {
         error
       );
 
-      await prisma.sellerTransfer.update({
-        where: { id: transferRecord.id },
-        data: { status: 'FAILED' },
-      });
+      if (transferRecord) {
+        await prisma.sellerTransfer.update({
+          where: { id: transferRecord.id },
+          data: { status: 'FAILED' },
+        });
+      }
 
       throw error;
     }

@@ -16,7 +16,9 @@ import paymentRoutes from '@/app/modules/payment/payment.routes';
 import webhookRoutes from '@/app/modules/webhook/webhook.routes';
 import bookingsRoutes from '@/app/modules/bookings/bookings.routes';
 import reviewsRoutes from '@/app/modules/reviews/reviews.routes';
+import ownerRoutes from '@/app/modules/owner/owner.routes';
 const routes: Router[] = [
+  ownerRoutes,
   reviewsRoutes,
   bookingsRoutes,
   webhookRoutes,

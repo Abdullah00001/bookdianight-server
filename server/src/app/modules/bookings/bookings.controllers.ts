@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import { JwtPayload } from 'jsonwebtoken';
+import { User } from '@prisma/client';
 import {
   retrieveLoggedInUserBookingsService,
   retrieveLoggedInUserSingleBookingsService,
@@ -23,7 +23,7 @@ export const retrieveLoggedInUserBookingsController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const query = req.validatedQuery as TRetrieveLoggedInUserBookingsQuery;
-    const userId = (req.user as JwtPayload).sub as string;
+    const userId = (req.user as User).id;
 
     const { data, total, totalPages } =
       await retrieveLoggedInUserBookingsService({
@@ -60,7 +60,7 @@ export const retrieveLoggedInUserSingleBookingsController = asyncHandler(
     const id = req.params.id as string;
     const query =
       req.validatedQuery as TRetrieveLoggedInUserSingleBookingsQuery;
-    const userId = (req.user as JwtPayload).sub as string;
+    const userId = (req.user as User).id;
 
     const data = await retrieveLoggedInUserSingleBookingsService({
       id,

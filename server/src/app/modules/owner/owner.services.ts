@@ -135,3 +135,212 @@ export const getOwnerDashboardService = async ({
     recentBookings,
   };
 };
+
+export const getOwnerEarningsService = async ({
+  userId,
+  year,
+}: import('@/app/modules/owner/owner.types').IGetOwnerEarningsService): Promise<import('@/app/modules/owner/owner.types').IOwnerEarningsResult> => {
+  const activeOwnerOrdersWhere: Prisma.OrderWhereInput = {
+    sellerUserId: userId,
+    status: 'PAID',
+    refund: null,
+    OR: [
+      { clubBooking: { club: { deactivatedAt: null } } },
+      { eventPurchase: { event: { deactivatedAt: null, eventStatus: { not: 'CANCELED' } } } },
+    ],
+  };
+
+  const now = currentFixedCstWallClock();
+  const cstYear = now.getUTCFullYear();
+  const cstMonth = now.getUTCMonth();
+  const cstDate = now.getUTCDate();
+
+  // 1. Time Boundaries
+  const todayStart = new Date(Date.UTC(cstYear, cstMonth, cstDate, 6, 0, 0, 0));
+  const tomorrowStart = new Date(Date.UTC(cstYear, cstMonth, cstDate + 1, 6, 0, 0, 0));
+  const sevenDaysAgoStart = new Date(Date.UTC(cstYear, cstMonth, cstDate - 6, 6, 0, 0, 0));
+
+  const selectedYear = year ?? cstYear;
+  const selectedYearStart = new Date(Date.UTC(selectedYear, 0, 1, 6, 0, 0, 0));
+  const nextYearStart = new Date(Date.UTC(selectedYear + 1, 0, 1, 6, 0, 0, 0));
+
+  // 2. Today Overview
+  const last7DaysRevenueAgg = await prisma.order.aggregate({
+    where: { ...activeOwnerOrdersWhere, createdAt: { gte: sevenDaysAgoStart, lt: tomorrowStart } },
+    _sum: { sellerEarnings: true },
+  });
+  const last7DaysRevenue = decimalNumber(last7DaysRevenueAgg._sum.sellerEarnings || new Prisma.Decimal(0));
+
+  const todayRevenueAgg = await prisma.order.aggregate({
+    where: { ...activeOwnerOrdersWhere, createdAt: { gte: todayStart, lt: tomorrowStart } },
+    _sum: { sellerEarnings: true },
+  });
+  const todayRevenue = decimalNumber(todayRevenueAgg._sum.sellerEarnings || new Prisma.Decimal(0));
+
+  const todayTotalClubBookings = await prisma.order.count({
+    where: { ...activeOwnerOrdersWhere, serviceType: 'CLUB', createdAt: { gte: todayStart, lt: tomorrowStart } },
+  });
+
+  const todayTotalEventTicketsSold = await prisma.eventPurchaseAttendee.count({
+    where: {
+      eventPurchase: {
+        order: { ...activeOwnerOrdersWhere, serviceType: 'EVENT', createdAt: { gte: todayStart, lt: tomorrowStart } },
+      },
+    },
+  });
+
+  // 3. Monthly Earning
+  const ordersThisYear = await prisma.order.findMany({
+    where: { ...activeOwnerOrdersWhere, createdAt: { gte: selectedYearStart, lt: nextYearStart } },
+    select: { createdAt: true, sellerEarnings: true },
+  });
+
+  const monthlyData = Array.from({ length: 12 }, (_, i) => ({ month: i + 1, amount: 0 }));
+  for (const order of ordersThisYear) {
+    const fixedCstDate = new Date(order.createdAt.getTime() - 21600000);
+    const monthIndex = fixedCstDate.getUTCMonth();
+    monthlyData[monthIndex].amount += Number(order.sellerEarnings);
+  }
+  monthlyData.forEach((m) => {
+    m.amount = Number(m.amount.toFixed(2));
+  });
+
+  // 4. Available Years
+  const bounds = await prisma.order.aggregate({
+    where: activeOwnerOrdersWhere,
+    _min: { createdAt: true },
+    _max: { createdAt: true },
+  });
+
+  const availableYears: number[] = [];
+  if (bounds._min.createdAt && bounds._max.createdAt) {
+    const minYear = new Date(bounds._min.createdAt.getTime() - 21600000).getUTCFullYear();
+    const maxYear = new Date(bounds._max.createdAt.getTime() - 21600000).getUTCFullYear();
+    
+    const yearPromises = [];
+    for (let y = maxYear; y >= minYear; y--) {
+      const yearStart = new Date(Date.UTC(y, 0, 1, 6, 0, 0, 0));
+      const nextYearBoundary = new Date(Date.UTC(y + 1, 0, 1, 6, 0, 0, 0));
+
+      yearPromises.push(
+        prisma.order.findFirst({
+          where: {
+            ...activeOwnerOrdersWhere,
+            createdAt: { gte: yearStart, lt: nextYearBoundary },
+          },
+          select: { id: true },
+        }).then((order) => ({ year: y, hasData: !!order }))
+      );
+    }
+
+    const yearResults = await Promise.all(yearPromises);
+    for (const res of yearResults) {
+      if (res.hasData) {
+        availableYears.push(res.year);
+      }
+    }
+  }
+
+  return {
+    todayOverview: {
+      last7DaysRevenue,
+      todayRevenue,
+      todayTotalClubBookings,
+      todayTotalEventTicketsSold,
+    },
+    monthlyEarning: {
+      selectedYear,
+      data: monthlyData,
+      availableYears,
+    },
+  };
+};
+
+export const getOwnerPaymentsService = async ({
+  userId,
+  query,
+}: import('@/app/modules/owner/owner.types').IGetOwnerPaymentsService): Promise<import('@/app/modules/owner/owner.types').IOwnerPaymentsResult> => {
+  const { type, clubId, eventId, page = 1, limit = 10 } = query;
+
+  const whereCondition: Prisma.OrderWhereInput = {
+    sellerUserId: userId,
+    status: 'PAID',
+    refund: null,
+  };
+
+  const orConditions: Prisma.OrderWhereInput[] = [];
+
+  if (!type || type === 'CLUB') {
+    orConditions.push({
+      clubBooking: {
+        club: {
+          deactivatedAt: null,
+          ...(clubId ? { id: clubId } : {}),
+        },
+      },
+    });
+  }
+
+  if (!type || type === 'EVENT') {
+    orConditions.push({
+      eventPurchase: {
+        event: {
+          deactivatedAt: null,
+          eventStatus: { not: 'CANCELED' },
+          ...(eventId ? { id: eventId } : {}),
+        },
+      },
+    });
+  }
+
+  whereCondition.OR = orConditions;
+
+  const total = await prisma.order.count({ where: whereCondition });
+  const totalPages = Math.ceil(total / limit);
+
+  const orders = await prisma.order.findMany({
+    where: whereCondition,
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * limit,
+    take: limit,
+    include: {
+      clubBooking: { select: { clubId: true, clubName: true } },
+      eventPurchase: { select: { eventId: true, eventName: true } },
+    },
+  });
+
+  const data: import('@/app/modules/owner/owner.types').TOwnerPaymentItem[] = orders.map((order) => {
+    if (order.serviceType === 'CLUB' && order.clubBooking) {
+      return {
+        id: order.id,
+        type: 'CLUB',
+        clubId: order.clubBooking.clubId,
+        title: order.clubBooking.clubName,
+        customerName: order.buyerName,
+        createdAt: order.createdAt,
+        amount: Number(order.sellerEarnings),
+      };
+    } else if (order.serviceType === 'EVENT' && order.eventPurchase) {
+      return {
+        id: order.id,
+        type: 'EVENT',
+        eventId: order.eventPurchase.eventId,
+        title: order.eventPurchase.eventName,
+        customerName: order.buyerName,
+        createdAt: order.createdAt,
+        amount: Number(order.sellerEarnings),
+      };
+    }
+    throw new Error(`Unexpected order state for order ${order.id}`);
+  });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+    data,
+  };
+};

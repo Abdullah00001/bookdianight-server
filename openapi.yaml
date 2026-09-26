@@ -1798,6 +1798,218 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/owner/earnings:
+    get:
+      summary: Retrieve Club Owner Earnings
+      description: Retrieves today's overview and monthly earnings for the authenticated Club Owner.
+      tags:
+        - Owner
+      operationId: getOwnerEarnings
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: year
+          schema:
+            type: integer
+            minimum: 2000
+            maximum: 2100
+          required: false
+          description: Calendar year for monthly earnings. Defaults to the current fixed-CST calendar year.
+      responses:
+        '200':
+          description: Earnings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      todayOverview:
+                        type: object
+                        properties:
+                          last7DaysRevenue:
+                            type: number
+                          todayRevenue:
+                            type: number
+                          todayTotalClubBookings:
+                            type: integer
+                          todayTotalEventTicketsSold:
+                            type: integer
+                      monthlyEarning:
+                        type: object
+                        properties:
+                          selectedYear:
+                            type: integer
+                          data:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                month:
+                                  type: integer
+                                amount:
+                                  type: number
+                          availableYears:
+                            type: array
+                            items:
+                              type: integer
+                  traceId:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (Not a Club Owner or Connect not ready)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/owner/payments:
+    get:
+      summary: Retrieve Club Owner Payments
+      description: Retrieves a paginated list of paid customer orders (earnings) for the authenticated Club Owner's clubs and events.
+      tags:
+        - Owner
+      operationId: getOwnerPayments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [CLUB, EVENT]
+          required: false
+          description: Filter payments by service type.
+        - in: query
+          name: clubId
+          schema:
+            type: string
+            format: uuid
+          required: false
+          description: Filter payments by a specific Club ID. Requires type=CLUB.
+        - in: query
+          name: eventId
+          schema:
+            type: string
+            format: uuid
+          required: false
+          description: Filter payments by a specific Event ID. Requires type=EVENT.
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          required: false
+          description: Page number for pagination.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          required: false
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Payments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  meta:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      totalPages:
+                        type: integer
+                      links:
+                        type: object
+                        properties:
+                          first:
+                            type: string
+                          previous:
+                            type: string
+                            nullable: true
+                          next:
+                            type: string
+                            nullable: true
+                          last:
+                            type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          format: uuid
+                        type:
+                          type: string
+                          enum: [CLUB, EVENT]
+                        clubId:
+                          type: string
+                          format: uuid
+                        eventId:
+                          type: string
+                          format: uuid
+                        title:
+                          type: string
+                        customerName:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        amount:
+                          type: number
+                  traceId:
+                    type: string
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (Not a Club Owner or Connect not ready)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/reviews/{clubId}:
     get:
       summary: Retrieve reviews for a Club

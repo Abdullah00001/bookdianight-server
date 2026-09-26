@@ -7,3 +7,15 @@ export const createReviewSchema = z.object({
 });
 
 export type TCreateReviewPayload = z.infer<typeof createReviewSchema>;
+
+export const getClubReviewsParamsSchema = z.object({
+  clubId: z.string().uuid('Invalid clubId format'),
+});
+
+export const getClubReviewsQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+});
+
+export type TGetClubReviewsParams = z.infer<typeof getClubReviewsParamsSchema>;
+export type TGetClubReviewsQuery = z.infer<typeof getClubReviewsQuerySchema>;

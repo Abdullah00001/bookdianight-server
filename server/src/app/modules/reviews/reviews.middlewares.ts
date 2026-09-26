@@ -55,3 +55,29 @@ export const checkReviewEligibilityMiddleware = asyncHandler(
     next();
   }
 );
+
+export const checkPublicClubExistenceMiddleware = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const clubId = req.params.clubId as string;
+    
+    if (!clubId) {
+      return next(); // Will be caught by params validation
+    }
+
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: { deactivatedAt: true }
+    });
+
+    if (!club || club.deactivatedAt !== null) {
+      res.status(404).json({
+        success: false,
+        message: 'Resource not found',
+        traceId: getTraceId(),
+      });
+      return;
+    }
+
+    next();
+  }
+);

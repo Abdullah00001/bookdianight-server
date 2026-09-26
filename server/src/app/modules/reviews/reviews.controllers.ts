@@ -6,7 +6,8 @@ import {
   createReviewService,
 } from '@/app/modules/reviews/reviews.services';
 import { User } from '@prisma/client';
-import { TCreateReviewPayload } from '@/app/modules/reviews/reviews.schema';
+import { TCreateReviewPayload, TGetClubReviewsQuery } from '@/app/modules/reviews/reviews.schema';
+import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 
 /**
  * This controller is used to retrieve all reviews of a club
@@ -15,13 +16,28 @@ import { TCreateReviewPayload } from '@/app/modules/reviews/reviews.schema';
  * @returns Promise<void>
  */
 export const getClubReviewsController = asyncHandler(
-  async (_req: Request, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
-    await getClubReviewsService();
+    const clubId = req.params.clubId as string;
+    const query = (req.validatedQuery || req.query) as unknown as TGetClubReviewsQuery;
+
+    const { total, averageRating, reviews } = await getClubReviewsService({ clubId, query });
+
+    const totalPages = Math.max(1, Math.ceil(total / query.limit));
+    const links = buildPaginationLinks(req, query.page, totalPages);
 
     res.status(200).json({
       success: true,
       message: 'All reviews retrieve successful',
+      meta: {
+        total,
+        totalPages,
+        links,
+      },
+      data: {
+        averageRating,
+        reviews,
+      },
       traceId,
     });
     return;

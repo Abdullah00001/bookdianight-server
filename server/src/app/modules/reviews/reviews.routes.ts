@@ -12,7 +12,7 @@ import { checkReviewEligibilityMiddleware, checkPublicClubExistenceMiddleware } 
 
 const router = Router();
 
-router.route('/:clubId').get(
+router.route('/reviews/:clubId').get(
   validateReqParams(getClubReviewsParamsSchema),
   checkPublicClubExistenceMiddleware,
   validateReqQuery(getClubReviewsQuerySchema),

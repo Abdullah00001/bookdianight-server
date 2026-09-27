@@ -8,8 +8,9 @@ import { Prisma } from '@prisma/client';
  * @returns Promise<{ data: ILightweightExploreItem[], total: number }>
  */
 export const exploreListService = async ({ query, userId }: IExploreListService) => {
-  const { type, lat, lng, minPrice, maxPrice, isPopular, ratings, isVip, search, page, limit, sort, date } = query;
-  
+  const { type, lat, lng, minPrice, maxPrice, isPopular, ratings, isVip, search, sort, date } = query;
+  const page = Number(query.page || 1);
+  const limit = Number(query.limit || 10);
   const skip = (page - 1) * limit;
 
   // Build Club Conditions
@@ -88,7 +89,7 @@ export const exploreListService = async ({ query, userId }: IExploreListService)
 
   const clubQuery = Prisma.sql`
     SELECT 
-      c.id, c.name, c.lat, c.lng, 'CLUB' as "type", 
+      c.id, c.name, c.lat, c.lng, c.location, 'CLUB' as "type",
       COALESCE(AVG(r.rating), 0) as review, c."createdAt",
       c."isVip", c.thumbnail, 
       COALESCE((SELECT MIN(price) FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true), 0) as "minPrice",
@@ -104,7 +105,7 @@ export const exploreListService = async ({ query, userId }: IExploreListService)
 
   const eventQuery = Prisma.sql`
     SELECT 
-      e.id, e."eventName" as name, e.lat, e.lng, 'EVENT' as "type", 
+      e.id, e."eventName" as name, e.lat, e.lng, e.location, 'EVENT' as "type",
       0 as review, e."createdAt",
       false as "isVip", e.thumbnail, 
       e."eventPrice" as "minPrice", 
@@ -151,14 +152,14 @@ export const exploreListService = async ({ query, userId }: IExploreListService)
 
   // Data query
   const data = await prisma.$queryRaw<{ 
-    id: string, name: string, lat: number, lng: number, type: "CLUB" | "EVENT", 
+    id: string, name: string, lat: number, lng: number, location: string, type: "CLUB" | "EVENT",
     review: number, isVip: boolean, thumbnail: string, minPrice: number, maxPrice: number, currency: string,
     isWishlist?: boolean
   }[]>`
     WITH combined AS (
       ${combinedQuery}
     )
-    SELECT id, name, lat, lng, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency${selectWishlist} FROM combined
+    SELECT id, name, lat, lng, location, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency${selectWishlist} FROM combined
     ${orderBy}
     LIMIT ${limit} OFFSET ${skip}
   `;
@@ -169,6 +170,7 @@ export const exploreListService = async ({ query, userId }: IExploreListService)
       name: item.name,
       lat: Number(item.lat),
       lng: Number(item.lng),
+      location: item.location,
       type: item.type,
       thumbnail: item.thumbnail,
       currency: item.currency || '',
@@ -183,8 +185,10 @@ export const exploreListService = async ({ query, userId }: IExploreListService)
         ...base,
         review: Number(item.review),
         isVip: Boolean(item.isVip),
-        minPrice: Number(item.minPrice),
-        maxPrice: Number(item.maxPrice),
+        priceRange: {
+          minPrice: Number(item.minPrice),
+          maxPrice: Number(item.maxPrice),
+        },
       };
     } else {
       return {

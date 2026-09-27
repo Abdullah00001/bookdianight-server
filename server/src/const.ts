@@ -24,7 +24,9 @@ export const corsWhiteList = [
   'http://localhost:5006',
   'http://localhost:5007',
   'http://localhost:5008',
-  'https://petition-orchestra-awards-adaptor.trycloudflare.com',
+  'https://jump-look-speech-cam.trycloudflare.com',
+  'https://jump-look-speech-cam.trycloudflare.com',
+  'https://bookdianight.localbox.online',
 ];
 export const saltRound = 10;
 export const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;
@@ -279,6 +281,7 @@ export const REDIS_PREFIXES = {
   location: 'user:location',
   locations: 'users:locations',
   adminSession: 'admin:session',
+  connectOnboarding: 'connect:onboarding',
 } as const;
 
 /**
@@ -290,6 +293,7 @@ export const REDIS_PREFIXES = {
  */
 export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-START
+  EXPIRE_CLUB_BOOKING_HOLD: 'expire-club-booking-hold',
   RECOVER_USER_VERIFICATION_OTP_RESEND: 'recover-user-verification-otp-resend',
   RECOVER_USER_PASSWORD_RESET_SUCCESSFUL:
     'recover-user-password-reset-successful',
@@ -297,6 +301,10 @@ export const QUEUE_JOBS = {
   RESEND_VERIFICATION_OTP: 'resend-verification-otp',
   SIGNUP_USER_VERIFICATION_SUCCESSFUL: 'signup-user-verification-successful',
   SEND_SIGNUP_SUCCESS_EMAIL: 'send-signup-success-email',
+  GENERATE_TICKET_PDF: 'generate-ticket-pdf',
+  PROCESS_SELLER_TRANSFER: 'process-seller-transfer',
+  PROCESS_REFUND: 'process-refund',
+  SEND_EVENT_CANCELLATION_EMAIL: 'send-event-cancellation-email',
   // AUTO-GENERATED-JOBS-END
 } as const;
 

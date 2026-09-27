@@ -19,6 +19,12 @@ import {
 } from '@/app/modules/admin/admin.types';
 import crypto from 'crypto';
 import { ITokenPayload } from '@/app/@types/jwt.types';
+import { ApplicationCharge } from '@prisma/client';
+
+const serializeCommission = (charge: ApplicationCharge) => ({
+  ...charge,
+  chargePercentage: Number(charge.chargePercentage),
+});
 
 /**
  * Service for admin login.
@@ -299,7 +305,7 @@ export const updateCommissionService = async ({
     });
 
     return {
-      commission: updatedCharge,
+      commission: serializeCommission(updatedCharge),
     };
   } catch (error) {
     throw error;
@@ -322,8 +328,8 @@ export const getCommissionService = async (): Promise<Record<string, unknown>> =
       },
     });
 
-    const eventCharge = charges.find((c: any) => c.serviceType === Service.EVENT);
-    const clubCharge = charges.find((c: any) => c.serviceType === Service.CLUB);
+    const eventCharge = charges.find((charge) => charge.serviceType === Service.EVENT);
+    const clubCharge = charges.find((charge) => charge.serviceType === Service.CLUB);
 
     if (!eventCharge || !clubCharge) {
       return {
@@ -333,8 +339,8 @@ export const getCommissionService = async (): Promise<Record<string, unknown>> =
 
     return {
       commission: {
-        EVENT: eventCharge,
-        CLUB: clubCharge,
+        EVENT: serializeCommission(eventCharge),
+        CLUB: serializeCommission(clubCharge),
       },
     };
   } catch (error) {

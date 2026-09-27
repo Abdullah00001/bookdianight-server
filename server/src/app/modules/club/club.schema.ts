@@ -3,10 +3,10 @@ import { z } from 'zod';
 export const clubOpeningHourSchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
   isClosed: z.boolean(),
-  openTime: z.string().datetime().nullable().optional(),
-  closeTime: z.string().datetime().nullable().optional(),
+  openTime: z.date().nullable().optional(),
+  closeTime: z.date().nullable().optional(),
   closesNextDay: z.boolean(),
-});
+}); 
 
 export const clubPackageSchema = z.object({
   name: z.string().min(1),
@@ -21,13 +21,14 @@ export const clubPackageSchema = z.object({
 export const createClubSchema = z.object({
   name: z.string().min(1),
   description: z.string().nullable().optional(),
-  thumbnail: z.string().url(),
-  images: z.array(z.string().url()),
+  thumbnail: z.url(),
+  images: z.array(z.url()),
   dressCode: z.string(),
   isRecurring: z.boolean(),
   isVip: z.boolean().default(false),
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
+  location: z.string().min(1),
   openingHours: z.array(clubOpeningHourSchema).length(7).refine(
     (hours) => new Set(hours.map((h) => h.dayOfWeek)).size === 7,
     { message: 'openingHours must contain exactly one entry for each day of the week (0-6)' }
@@ -43,24 +44,25 @@ export const createClubSchema = z.object({
 });
 
 export const updateClubOpeningHourSchema = clubOpeningHourSchema.extend({
-  id: z.string().uuid(),
+  id: z.uuid(),
 });
 
 export const updateClubPackageSchema = clubPackageSchema.extend({
-  id: z.string().uuid(),
+  id: z.uuid(),
   isActive: z.boolean(),
 });
 
 export const updateClubSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().nullable().optional(),
-  thumbnail: z.string().url().optional(),
-  images: z.array(z.string().url()).optional(),
+  thumbnail: z.url().optional(),
+  images: z.array(z.url()).optional(),
   dressCode: z.string().optional(),
   isRecurring: z.boolean().optional(),
   isVip: z.boolean().optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
+  location: z.string().min(1).optional(),
   openingHours: z.array(updateClubOpeningHourSchema).length(7).refine(
     (hours) => new Set(hours.map((h) => h.dayOfWeek)).size === 7,
     { message: 'openingHours must contain exactly one entry for each day of the week (0-6)' }

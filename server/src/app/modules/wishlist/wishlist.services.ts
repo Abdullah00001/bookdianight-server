@@ -75,12 +75,14 @@ export const removeWishlistService = async ({ userId, type, targetId }: IRemoveW
  * @returns Promise<IWishlistListResponse>
  */
 export const getWishlistService = async ({ userId, query }: IGetWishlistService): Promise<IWishlistListResponse> => {
-  const { page, limit, type } = query;
+  const type = query.type;
+  const page = Number(query.page || 1);
+  const limit = Number(query.limit || 10);
   const skip = (page - 1) * limit;
 
   const clubQuery = Prisma.sql`
     SELECT 
-      c.id, c.name, c.lat, c.lng, 'CLUB' as "type", 
+      c.id, c.name, c.lat, c.lng, c.location, 'CLUB' as "type",
       COALESCE(AVG(r.rating), 0) as review, w."createdAt",
       c."isVip", c.thumbnail, 
       COALESCE((SELECT MIN(price) FROM "ClubPackage" WHERE "clubId" = c.id AND "isActive" = true), 0) as "minPrice",
@@ -95,7 +97,7 @@ export const getWishlistService = async ({ userId, query }: IGetWishlistService)
 
   const eventQuery = Prisma.sql`
     SELECT 
-      e.id, e."eventName" as name, e.lat, e.lng, 'EVENT' as "type", 
+      e.id, e."eventName" as name, e.lat, e.lng, e.location, 'EVENT' as "type",
       0 as review, w."createdAt",
       false as "isVip", e.thumbnail, 
       e."eventPrice" as "minPrice", 
@@ -132,13 +134,13 @@ export const getWishlistService = async ({ userId, query }: IGetWishlistService)
 
   // Data query
   const data = await prisma.$queryRaw<{ 
-    id: string, name: string, lat: number, lng: number, type: "CLUB" | "EVENT", 
+    id: string, name: string, lat: number, lng: number, location: string, type: "CLUB" | "EVENT",
     review: number, isVip: boolean, thumbnail: string, minPrice: number, maxPrice: number, currency: string 
   }[]>`
     WITH combined AS (
       ${combinedQuery}
     )
-    SELECT id, name, lat, lng, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency FROM combined
+    SELECT id, name, lat, lng, location, "type", review, "isVip", thumbnail, "minPrice", "maxPrice", currency FROM combined
     ${orderBy}
     LIMIT ${limit} OFFSET ${skip}
   `;
@@ -149,6 +151,7 @@ export const getWishlistService = async ({ userId, query }: IGetWishlistService)
       name: item.name,
       lat: Number(item.lat),
       lng: Number(item.lng),
+      location: item.location,
       type: item.type,
       thumbnail: item.thumbnail,
       currency: item.currency || '',
@@ -160,8 +163,10 @@ export const getWishlistService = async ({ userId, query }: IGetWishlistService)
         ...base,
         review: Number(item.review),
         isVip: Boolean(item.isVip),
-        minPrice: Number(item.minPrice),
-        maxPrice: Number(item.maxPrice),
+        priceRange: {
+          minPrice: Number(item.minPrice),
+          maxPrice: Number(item.maxPrice),
+        },
       };
     } else {
       return {

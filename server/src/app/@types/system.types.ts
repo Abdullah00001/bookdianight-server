@@ -2,6 +2,7 @@ import { REDIS_PREFIXES } from "@/const";
 
 export type TEnv = {
   NODE_ENV: string;
+  SERVER_URL: string;
   DATABASE_URL: string;
   REDIS_HOST: string;
   REDIS_PASSWORD: string;
@@ -17,7 +18,12 @@ export type TEnv = {
   JWT_REFRESH_TOKEN_SECRET_KEY: string;
   JWT_VERIFY_OTP_PAGE_SECRET_KEY: string;
   OTP_HASH_SECRET: string;
-  JWT_RESET_PASSWORD_TOKEN_SECRET_KEY:string;
+  JWT_RESET_PASSWORD_TOKEN_SECRET_KEY: string;
+  STRIPE_SECRET_KEY: string;
+  STRIPE_PAYMENT_WEBHOOK_SECRET_KEY: string;
+  STRIPE_CONNECT_WEBHOOK_SECRET_KEY: string;
+  STRIPE_CONNECT_PUBLIC_BASE_URL: string;
+  FLUTTER_CONNECT_APP_LINK_URL: string;
 };
 
 /**

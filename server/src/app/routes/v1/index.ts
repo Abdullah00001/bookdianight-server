@@ -9,8 +9,23 @@ import clubRoutes from '@/app/modules/club/club.routes';
 import eventRoutes from '@/app/modules/event/event.routes';
 import exploreRoutes from '@/app/modules/explore/explore.routes';
 import wishlistRoutes from '@/app/modules/wishlist/wishlist.routes';
-
+import serviceChargeRoutes from '@/app/modules/serviceCharge/serviceCharge.routes';
+import connectRoutes from '@/app/modules/connect/connect.routes';
+import purchaseRoutes from '@/app/modules/purchase/purchase.routes';
+import paymentRoutes from '@/app/modules/payment/payment.routes';
+import webhookRoutes from '@/app/modules/webhook/webhook.routes';
+import bookingsRoutes from '@/app/modules/bookings/bookings.routes';
+import reviewsRoutes from '@/app/modules/reviews/reviews.routes';
+import ownerRoutes from '@/app/modules/owner/owner.routes';
 const routes: Router[] = [
+  ownerRoutes,
+  reviewsRoutes,
+  bookingsRoutes,
+  webhookRoutes,
+  paymentRoutes,
+  purchaseRoutes,
+  connectRoutes,
+  serviceChargeRoutes,
   wishlistRoutes,
   exploreRoutes,
   eventRoutes,

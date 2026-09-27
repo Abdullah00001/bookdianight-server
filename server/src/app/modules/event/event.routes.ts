@@ -1,14 +1,29 @@
 import { Router } from 'express';
-import { createEventController, updateEventController, getEventListController, getEventDetailController } from '@/app/modules/event/event.controllers';
-import { createEventSchema, updateEventSchema, eventIdParamsSchema, eventListQuerySchema } from '@/app/modules/event/event.schema';
-import { validateReqBody, validateReqParams, validateReqQuery } from '@/app/utils/system.utils';
+import {
+  createEventController,
+  updateEventController,
+  getEventListController,
+  getEventDetailController,
+} from '@/app/modules/event/event.controllers';
+import {
+  createEventSchema,
+  updateEventSchema,
+  eventIdParamsSchema,
+  eventListQuerySchema,
+} from '@/app/modules/event/event.schema';
+import {
+  validateReqBody,
+  validateReqParams,
+  validateReqQuery,
+} from '@/app/utils/system.utils';
 import {
   checkUserAccessTokenMiddleware,
   checkUserExistenceMiddleware,
   checkAccountStatus,
-  checkClubOwnerRoleMiddleware
+  checkClubOwnerRoleMiddleware,
 } from '@/app/modules/auth/auth.middlewares';
-
+import { checkConnectReadinessMiddleware } from '@/app/modules/connect/connect.middlewares';
+import { checkEventCancellationValidityMiddleware } from '@/app/modules/event/event.middlewares';
 
 const router = Router();
 
@@ -18,6 +33,7 @@ router.post(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqBody(createEventSchema),
   createEventController
 );
@@ -28,8 +44,10 @@ router.put(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqParams(eventIdParamsSchema),
   validateReqBody(updateEventSchema),
+  checkEventCancellationValidityMiddleware,
   updateEventController
 );
 
@@ -39,6 +57,7 @@ router.get(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqQuery(eventListQuerySchema),
   getEventListController
 );
@@ -49,6 +68,7 @@ router.get(
   checkUserExistenceMiddleware,
   checkAccountStatus,
   checkClubOwnerRoleMiddleware,
+  checkConnectReadinessMiddleware,
   validateReqParams(eventIdParamsSchema),
   getEventDetailController
 );

@@ -45,3 +45,16 @@ export interface IRecoverUserVerificationOtpResend {
   otpExpireAt: number;
   traceId: string;
 }
+
+export interface ISendEventCancellationEmailJobData {
+  orderId: string;
+  buyerName: string;
+  buyerEmail: string;
+  eventName: string;
+  eventLocation: string;
+  eventStartAt: string;
+  refundAmount: string;
+  refundCurrency: string;
+  refundScheduledFor: string;
+  traceId: string;
+}

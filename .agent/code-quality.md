@@ -361,6 +361,11 @@ response
 
 Controllers should not duplicate business logic already handled by middleware or services.
 
+Controllers may only collect request data or trusted middleware context, call a
+service, and send the response or redirect. They must not contain provider
+processing, domain existence checks, business-condition branches, or duplicate
+validation.
+
 Use the project's existing:
 
 asyncHandler
@@ -393,6 +398,11 @@ General rule
 Validate once at the appropriate boundary.
 
 Do not create redundant checks simply because they feel safer.
+
+Authentication, authorization, request validation, and domain
+existence/context checks belong at this boundary. Follow existing
+`check*ExistenceMiddleware` patterns and attach trusted context for downstream
+code; do not move service business processing into middleware.
 
 14. Authentication & Authorization
 
@@ -427,6 +437,11 @@ established error status mappings
 
 Services must follow the existing try/catch/rethrow convention where the surrounding module uses it.
 
+Business rules and external-provider operations belong in services. Use the
+typed parameter interfaces from `*.types.ts`, propagate errors without
+swallowing them, and do not repeat validation or existence checks already
+established by middleware.
+
 Do not replace project-specific errors with generic:
 
 throw new Error(...)
@@ -434,6 +449,19 @@ throw new Error(...)
 unless the repository's existing pattern requires it.
 
 Do not invent new error types without approval.
+
+### Readability and transport boundaries
+
+Keep a service's main execution path readable in business order. Domain-critical
+financial, timing, snapshot, and transaction logic must not be hidden behind
+vague helpers. Helpers need explicit domain names and must earn their use.
+
+Comments explain **why** a non-obvious rule or transaction exists, not what an
+obvious statement does. Follow the repository's established service error
+handling convention, including its catch/rethrow pattern where used.
+
+Services return domain data and do not construct HTTP status/message/data
+responses unless an established repository convention explicitly requires it.
 
 16. Database Access
 

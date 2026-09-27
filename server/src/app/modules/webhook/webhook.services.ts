@@ -100,7 +100,10 @@ export const processPaymentWebhookService = async ({
           if (event.type === 'payment_intent.succeeded') {
             await tx.paymentTransaction.update({
               where: { id: currentTx.id },
-              data: { status: 'PAID' },
+              data: {
+                status: 'PAID',
+                stripeChargeId: paymentIntent.latest_charge || undefined,
+              },
             });
             await tx.order.update({
               where: { id: order.id },

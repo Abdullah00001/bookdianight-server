@@ -16,3 +16,13 @@ export interface IReadAllNotificationsParams {
 export interface IGetUnreadCountParams {
   userId: string;
 }
+
+export interface INotificationPaginatedResponse<T> {
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  data: T;
+}

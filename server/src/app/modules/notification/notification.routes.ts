@@ -3,29 +3,47 @@ import {
   getNotificationListController,
   readNotificationController,
   readAllNotificationsController,
-  getUnreadNotificationCountController
+  getUnreadNotificationCountController,
 } from '@/app/modules/notification/notification.controllers';
 import {
   checkUserAccessTokenMiddleware,
   checkUserExistenceMiddleware,
-  checkAccountStatus
+  checkAccountStatus,
 } from '@/app/modules/auth/auth.middlewares';
 
 const router = Router();
 
-
-
-router.get('/notifications', checkUserAccessTokenMiddleware,
-  checkUserExistenceMiddleware,
-  checkAccountStatus, getNotificationListController);
-router.get('/notifications/unread-count', checkUserAccessTokenMiddleware,
-  checkUserExistenceMiddleware,
-  checkAccountStatus, getUnreadNotificationCountController);
-router.patch('/notifications/read-all', checkUserAccessTokenMiddleware,
-  checkUserExistenceMiddleware,
-  checkAccountStatus, readAllNotificationsController);
-router.patch('/notifications/:id/read', checkUserAccessTokenMiddleware,
-  checkUserExistenceMiddleware,
-  checkAccountStatus, readNotificationController);
+router
+  .route('/notifications')
+  .get(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    getNotificationListController
+  );
+router
+  .route('/notifications/unread-count')
+  .get(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    getUnreadNotificationCountController
+  );
+router
+  .route('/notifications/read-all')
+  .patch(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    readAllNotificationsController
+  );
+router
+  .route('/notifications/:id/read')
+  .patch(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    readNotificationController
+  );
 
 export default router;

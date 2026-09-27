@@ -4,22 +4,18 @@ import {
   IGetNotificationListParams,
   IReadNotificationParams,
   IReadAllNotificationsParams,
-  IGetUnreadCountParams
-} from './notification.types';
+  IGetUnreadCountParams,
+  INotificationPaginatedResponse
+} from '@/app/modules/notification/notification.types';
 
-export interface IPaginatedResponse<T> {
-  meta: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPage: number;
-  };
-  data: T;
-}
-
+/**
+ * Service to fetch a paginated list of notifications for a user.
+ * @param params Object containing userId, page, and limit
+ * @returns INotificationPaginatedResponse containing meta and data
+ */
 export const getNotificationListService = async (
   params: IGetNotificationListParams
-): Promise<IPaginatedResponse<Notification[]>> => {
+): Promise<INotificationPaginatedResponse<Notification[]>> => {
   const { userId, page, limit } = params;
   const skip = (page - 1) * limit;
 
@@ -38,12 +34,17 @@ export const getNotificationListService = async (
       page,
       limit,
       total,
-      totalPage: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limit),
     },
     data,
   };
 };
 
+/**
+ * Service to mark a single notification as read.
+ * @param params Object containing userId and notificationId
+ * @returns The updated notification
+ */
 export const readNotificationService = async (
   params: IReadNotificationParams
 ): Promise<Notification> => {
@@ -63,6 +64,11 @@ export const readNotificationService = async (
   });
 };
 
+/**
+ * Service to mark all unread notifications of a user as read.
+ * @param params Object containing userId
+ * @returns Count of updated notifications
+ */
 export const readAllNotificationsService = async (
   params: IReadAllNotificationsParams
 ): Promise<{ count: number }> => {
@@ -76,6 +82,11 @@ export const readAllNotificationsService = async (
   return { count: result.count };
 };
 
+/**
+ * Service to retrieve the count of unread notifications for a user.
+ * @param params Object containing userId
+ * @returns The count of unread notifications
+ */
 export const getUnreadNotificationCountService = async (
   params: IGetUnreadCountParams
 ): Promise<{ unreadCount: number }> => {

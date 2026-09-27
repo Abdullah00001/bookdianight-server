@@ -9,8 +9,6 @@ servers:
   - url: https://api.bookdianight.com
     description: Production server
 tags:
-  - name: Notification
-    description: Endpoints for user push and in-app notifications
   - name: Health
     description: System health and status endpoints
   - name: Auth
@@ -41,6 +39,8 @@ tags:
     description: Admin legal endpoints
   - name: Public Legal
     description: Public Legal endpoints
+  - name: Notification
+    description: Endpoints for user push and in-app notifications
 components:
   securitySchemes:
     adminAuth:

@@ -23,6 +23,7 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
             include: { event: true },
           },
           clubBooking: true,
+          paymentTransaction: true,
         },
       });
 
@@ -116,9 +117,13 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
       const transfer = await stripe.transfers.create(
         {
           amount: amountInCents,
-          currency: transferRecord.currency,
+          currency: (
+            order.paymentTransaction?.currency || transferRecord.currency
+          ).toLowerCase(),
           destination: connectAccount.stripeAccountId,
           transfer_group: order.id,
+          source_transaction:
+            order.paymentTransaction?.stripeChargeId || undefined,
         },
         {
           // WHY: The same idempotency key must be reused after Stripe success/DB failure.

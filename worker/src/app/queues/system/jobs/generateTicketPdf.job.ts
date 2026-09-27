@@ -1,7 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import PDFDocument from 'pdfkit';
+import Handlebars from 'handlebars';
+import clubTicketTemplate from '@/app/templates/clubTicket.template';
+import eventTicketTemplate from '@/app/templates/eventTicket.template';
+import { renderHtmlToPdf } from '@/app/utils/pdf.utils';
 
 import prisma from '@/app/configs/db.configs';
 import logger from '@/app/configs/logger.configs';
@@ -70,90 +73,73 @@ const handler: IJobHandler = {
       }
 
       // 3. Generate PDF
-      // WHY QR IS ABSENT: The current product rule is NO QR. We adhere to exactly what's requested.
-      const doc = new PDFDocument({ margin: 50 });
-      tempFilePath = path.join(os.tmpdir(), `ticket_${orderId}.pdf`);
+      const buyerInformation = {
+        name: order.buyer.name,
+        email: order.buyer.email,
+        orderId: order.id,
+        dateOfPurchase: order.createdAt.toISOString(),
+      };
+      const paymentInformation = {
+        currency: order.currency.toUpperCase(),
+        grossAmount: order.grossAmount.toString(),
+        serviceCharge: order.serviceChargeAmount.toString(),
+        totalAmount: order.buyerTotal.toString(),
+      };
+      const ticketType = order.serviceType;
 
-      const writeStream = fs.createWriteStream(tempFilePath);
-      doc.pipe(writeStream);
-
-      // Title
-      doc.fontSize(24).text('Booking Confirmation', { align: 'center' });
-      doc.moveDown(2);
-
-      // Buyer Info
-      doc.fontSize(14).text('Buyer Information', { underline: true });
-      doc
-        .fontSize(12)
-        .text(`Name: ${order.buyer.name}`)
-        .text(`Email: ${order.buyer.email}`)
-        .text(`Order ID: ${order.id}`)
-        .text(`Date of Purchase: ${order.createdAt.toISOString()}`);
-      doc.moveDown(2);
+      let renderedHtml = '';
 
       if (order.serviceType === 'CLUB' && order.clubBooking) {
         const cb = order.clubBooking;
-
-        doc.fontSize(14).text('Club Booking Details', { underline: true });
-        doc
-          .fontSize(12)
-          .text(`Club: ${cb.clubName}`)
-          .text(`Location: ${cb.clubLocation}`)
-          .text(`Package: ${cb.packageName}`)
-          .text(
-            `Date/Time: ${cb.startAt.toISOString()} to ${cb.endAt.toISOString()}`
-          )
-          .text(`Guests: ${cb.guestCount}`);
+        const template = Handlebars.compile(clubTicketTemplate);
+        renderedHtml = template({
+          ticketType,
+          buyerInformation,
+          clubBookingDetails: {
+            clubName: cb.clubName,
+            location: cb.clubLocation,
+            packageName: cb.packageName,
+            startDateTime: cb.startAt.toISOString(),
+            endDateTime: cb.endAt.toISOString(),
+            totalGuests: cb.guestCount,
+          },
+          paymentInformation,
+        });
       } else if (order.serviceType === 'EVENT' && order.eventPurchase) {
         const ep = order.eventPurchase;
+        const template = Handlebars.compile(eventTicketTemplate);
 
-        doc.fontSize(14).text('Event Ticket Details', { underline: true });
-        doc
-          .fontSize(12)
-          .text(`Event: ${ep.eventName}`)
-          .text(`Location: ${ep.eventLocation}`)
-          .text(
-            `Date/Time: ${ep.eventStartAt.toISOString()} to ${ep.eventEndAt.toISOString()}`
-          )
-          .text(`Persons: ${ep.personCount}`);
-
+        let attendees: { index: number; name: string }[] = [];
         if (ep.attendees && ep.attendees.length > 0) {
-          doc.moveDown(1);
-          doc.fontSize(12).text('Attendees:', { underline: true });
-          ep.attendees.forEach((att, idx) => {
-            doc.text(`${idx + 1}. ${att.name}`);
-          });
+          attendees = ep.attendees.map((att, idx) => ({
+            index: idx + 1,
+            name: att.name,
+          }));
         }
+
+        renderedHtml = template({
+          ticketType,
+          buyerInformation,
+          eventTicketDetails: {
+            eventName: ep.eventName,
+            location: ep.eventLocation,
+            startDateTime: ep.eventStartAt.toISOString(),
+            endDateTime: ep.eventEndAt.toISOString(),
+            totalPersons: ep.personCount,
+          },
+          attendees,
+          paymentInformation,
+        });
       } else {
         throw new Error(
           `Unknown service type or missing booking details for order ${orderId}`
         );
       }
 
-      doc.moveDown(2);
+      tempFilePath = path.join(os.tmpdir(), `ticket_${orderId}.pdf`);
 
-      // Financial Info
-      // WHY: Use immutable persisted snapshot values rather than trying to recalculate historical amounts.
-      doc.fontSize(14).text('Payment Information', { underline: true });
-      doc
-        .fontSize(12)
-        .text(
-          `Gross Amount: ${order.currency.toUpperCase()} ${order.grossAmount.toString()}`
-        )
-        .text(
-          `Service Charge: ${order.currency.toUpperCase()} ${order.serviceChargeAmount.toString()}`
-        )
-        .text(
-          `Total Amount: ${order.currency.toUpperCase()} ${order.buyerTotal.toString()}`
-        );
-
-      doc.end();
-
-      // Wait for write stream to finish
-      await new Promise<void>((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
+      const pdfBytes = await renderHtmlToPdf(renderedHtml);
+      await fs.promises.writeFile(tempFilePath, pdfBytes);
 
       // 4. Upload to S3
       // WHY: The repository's canonical object-key representation is used to persist the exact storage identifier.

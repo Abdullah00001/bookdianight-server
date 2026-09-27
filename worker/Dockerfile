@@ -1,12 +1,16 @@
 # ================================
 # Stage 1: Build
 # ================================
-FROM node:22-alpine AS base
+FROM node:22-bookworm-slim AS base
 
 WORKDIR /app
 
-# Install dumb-init for proper process management
-RUN apk add --no-cache dumb-init
+# Install dumb-init and required shared libraries for Puppeteer bundled Chromium
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init procps \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
+    libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    fonts-freefont-ttf && rm -rf /var/lib/apt/lists/*
+ENV PUPPETEER_CACHE_DIR=/opt/puppeteer_cache
 
 # Copy root configurations required for Prisma
 COPY prisma.config.ts ./
@@ -34,12 +38,16 @@ RUN npm run build
 # ================================
 # Stage 2: Runner
 # ================================
-FROM node:22-alpine AS runner
+FROM node:22-bookworm-slim AS runner
 
 WORKDIR /app
-RUN apk add --no-cache dumb-init
+RUN apt-get update && apt-get install -y --no-install-recommends dumb-init procps \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 \
+    libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    fonts-freefont-ttf && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
+ENV PUPPETEER_CACHE_DIR=/opt/puppeteer_cache
 # Set a dummy DATABASE_URL so prisma generate succeeds during build
 ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
 

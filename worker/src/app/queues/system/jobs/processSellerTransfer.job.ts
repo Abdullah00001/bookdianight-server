@@ -117,7 +117,9 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
       const transfer = await stripe.transfers.create(
         {
           amount: amountInCents,
-          currency: transferRecord.currency,
+          currency: (
+            order.paymentTransaction?.currency || transferRecord.currency
+          ).toLowerCase(),
           destination: connectAccount.stripeAccountId,
           transfer_group: order.id,
           source_transaction:

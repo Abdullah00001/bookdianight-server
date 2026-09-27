@@ -13,7 +13,8 @@ const clubTicketTemplate = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   html, body {
-    width: 150mm;
+    width: 100%;
+    min-width: 150mm;
     font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

@@ -12,6 +12,18 @@ import { QUEUE_JOBS } from '@/const';
 import { IJobHandler } from '@/app/@types/queue.types';
 import { singleUploadToS3 } from '@/app/utils/s3.utils';
 
+const formatToCST = (date: Date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/Chicago',
+  }).format(date);
+};
+
 const handler: IJobHandler = {
   name: QUEUE_JOBS.GENERATE_TICKET_PDF,
   handler: async (data: any) => {
@@ -77,7 +89,7 @@ const handler: IJobHandler = {
         name: order.buyer.name,
         email: order.buyer.email,
         orderId: order.id,
-        dateOfPurchase: order.createdAt.toISOString(),
+        dateOfPurchase: formatToCST(order.createdAt),
       };
       const paymentInformation = {
         currency: order.currency.toUpperCase(),
@@ -99,8 +111,8 @@ const handler: IJobHandler = {
             clubName: cb.clubName,
             location: cb.clubLocation,
             packageName: cb.packageName,
-            startDateTime: cb.startAt.toISOString(),
-            endDateTime: cb.endAt.toISOString(),
+            startDateTime: formatToCST(cb.startAt),
+            endDateTime: formatToCST(cb.endAt),
             totalGuests: cb.guestCount,
           },
           paymentInformation,
@@ -123,8 +135,8 @@ const handler: IJobHandler = {
           eventTicketDetails: {
             eventName: ep.eventName,
             location: ep.eventLocation,
-            startDateTime: ep.eventStartAt.toISOString(),
-            endDateTime: ep.eventEndAt.toISOString(),
+            startDateTime: formatToCST(ep.eventStartAt),
+            endDateTime: formatToCST(ep.eventEndAt),
             totalPersons: ep.personCount,
           },
           attendees,

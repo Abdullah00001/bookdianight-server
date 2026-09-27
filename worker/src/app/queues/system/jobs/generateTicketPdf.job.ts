@@ -11,8 +11,9 @@ import logger from '@/app/configs/logger.configs';
 import { QUEUE_JOBS } from '@/const';
 import { IJobHandler } from '@/app/@types/queue.types';
 import { singleUploadToS3 } from '@/app/utils/s3.utils';
+import { find as geoTzFind } from 'geo-tz';
 
-const formatToCST = (date: Date) => {
+const formatToVenueTime = (date: Date, timeZone: string) => {
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -20,7 +21,7 @@ const formatToCST = (date: Date) => {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-    timeZone: 'America/Chicago',
+    timeZone,
   }).format(date);
 };
 
@@ -84,12 +85,28 @@ const handler: IJobHandler = {
         throw new Error(`Order ${orderId} is not PAID`);
       }
 
+      let venueTimeZone = 'America/Chicago'; // fallback
+
+      if (order.serviceType === 'CLUB' && order.clubBooking) {
+        const club = order.clubBooking.clubPackage?.club;
+        if (club && club.lat !== undefined && club.lng !== undefined) {
+          const tzs = geoTzFind(club.lat, club.lng);
+          if (tzs && tzs.length > 0) venueTimeZone = tzs[0];
+        }
+      } else if (order.serviceType === 'EVENT' && order.eventPurchase) {
+        const event = order.eventPurchase.event;
+        if (event && event.lat !== undefined && event.lng !== undefined) {
+          const tzs = geoTzFind(event.lat, event.lng);
+          if (tzs && tzs.length > 0) venueTimeZone = tzs[0];
+        }
+      }
+
       // 3. Generate PDF
       const buyerInformation = {
         name: order.buyer.name,
         email: order.buyer.email,
         orderId: order.id,
-        dateOfPurchase: formatToCST(order.createdAt),
+        dateOfPurchase: formatToVenueTime(order.createdAt, venueTimeZone),
       };
       const paymentInformation = {
         currency: order.currency.toUpperCase(),
@@ -111,8 +128,8 @@ const handler: IJobHandler = {
             clubName: cb.clubName,
             location: cb.clubLocation,
             packageName: cb.packageName,
-            startDateTime: formatToCST(cb.startAt),
-            endDateTime: formatToCST(cb.endAt),
+            startDateTime: formatToVenueTime(cb.startAt, venueTimeZone),
+            endDateTime: formatToVenueTime(cb.endAt, venueTimeZone),
             totalGuests: cb.guestCount,
           },
           paymentInformation,
@@ -135,8 +152,8 @@ const handler: IJobHandler = {
           eventTicketDetails: {
             eventName: ep.eventName,
             location: ep.eventLocation,
-            startDateTime: formatToCST(ep.eventStartAt),
-            endDateTime: formatToCST(ep.eventEndAt),
+            startDateTime: formatToVenueTime(ep.eventStartAt, venueTimeZone),
+            endDateTime: formatToVenueTime(ep.eventEndAt, venueTimeZone),
             totalPersons: ep.personCount,
           },
           attendees,

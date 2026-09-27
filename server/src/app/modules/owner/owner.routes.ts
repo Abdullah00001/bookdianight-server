@@ -12,7 +12,7 @@ import { ownerEarningsQuerySchema, ownerPaymentsQuerySchema } from '@/app/module
 
 const router = Router();
 
-router.route('/dashboard').get(
+router.route('/owner/dashboard').get(
   checkUserAccessTokenMiddleware,
   checkUserExistenceMiddleware,
   checkAccountStatus,
@@ -21,7 +21,7 @@ router.route('/dashboard').get(
   getOwnerDashboardController
 );
 
-router.route('/earnings').get(
+router.route('/owner/earnings').get(
   checkUserAccessTokenMiddleware,
   checkUserExistenceMiddleware,
   checkAccountStatus,
@@ -31,7 +31,7 @@ router.route('/earnings').get(
   getOwnerEarningsController
 );
 
-router.route('/payments').get(
+router.route('/owner/payments').get(
   checkUserAccessTokenMiddleware,
   checkUserExistenceMiddleware,
   checkAccountStatus,

@@ -1,5 +1,6 @@
 import prisma from '@/app/configs/db.configs';
 import { ICreateClubService, IUpdateClubService, IGetClubListService, IGetClubDetailService } from '@/app/modules/club/club.types';
+import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { Club } from '@prisma/client';
 
 /**
@@ -150,10 +151,58 @@ export const getClubListService = async ({ userId, query }: IGetClubListService)
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
+      include: {
+        clubPackages: {
+          where: { isActive: true },
+          select: { price: true, currency: true },
+        },
+        reviews: {
+          select: { rating: true },
+        },
+        wishlists: {
+          where: { userId },
+          select: { id: true },
+        },
+      }
     })
   ]);
 
-  return { data, total };
+  const mappedData: ILightweightExploreItem[] = data.map((club) => {
+    let minPrice = 0;
+    let maxPrice = 0;
+    let currency = '';
+
+    if (club.clubPackages.length > 0) {
+      const prices = club.clubPackages.map((p) => Number(p.price));
+      minPrice = Math.min(...prices);
+      maxPrice = Math.max(...prices);
+      currency = club.clubPackages[0].currency;
+    }
+
+    let review = 0;
+    if (club.reviews.length > 0) {
+      review =
+        club.reviews.reduce((acc, r) => acc + r.rating, 0) /
+        club.reviews.length;
+    }
+
+    return {
+      id: club.id,
+      name: club.name,
+      lat: club.lat,
+      lng: club.lng,
+      location: club.location,
+      type: 'CLUB',
+      review,
+      isVip: club.isVip,
+      thumbnail: club.thumbnail,
+      priceRange: { minPrice, maxPrice },
+      currency,
+      isWishlist: club.wishlists.length > 0,
+    };
+  });
+
+  return { data: mappedData, total };
 };
 
 /**

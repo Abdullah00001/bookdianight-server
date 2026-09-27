@@ -5,6 +5,7 @@ import {
   IGetEventListService,
   IGetEventDetailService,
 } from '@/app/modules/event/event.types';
+import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { Event } from '@prisma/client';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
 import { getEmailQueue } from '@/app/queues/email/email.queue';
@@ -229,10 +230,29 @@ export const getEventListService = async ({
       orderBy: { createdAt: 'desc' },
       skip,
       take: limit,
+      include: {
+        wishlists: {
+          where: { userId },
+          select: { id: true },
+        },
+      }
     }),
   ]);
 
-  return { data, total };
+  const mappedData: ILightweightExploreItem[] = data.map((evt) => ({
+    id: evt.id,
+    name: evt.eventName,
+    lat: evt.lat,
+    lng: evt.lng,
+    location: evt.location,
+    type: 'EVENT',
+    thumbnail: evt.thumbnail,
+    price: Number(evt.eventPrice),
+    currency: evt.currency,
+    isWishlist: evt.wishlists.length > 0,
+  }));
+
+  return { data: mappedData, total };
 };
 
 /**

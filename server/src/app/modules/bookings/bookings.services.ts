@@ -7,8 +7,8 @@ import {
   TTicketRetrievalResult,
   TExploreData,
   TExplorePresentation,
+  TBookingListItem,
 } from '@/app/modules/bookings/bookings.types';
-import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { exploreDetailService } from '@/app/modules/explore/explore.services';
 import { Prisma } from '@prisma/client';
 import { currentFixedCstWallClock } from '@/app/modules/purchase/purchase.helpers';
@@ -17,13 +17,13 @@ import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 
 /**
  * This service is used to retrieve all bookings of logged in user
- * @returns Promise<{ data: ILightweightExploreItem[]; total: number; totalPages: number }>
+ * @returns Promise<{ data: TBookingListItem[]; total: number; totalPages: number }>
  */
 export const retrieveLoggedInUserBookingsService = async ({
   query,
   userId,
 }: IRetrieveLoggedInUserBookingsService): Promise<{
-  data: ILightweightExploreItem[];
+  data: TBookingListItem[];
   total: number;
   totalPages: number;
 }> => {
@@ -103,7 +103,7 @@ export const retrieveLoggedInUserBookingsService = async ({
     },
   });
 
-  const formattedData: ILightweightExploreItem[] = orders.map((order) => {
+  const formattedData: TBookingListItem[] = orders.map((order) => {
     if (
       order.serviceType === 'CLUB' &&
       order.clubBooking &&
@@ -124,6 +124,9 @@ export const retrieveLoggedInUserBookingsService = async ({
 
       return {
         id: clubBooking.id, // Booking id takes precedence as per requirements
+        purchaseDate: order.createdAt,
+        startAt: clubBooking.startAt,
+        endAt: clubBooking.endAt,
         name: club.name,
         lat: Number(club.lat),
         lng: Number(club.lng),
@@ -149,6 +152,9 @@ export const retrieveLoggedInUserBookingsService = async ({
 
       return {
         id: eventPurchase.id, // Booking id takes precedence as per requirements
+        purchaseDate: order.createdAt,
+        eventStartAt: eventPurchase.eventStartAt,
+        eventEndAt: eventPurchase.eventEndAt,
         name: event.eventName,
         lat: Number(event.lat),
         lng: Number(event.lng),

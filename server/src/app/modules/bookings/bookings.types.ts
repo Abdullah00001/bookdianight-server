@@ -3,6 +3,14 @@ import {
   TRetrieveLoggedInUserSingleBookingsQuery,
 } from '@/app/modules/bookings/bookings.schema';
 import { exploreDetailService } from '@/app/modules/explore/explore.services';
+import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
+
+export type TBookingListItem = ILightweightExploreItem &
+  { purchaseDate: Date } &
+  (
+    | { type: 'CLUB'; startAt: Date; endAt: Date }
+    | { type: 'EVENT'; eventStartAt: Date; eventEndAt: Date }
+  );
 
 export interface IRetrieveLoggedInUserBookingsService {
   query: TRetrieveLoggedInUserBookingsQuery;

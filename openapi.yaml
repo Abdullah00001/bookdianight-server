@@ -1783,7 +1783,9 @@ paths:
                       recentBookings:
                         type: array
                         items:
-                          $ref: '#/components/schemas/ExplorePresentation'
+                          oneOf:
+                            - $ref: '#/components/schemas/ExploreClubListItem'
+                            - $ref: '#/components/schemas/ExploreEventListItem'
                   traceId:
                     type: string
         '401':
@@ -4638,19 +4640,45 @@ paths:
                         - allOf:
                             - $ref: '#/components/schemas/ExploreClubListItem'
                             - type: object
+                              required: [purchaseDate, startAt, endAt]
                               properties:
                                 id:
                                   type: string
                                   format: uuid
                                   description: The Booking ID (ClubBooking.id)
+                                purchaseDate:
+                                  type: string
+                                  format: date-time
+                                  description: Order creation date, matching the booking detail purchaseDate.
+                                startAt:
+                                  type: string
+                                  format: date-time
+                                  description: Stored booking start date and time.
+                                endAt:
+                                  type: string
+                                  format: date-time
+                                  description: Stored booking end date and time.
                         - allOf:
                             - $ref: '#/components/schemas/ExploreEventListItem'
                             - type: object
+                              required: [purchaseDate, eventStartAt, eventEndAt]
                               properties:
                                 id:
                                   type: string
                                   format: uuid
                                   description: The Booking ID (EventPurchase.id)
+                                purchaseDate:
+                                  type: string
+                                  format: date-time
+                                  description: Order creation date, matching the booking detail purchaseDate.
+                                eventStartAt:
+                                  type: string
+                                  format: date-time
+                                  description: Stored booking start date and time.
+                                eventEndAt:
+                                  type: string
+                                  format: date-time
+                                  description: Stored booking end date and time.
                   traceId:
                     type: string
                     format: uuid

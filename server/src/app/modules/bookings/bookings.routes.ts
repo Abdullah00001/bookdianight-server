@@ -14,6 +14,7 @@ import {
   retrieveLoggedInUserBookingsController,
   retrieveLoggedInUserSingleBookingsController,
   retrieveLoggedInUserTicketController,
+  retrieveLoggedInUserTicketFileController,
 } from '@/app/modules/bookings/bookings.controllers';
 import {
   checkBookingExistenceAndOwnershipMiddleware,
@@ -53,6 +54,17 @@ router
     validateReqParams(retrieveLoggedInUserSingleBookingsParamsSchema),
     checkTicketBookingExistenceAndOwnershipMiddleware,
     retrieveLoggedInUserTicketController
+  );
+
+router
+  .route('/bookings/:id/ticket/file')
+  .get(
+    checkUserAccessTokenMiddleware,
+    checkUserExistenceMiddleware,
+    checkAccountStatus,
+    validateReqParams(retrieveLoggedInUserSingleBookingsParamsSchema),
+    checkTicketBookingExistenceAndOwnershipMiddleware,
+    retrieveLoggedInUserTicketFileController
   );
 
 export default router;

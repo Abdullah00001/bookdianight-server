@@ -4,6 +4,7 @@ import {
   IRetrieveLoggedInUserSingleBookingsService,
   IBookingDetailResponse,
   IRetrieveLoggedInUserTicketService,
+  TTicketRetrievalResult,
   TExploreData,
   TExplorePresentation,
 } from '@/app/modules/bookings/bookings.types';
@@ -365,51 +366,62 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
   }
 };
 
-/**
- * This service is used to retrieve ticket single booking of logged in user
- * @returns Promise<void>
- */
+/** Resolves an available ticket for either booking type without reading S3. */
 export const retrieveLoggedInUserTicketService = async ({
   id,
-}: IRetrieveLoggedInUserTicketService): Promise<{
-  status: 'GENERATED' | 'PENDING' | 'FAILED' | 'NOT_FOUND';
-  data?: GetObjectCommandOutput;
-}> => {
-  const [clubBooking, eventPurchase] = await Promise.all([
-    prisma.clubBooking.findUnique({
-      where: { id },
-      include: { order: { include: { ticketPdf: true } } },
-    }),
-    prisma.eventPurchase.findUnique({
-      where: { id },
-      include: { order: { include: { ticketPdf: true } } },
-    }),
-  ]);
+  userId,
+}: IRetrieveLoggedInUserTicketService): Promise<
+  TTicketRetrievalResult<{ storageKey: string }>
+> => {
+  try {
+    const [clubBooking, eventPurchase] = await Promise.all([
+      prisma.clubBooking.findUnique({
+        where: { id },
+        include: { order: { include: { ticketPdf: true } } },
+      }),
+      prisma.eventPurchase.findUnique({
+        where: { id },
+        include: { order: { include: { ticketPdf: true } } },
+      }),
+    ]);
 
-  const booking = clubBooking || eventPurchase;
+    const booking = clubBooking || eventPurchase;
+    if (
+      !booking ||
+      booking.order.buyerUserId !== userId ||
+      booking.order.status !== 'PAID'
+    ) {
+      return { status: 'NOT_FOUND' };
+    }
 
-  if (!booking) {
+    const ticketPdf = booking.order.ticketPdf;
+    if (!ticketPdf) return { status: 'NOT_FOUND' };
+    if (ticketPdf.status === 'PENDING') return { status: 'PENDING' };
+    if (ticketPdf.status === 'FAILED') return { status: 'FAILED' };
+    if (ticketPdf.status === 'GENERATED' && ticketPdf.storageKey) {
+      return { status: 'GENERATED', data: { storageKey: ticketPdf.storageKey } };
+    }
     return { status: 'NOT_FOUND' };
+  } catch (error) {
+    throw error;
   }
+};
 
-  const ticketPdf = booking.order.ticketPdf;
+/** Reads the private PDF only after the shared ticket availability checks. */
+export const retrieveLoggedInUserTicketFileService = async ({
+  id,
+  userId,
+}: IRetrieveLoggedInUserTicketService): Promise<
+  TTicketRetrievalResult<GetObjectCommandOutput>
+> => {
+  try {
+    const ticket = await retrieveLoggedInUserTicketService({ id, userId });
+    if (ticket.status !== 'GENERATED') return ticket;
 
-  if (!ticketPdf) {
-    return { status: 'NOT_FOUND' };
+    const data = await singleReadStreamFromS3({ key: ticket.data.storageKey });
+    if (!data.Body) return { status: 'NOT_FOUND' };
+    return { status: 'GENERATED', data };
+  } catch (error) {
+    throw error;
   }
-
-  if (ticketPdf.status === 'PENDING') {
-    return { status: 'PENDING' };
-  }
-
-  if (ticketPdf.status === 'FAILED') {
-    return { status: 'FAILED' };
-  }
-
-  if (ticketPdf.status === 'GENERATED' && ticketPdf.storageKey) {
-    const s3Response = await singleReadStreamFromS3({ key: ticketPdf.storageKey });
-    return { status: 'GENERATED', data: s3Response };
-  }
-
-  return { status: 'NOT_FOUND' };
 };

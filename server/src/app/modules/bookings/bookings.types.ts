@@ -78,4 +78,9 @@ export interface IBookingDetailResponse {
 
 export interface IRetrieveLoggedInUserTicketService {
   id: string;
+  userId: string;
 }
+
+export type TTicketRetrievalResult<T> =
+  | { status: 'GENERATED'; data: T }
+  | { status: 'PENDING' | 'FAILED' | 'NOT_FOUND' };

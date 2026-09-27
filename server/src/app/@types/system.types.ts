@@ -2,6 +2,7 @@ import { REDIS_PREFIXES } from "@/const";
 
 export type TEnv = {
   NODE_ENV: string;
+  SERVER_URL: string;
   DATABASE_URL: string;
   REDIS_HOST: string;
   REDIS_PASSWORD: string;

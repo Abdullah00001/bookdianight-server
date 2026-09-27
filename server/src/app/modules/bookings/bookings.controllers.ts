@@ -1,3 +1,4 @@
+import { env } from '@/env';
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
@@ -6,6 +7,7 @@ import {
   retrieveLoggedInUserBookingsService,
   retrieveLoggedInUserSingleBookingsService,
   retrieveLoggedInUserTicketService,
+  retrieveLoggedInUserTicketFileService,
 } from '@/app/modules/bookings/bookings.services';
 import {
   TRetrieveLoggedInUserBookingsQuery,
@@ -78,56 +80,59 @@ export const retrieveLoggedInUserSingleBookingsController = asyncHandler(
   }
 );
 
-/**
- * This controller is used to retrieve single booking ticket of logged in user
- * @param req Request
- * @param res Response
- * @returns Promise<void>
- */
+const ticketErrorMessages = {
+  NOT_FOUND: 'Booking not found',
+  PENDING: 'Ticket is still being generated',
+  FAILED: 'Ticket generation failed',
+};
+
+/** Returns the stable authenticated file URL for a generated ticket. */
 export const retrieveLoggedInUserTicketController = asyncHandler(
   async (req: Request, res: Response): Promise<void> => {
     const traceId = getTraceId();
     const id = req.params.id as string;
-    const result = await retrieveLoggedInUserTicketService({ id });
+    const userId = (req.user as User).id;
+    const result = await retrieveLoggedInUserTicketService({ id, userId });
 
-    if (result.status === 'NOT_FOUND') {
-      res.status(404).json({
+    if (result.status !== 'GENERATED') {
+      res.status(result.status === 'NOT_FOUND' ? 404 : 409).json({
         success: false,
-        message: 'Booking not found',
+        message: ticketErrorMessages[result.status],
         traceId,
       });
       return;
     }
 
-    if (result.status === 'PENDING') {
-      res.status(409).json({
-        success: false,
-        message: 'Ticket is still being generated',
-        traceId,
-      });
-      return;
-    }
-
-    if (result.status === 'FAILED') {
-      res.status(409).json({
-        success: false,
-        message: 'Ticket generation failed',
-        traceId,
-      });
-      return;
-    }
-
-    if (result.status === 'GENERATED' && result.data && result.data.Body) {
-      res.setHeader('Content-Type', 'application/pdf');
-      (result.data.Body as NodeJS.ReadableStream).pipe(res);
-      return;
-    }
-
-    res.status(404).json({
-      success: false,
-      message: 'Booking not found',
+    const ticketUrl = `${env.SERVER_URL.replace(/\/+$/, '')}/api/v1/bookings/${id}/ticket/file`;
+    res.status(200).json({
+      success: true,
+      message: 'Ticket retrieved successfully',
+      data: { ticketUrl },
       traceId,
     });
-    return;
+  }
+);
+
+/** Streams the private PDF to the authenticated booking owner. */
+export const retrieveLoggedInUserTicketFileController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const id = req.params.id as string;
+    const userId = (req.user as User).id;
+    const result = await retrieveLoggedInUserTicketFileService({ id, userId });
+
+    if (result.status !== 'GENERATED') {
+      res.status(result.status === 'NOT_FOUND' ? 404 : 409).json({
+        success: false,
+        message: ticketErrorMessages[result.status],
+        traceId,
+      });
+      return;
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    const stream = result.data.Body as NodeJS.ReadableStream;
+    stream.on('error', (error: Error) => res.destroy(error));
+    stream.pipe(res);
   }
 );

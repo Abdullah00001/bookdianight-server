@@ -5223,15 +5223,16 @@ paths:
             type: string
             format: uuid
           description: The Booking ID (ClubBooking.id or EventPurchase.id)
-      description: Streams the private S3 PDF for a generated ticket belonging to the authenticated user. Ownership failures return 404 rather than 403.
+      description: Redirects to the S3 URL for a generated ticket PDF belonging to the authenticated user. Ownership failures return 404 rather than 403.
       responses:
-        '200':
-          description: Ticket PDF retrieved successfully
-          content:
-            application/pdf:
+        '302':
+          description: Redirects to the S3 public URL of the ticket PDF.
+          headers:
+            Location:
+              description: The URL of the ticket PDF
               schema:
                 type: string
-                format: binary
+                format: uri
         '401':
           description: Missing, invalid, expired, or revoked token; blocked or inactive account
           content:

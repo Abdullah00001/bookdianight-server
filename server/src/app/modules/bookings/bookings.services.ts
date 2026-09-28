@@ -12,8 +12,6 @@ import {
 import { exploreDetailService } from '@/app/modules/explore/explore.services';
 import { Prisma } from '@prisma/client';
 import { currentFixedCstWallClock } from '@/app/modules/purchase/purchase.helpers';
-import { singleReadStreamFromS3 } from '@/app/utils/s3.utils';
-import { GetObjectCommandOutput } from '@aws-sdk/client-s3';
 
 /**
  * This service is used to retrieve all bookings of logged in user
@@ -413,21 +411,3 @@ export const retrieveLoggedInUserTicketService = async ({
   }
 };
 
-/** Reads the private PDF only after the shared ticket availability checks. */
-export const retrieveLoggedInUserTicketFileService = async ({
-  id,
-  userId,
-}: IRetrieveLoggedInUserTicketService): Promise<
-  TTicketRetrievalResult<GetObjectCommandOutput>
-> => {
-  try {
-    const ticket = await retrieveLoggedInUserTicketService({ id, userId });
-    if (ticket.status !== 'GENERATED') return ticket;
-
-    const data = await singleReadStreamFromS3({ key: ticket.data.storageKey });
-    if (!data.Body) return { status: 'NOT_FOUND' };
-    return { status: 'GENERATED', data };
-  } catch (error) {
-    throw error;
-  }
-};

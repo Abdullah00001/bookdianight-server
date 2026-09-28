@@ -402,7 +402,11 @@ export const checkDeviceContextMiddleware = asyncHandler(
       where: { id: deviceId },
     });
 
-    if (!device || device.userId !== sub || device.deviceIdentifier !== deviceIdentifier) {
+    if (
+      !device ||
+      device.userId !== sub ||
+      device.deviceIdentifier !== deviceIdentifier
+    ) {
       res.status(401).json({
         success: false,
         message: 'Invalid device context',
@@ -419,7 +423,7 @@ export const checkDeviceContextMiddleware = asyncHandler(
 
 /**
  * Validates that the pre-authenticated user has the CLUB_OWNER role.
- * 
+ *
  * @param {Request} req
  * @param {Response} res
  * @param {NextFunction} next

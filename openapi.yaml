@@ -41,6 +41,15 @@ tags:
     description: Public Legal endpoints
   - name: Notification
     description: Endpoints for user push and in-app notifications
+  - name: Reviews
+    description: Endpoints for user reviews and ratings for Clubs
+  - name: Owner
+    description: Endpoints for Owner management
+  - name: Bookings
+    description: Endpoints for user bookings management
+  - name: Webhook
+    description: Endpoints for webhook management (stripe)
+
 components:
   securitySchemes:
     adminAuth:
@@ -971,6 +980,71 @@ components:
           type: number
           format: double
           example: -15.315821
+    OAuthLoginPayload:
+      type: object
+      required:
+        - email
+        - deviceIdentifier
+        - platform
+        - provider
+        - lat
+        - lng
+      properties:
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        deviceIdentifier:
+          type: string
+          minLength: 1
+          example: zZp|6sBQ<Ca2_=Kl]J7jt:Mvz{n9VT$v
+        platform:
+          type: string
+          enum:
+            - ANDROID
+            - IOS
+          example: ANDROID
+        provider:
+          type: string
+          enum:
+            - GOOGLE
+            - APPLE
+          example: GOOGLE
+        fcmToken:
+          type: string
+          example: fcm_token_sample
+        lat:
+          type: number
+          format: double
+          example: -15.315821
+        lng:
+          type: number
+          format: double
+          example: -71.935353
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              example: eyJhbGci...
+            role:
+              type: string
+              example: USER
+            isUserVerified:
+              type: boolean
+              example: true
+        traceId:
+          type: string
+          example: 1234567890
     VerifySignupPayload:
       type: object
       required:
@@ -2530,6 +2604,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/social:
+    post:
+      tags:
+        - Auth
+      summary: Social login (OAuth)
+      description: |
+        Authenticates an existing user via their social provider (Google, Apple).
+        Requires the app's deviceIdentifier, platform, and provider.
+        Returns an access JWT for verified users or an OTP pending token if unverified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthLoginPayload'
+      responses:
+        '200':
+          description: Login successful. Returns access token and user role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials (User not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Account blocked or inactive
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/auth/login:
     post:
       tags:
@@ -2563,7 +2683,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TokenResponse'
+                $ref: '#/components/schemas/LoginResponse'
         '422':
           description: Validation failed
           content:
@@ -5103,15 +5223,16 @@ paths:
             type: string
             format: uuid
           description: The Booking ID (ClubBooking.id or EventPurchase.id)
-      description: Streams the private S3 PDF for a generated ticket belonging to the authenticated user. Ownership failures return 404 rather than 403.
+      description: Redirects to the S3 URL for a generated ticket PDF belonging to the authenticated user. Ownership failures return 404 rather than 403.
       responses:
-        '200':
-          description: Ticket PDF retrieved successfully
-          content:
-            application/pdf:
+        '302':
+          description: Redirects to the S3 public URL of the ticket PDF.
+          headers:
+            Location:
+              description: The URL of the ticket PDF
               schema:
                 type: string
-                format: binary
+                format: uri
         '401':
           description: Missing, invalid, expired, or revoked token; blocked or inactive account
           content:

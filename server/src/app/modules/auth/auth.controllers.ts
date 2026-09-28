@@ -8,12 +8,14 @@ import {
   checkUserAccessTokenService,
   loginService,
   logoutService,
+  oAuthLoginService,
 } from '@/app/modules/auth/auth.services';
 import {
   TCheckAccessTokenPayload,
   TSignupPayload,
   TLoginPayload,
   TLogoutPayload,
+  TOAuthLoginPayload,
 } from '@/app/modules/auth/auth.schema';
 import { User } from '@prisma/client';
 import { extractToken } from '@/app/utils/jwt.utils';
@@ -101,7 +103,12 @@ export const checkUserAccessTokenController = asyncHandler(
     const payload = req.body as TCheckAccessTokenPayload;
     const jwtPayload = req.jwtPayload as any;
     const device = req.device!;
-    const profileData = await checkUserAccessTokenService({ payload, user, jwtPayload, device });
+    const profileData = await checkUserAccessTokenService({
+      payload,
+      user,
+      jwtPayload,
+      device,
+    });
     res.status(200).json({
       success: true,
       message: 'User is authenticated',
@@ -134,7 +141,6 @@ export const loginController = asyncHandler(
   }
 );
 
-
 /**
  * Controller for handling logout requests.
  * Calls the logout service to invalidate the device context and token.
@@ -156,6 +162,22 @@ export const logoutController = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'Logout successful',
+      traceId,
+    });
+    return;
+  }
+);
+
+export const oAuthLoginController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+    const payload = req.body as TOAuthLoginPayload;
+    const data = await oAuthLoginService({ user, payload });
+    res.status(200).json({
+      success: true,
+      message: 'Social login successful',
+      data,
       traceId,
     });
     return;

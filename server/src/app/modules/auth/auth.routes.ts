@@ -6,6 +6,7 @@ import {
   checkUserAccessTokenController,
   loginController,
   logoutController,
+  oAuthLoginController,
 } from '@/app/modules/auth/auth.controllers';
 import { validateReqBody } from '@/app/utils/system.utils';
 import {
@@ -14,6 +15,7 @@ import {
   verifySignupUserSchema,
   loginSchema,
   logoutSchema,
+  oAuthLoginSchema,
 } from '@/app/modules/auth/auth.schema';
 import {
   checkOtpMiddleware,
@@ -85,6 +87,15 @@ router
     checkAccountStatus,
     checkDeviceContextMiddleware,
     logoutController
+  );
+
+router
+  .route('/auth/social')
+  .post(
+    validateReqBody(oAuthLoginSchema),
+    findUserByEmail,
+    checkAccountStatus,
+    oAuthLoginController
   );
 
 export default router;

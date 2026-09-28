@@ -7,7 +7,7 @@ import {
   retrieveLoggedInUserBookingsService,
   retrieveLoggedInUserSingleBookingsService,
   retrieveLoggedInUserTicketService,
-  retrieveLoggedInUserTicketFileService,
+
 } from '@/app/modules/bookings/bookings.services';
 import {
   TRetrieveLoggedInUserBookingsQuery,
@@ -119,7 +119,7 @@ export const retrieveLoggedInUserTicketFileController = asyncHandler(
     const traceId = getTraceId();
     const id = req.params.id as string;
     const userId = (req.user as User).id;
-    const result = await retrieveLoggedInUserTicketFileService({ id, userId });
+    const result = await retrieveLoggedInUserTicketService({ id, userId });
 
     if (result.status !== 'GENERATED') {
       res.status(result.status === 'NOT_FOUND' ? 404 : 409).json({
@@ -130,9 +130,6 @@ export const retrieveLoggedInUserTicketFileController = asyncHandler(
       return;
     }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    const stream = result.data.Body as NodeJS.ReadableStream;
-    stream.on('error', (error: Error) => res.destroy(error));
-    stream.pipe(res);
+    res.redirect(302, `${env.S3_PUBLIC_URL}/${result.data.storageKey}`);
   }
 );

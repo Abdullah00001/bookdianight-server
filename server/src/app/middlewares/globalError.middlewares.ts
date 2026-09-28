@@ -23,6 +23,15 @@ export const globalErrorMiddleware = (
       stack: err.stack,
     });
 
+    if (err instanceof SyntaxError && 'status' in err && err.status === 400 && 'body' in err) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid JSON Payload',
+        traceId: traceId,
+      });
+      return;
+    }
+
     res.status(500).json({
       success: false,
       message: 'Internal Server Error',

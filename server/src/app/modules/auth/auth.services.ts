@@ -359,8 +359,8 @@ export const loginService = async ({
         ),
         redisClient.geoadd(
           createRedisKey(REDIS_PREFIXES.locations),
-          lat,
           lng,
+          lat,
           user.id
         ),
         emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailQueueData),
@@ -379,8 +379,8 @@ export const loginService = async ({
       ),
       redisClient.geoadd(
         createRedisKey(REDIS_PREFIXES.locations),
-        lat,
         lng,
+        lat,
         user.id
       ),
     ]);
@@ -529,8 +529,8 @@ export const oAuthLoginService = async ({
         ),
         redisClient.geoadd(
           createRedisKey(REDIS_PREFIXES.locations),
-          lat,
           lng,
+          lat,
           user.id
         ),
         emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailQueueData),
@@ -549,8 +549,8 @@ export const oAuthLoginService = async ({
       ),
       redisClient.geoadd(
         createRedisKey(REDIS_PREFIXES.locations),
-        lat,
         lng,
+        lat,
         user.id
       ),
     ]);

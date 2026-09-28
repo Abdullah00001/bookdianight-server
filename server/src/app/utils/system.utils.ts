@@ -131,6 +131,7 @@ export const validateReqBody =
         field: issue.path.join('.') || 'body',
         message: issue.message,
       }));
+      console.log(errors);
       res.status(422).json({
         success: false,
         message: 'Request body validation failed',

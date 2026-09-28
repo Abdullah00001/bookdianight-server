@@ -3,7 +3,7 @@ import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { COOKIE_NAMES, adminAccessTokenExpiresIn, refreshTokenExpiresInWithRememberMe, AuthErrorType } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
-import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService, getAdminDashboardService } from '@/app/modules/admin/admin.services';
+import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService, getAdminDashboardService, getAdminUsersService, suspendAdminUserService, deleteAdminUserService } from '@/app/modules/admin/admin.services';
 import { TAdminLoginPayload, TChangeAdminPasswordPayload, TUpdateCommissionPayload } from '@/app/modules/admin/admin.schema';
 import { comparePassword } from '@/app/utils/password.utils';
 import { User } from '@prisma/client';
@@ -323,6 +323,51 @@ export const getAdminDashboardController = asyncHandler(
       success: true,
       message: 'Dashboard data retrieved successfully',
       data: dashboardData,
+      traceId
+    });
+    return;
+  }
+);
+
+export const getAdminUsersController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const query = req.query as any;
+    const result = await getAdminUsersService({ query });
+
+    res.status(200).json({
+      success: true,
+      message: 'Users retrieved successfully',
+      meta: result.meta,
+      data: result.users,
+      traceId
+    });
+    return;
+  }
+);
+export const suspendAdminUserController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const params = req.params as any;
+    const result = await suspendAdminUserService({ params });
+
+    res.status(200).json({
+      success: true,
+      message: result.status === 'BLOCKED' ? 'User suspended successfully' : 'User un-suspended successfully',
+      traceId
+    });
+    return;
+  }
+);
+export const deleteAdminUserController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const params = req.params as any;
+    await deleteAdminUserService({ params });
+
+    res.status(200).json({
+      success: true,
+      message: 'User deleted successfully',
       traceId
     });
     return;

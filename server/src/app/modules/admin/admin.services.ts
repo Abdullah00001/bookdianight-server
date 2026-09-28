@@ -429,3 +429,128 @@ export const getAdminDashboardService = async ({
     throw error;
   }
 };
+
+import { TGetAdminUsersQuery, TAdminUserIdParams } from '@/app/modules/admin/admin.schema';
+
+export const getAdminUsersService = async ({ query }: { query: TGetAdminUsersQuery }) => {
+  try {
+    const page = parseInt(query.page || '1', 10);
+    const limit = parseInt(query.limit || '10', 10);
+    const skip = (page - 1) * limit;
+
+    const whereCondition: any = {
+      accountStatus: { not: 'DELETED' },
+    };
+
+    if (query.role) {
+      whereCondition.accountRole = query.role;
+    } else {
+      whereCondition.accountRole = { in: ['USER', 'CLUB_OWNER'] };
+    }
+
+    if (query.search) {
+      whereCondition.OR = [
+        { name: { contains: query.search, mode: 'insensitive' } },
+        { email: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where: whereCondition,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          profile: true,
+          buyerOrders: {
+            take: 3,
+            orderBy: { createdAt: 'desc' },
+            include: {
+              clubBooking: true,
+              eventPurchase: true
+            }
+          },
+          _count: {
+            select: {
+              buyerOrders: true,
+            }
+          }
+        },
+      }),
+      prisma.user.count({ where: whereCondition }),
+    ]);
+
+    const mappedUsers = users.map(user => {
+      const recentBookings = user.buyerOrders.map((order: any) => ({
+        id: order.id,
+        name: order.serviceType === 'EVENT' ? order.eventPurchase?.eventName : order.clubBooking?.clubName,
+        status: order.status,
+        amount: order.buyerTotal,
+        date: order.createdAt
+      }));
+
+      const { _count, buyerOrders, ...restUser } = user;
+      return {
+        ...restUser,
+        recentBookings,
+        totalBookings: _count.buyerOrders
+      };
+    });
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      users: mappedUsers,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const suspendAdminUserService = async ({ params }: { params: TAdminUserIdParams }) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: params.id } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const newStatus = user.accountStatus === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
+
+    await prisma.user.update({
+      where: { id: params.id },
+      data: { accountStatus: newStatus }
+    });
+
+    return { status: newStatus };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const deleteAdminUserService = async ({ params }: { params: TAdminUserIdParams }) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: params.id } });
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const deletedEmail = `${user.email}_deleted_${Date.now()}`;
+
+    await prisma.user.update({
+      where: { id: params.id },
+      data: { 
+        accountStatus: 'DELETED',
+        email: deletedEmail
+      }
+    });
+
+    return;
+  } catch (error) {
+    throw error;
+  }
+};

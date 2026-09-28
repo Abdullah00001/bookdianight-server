@@ -1,17 +1,6 @@
 import { Router } from 'express';
-import {
-  loginAdminController,
-  checkAdminController,
-  refreshAdminController,
-  logoutAdminController,
-  getAdminProfileController,
-  updateAdminProfileController,
-  changeAdminPasswordController,
-  updateCommissionController,
-  getCommissionController,
-  getAdminDashboardController,
-} from '@/app/modules/admin/admin.controllers';
-import { validateReqBody, validateReqQuery } from '@/app/utils/system.utils';
+import { loginAdminController, checkAdminController, refreshAdminController, logoutAdminController, getAdminProfileController, updateAdminProfileController, changeAdminPasswordController, updateCommissionController, getCommissionController, getAdminDashboardController, getAdminUsersController, suspendAdminUserController, deleteAdminUserController } from '@/app/modules/admin/admin.controllers';
+import { validateReqBody, validateReqQuery, validateReqParams } from '@/app/utils/system.utils';
 import { adminLoginSchema } from '@/app/modules/admin/admin.schema';
 import {
   checkCsrfTokenMiddleware,
@@ -30,6 +19,8 @@ import {
   changeAdminPasswordSchema,
   updateCommissionSchema,
   getDashboardQuerySchema,
+  getAdminUsersQuerySchema,
+  adminUserIdParamsSchema,
 } from '@/app/modules/admin/admin.schema';
 
 const router = Router();
@@ -121,5 +112,29 @@ router
     validateReqQuery(getDashboardQuerySchema),
     getAdminDashboardController
   );
+
+router.route('/admin/users').get(
+  checkCsrfTokenMiddleware,
+  checkAdminAccessTokenMiddleware,
+  checkAdminExistenceMiddleware,
+  validateReqQuery(getAdminUsersQuerySchema),
+  getAdminUsersController
+);
+
+router.route('/admin/users/:id/suspend').patch(
+  checkCsrfTokenMiddleware,
+  checkAdminAccessTokenMiddleware,
+  checkAdminExistenceMiddleware,
+  validateReqParams(adminUserIdParamsSchema),
+  suspendAdminUserController
+);
+
+router.route('/admin/users/:id/delete').patch(
+  checkCsrfTokenMiddleware,
+  checkAdminAccessTokenMiddleware,
+  checkAdminExistenceMiddleware,
+  validateReqParams(adminUserIdParamsSchema),
+  deleteAdminUserController
+);
 
 export default router;

@@ -57,7 +57,8 @@ export const exploreListService = async ({ query, userId }: IExploreListService)
   // Build Event Conditions
   const eventConditions: Prisma.Sql[] = [
     Prisma.sql`e."deactivatedAt" IS NULL`,
-    Prisma.sql`e."eventStatus" = 'UPCOMING'`
+    Prisma.sql`e."eventStatus" = 'UPCOMING'`,
+    Prisma.sql`e."endAt" > ${new Date()}`
   ];
   
   if (lat !== undefined && lng !== undefined) {

@@ -4694,7 +4694,7 @@ paths:
             maximum: 50
         - name: eventStatus
           in: query
-          description: When supplied, only Events matching that status are returned.
+          description: When supplied, only Events matching that status are returned. UPCOMING also excludes expired Events by requiring endAt to be later than the current time.
           schema:
             type: string
             enum: [UPCOMING, ONGOING, COMPLETED, CANCELED]
@@ -5361,7 +5361,7 @@ paths:
         - {}
         - bearerAuth: []
       summary: List Clubs and Events
-      description: Returns a paginated list of public Clubs and Events. Event results returned by public Explore are always restricted to active Events with eventStatus=UPCOMING. Deactivated Clubs are excluded. Note that Club prices (minPrice, maxPrice, and currency) are derived ONLY from active packages. If an optional bearer token is provided, each item will contain an `isWishlist` boolean indicator.
+      description: Returns a paginated list of public Clubs and Events. Event results returned by public Explore are always restricted to active Events with eventStatus=UPCOMING and endAt later than the current time, including when a date filter is supplied. Deactivated Clubs are excluded. Note that Club prices (minPrice, maxPrice, and currency) are derived ONLY from active packages. If an optional bearer token is provided, each item will contain an `isWishlist` boolean indicator.
       parameters:
         - name: type
           in: query
@@ -5592,7 +5592,7 @@ paths:
           }
         '422':
           {
-            description: Validation error,
+            description: Validation error or booking interval outside club opening hours (fixed CST). Overnight opening windows are supported; starting at opening and ending at closing are allowed.,
             content:
               {
                 application/json:
@@ -5655,7 +5655,7 @@ paths:
           }
         '422':
           {
-            description: Validation error,
+            description: Validation error or booking interval outside club opening hours (fixed CST). Overnight opening windows are supported; starting at opening and ending at closing are allowed.,
             content:
               {
                 application/json:
@@ -6247,3 +6247,156 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/users:
+    get:
+      summary: Get users for admin
+      operationId: getAdminUsers
+      tags:
+        - Admin
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+        - CsrfAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: string
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: string
+          description: Limit per page
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [USER, CLUB_OWNER]
+          description: Filter by role
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by email or name
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Users retrieved successfully
+                  meta:
+                    type: object
+                  data:
+                    type: array
+                    items:
+                      type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/users/{id}/suspend:
+    patch:
+      summary: Suspend or un-suspend a user
+      operationId: suspendAdminUser
+      tags:
+        - Admin
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+        - CsrfAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User suspended successfully
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+
+  /api/v1/admin/users/{id}/delete:
+    patch:
+      summary: Soft delete a user
+      operationId: deleteAdminUser
+      tags:
+        - Admin
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+        - CsrfAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: User deleted successfully
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found

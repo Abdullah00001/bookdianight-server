@@ -1,4 +1,48 @@
-import { Prisma } from '@prisma/client';
+import { ClubOpeningHour, Prisma } from '@prisma/client';
+
+/**
+ * Checks a fixed-CST booking interval against the current and previous day's
+ * opening windows so an overnight session remains bookable after midnight.
+ */
+export const isWithinClubOpeningHours = ({
+  openingHours,
+  startAt,
+  endAt,
+}: {
+  openingHours: ClubOpeningHour[];
+  startAt: Date;
+  endAt: Date;
+}): boolean => {
+  if (endAt <= startAt) return false;
+
+  return [0, -1].some((dayOffset) => {
+    const day = new Date(startAt);
+    day.setUTCHours(0, 0, 0, 0);
+    day.setUTCDate(day.getUTCDate() + dayOffset);
+    const hours = openingHours.find((entry) => entry.dayOfWeek === day.getUTCDay());
+    if (!hours || hours.isClosed || !hours.openTime || !hours.closeTime) {
+      return false;
+    }
+
+    const opensAt = new Date(day);
+    opensAt.setUTCHours(
+      hours.openTime.getUTCHours(),
+      hours.openTime.getUTCMinutes(),
+      hours.openTime.getUTCSeconds(),
+      0
+    );
+    const closesAt = new Date(day);
+    closesAt.setUTCHours(
+      hours.closeTime.getUTCHours(),
+      hours.closeTime.getUTCMinutes(),
+      hours.closeTime.getUTCSeconds(),
+      0
+    );
+    if (hours.closesNextDay) closesAt.setUTCDate(closesAt.getUTCDate() + 1);
+
+    return startAt >= opensAt && endAt <= closesAt;
+  });
+};
 
 /**
  * Parses a fixed -06:00 ISO input into the existing timestamp wall-clock representation.

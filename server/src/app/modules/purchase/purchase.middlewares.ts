@@ -5,6 +5,7 @@ import prisma from '@/app/configs/db.configs';
 import {
   calculateAge,
   currentFixedCstWallClock,
+  isWithinClubOpeningHours,
   parseFixedCstWallClock,
 } from '@/app/modules/purchase/purchase.helpers';
 
@@ -79,11 +80,27 @@ export const checkPurchasableClubPackageMiddleware = asyncHandler(
 export const checkPurchasableClubMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const clubId = (req.validatedQuery as { clubId: string }).clubId;
-    const club = await prisma.club.findUnique({ where: { id: clubId } });
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      include: { clubOpeningHours: true },
+    });
     if (!club || club.deactivatedAt) {
       res.status(404).json({
         success: false,
         message: 'Club not found or unavailable',
+        traceId: getTraceId(),
+      });
+      return;
+    }
+    const query = req.validatedQuery as { startAt: string; endAt: string };
+    if (!isWithinClubOpeningHours({
+      openingHours: club.clubOpeningHours,
+      startAt: parseFixedCstWallClock(query.startAt),
+      endAt: parseFixedCstWallClock(query.endAt),
+    })) {
+      res.status(422).json({
+        success: false,
+        message: 'Booking time must be within club opening hours',
         traceId: getTraceId(),
       });
       return;
@@ -258,6 +275,18 @@ export const checkClubPurchaseAvailabilityMiddleware = asyncHandler(
 
     const startAt = parseFixedCstWallClock(payload.startAt);
     const endAt = parseFixedCstWallClock(payload.endAt);
+    if (!isWithinClubOpeningHours({
+      openingHours: req.purchaseClubPackage!.club.clubOpeningHours,
+      startAt,
+      endAt,
+    })) {
+      res.status(422).json({
+        success: false,
+        message: 'Booking time must be within club opening hours',
+        traceId: getTraceId(),
+      });
+      return;
+    }
     const conflictingBooking = await prisma.clubBooking.findFirst({
       where: {
         clubPackageId: payload.clubPackageId,

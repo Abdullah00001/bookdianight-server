@@ -77,3 +77,18 @@ export const getDashboardQuerySchema = z.object({
  * Type for dashboard query.
  */
 export type TGetDashboardQuery = z.infer<typeof getDashboardQuerySchema>;
+
+export const getAdminUsersQuerySchema = z.object({
+  page: z.string().optional().default('1'),
+  limit: z.string().optional().default('10'),
+  role: z.enum(['USER', 'CLUB_OWNER']).optional(),
+  search: z.string().optional(),
+});
+
+export type TGetAdminUsersQuery = z.infer<typeof getAdminUsersQuerySchema>;
+
+export const adminUserIdParamsSchema = z.object({
+  id: z.string().uuid('Invalid user ID format'),
+});
+
+export type TAdminUserIdParams = z.infer<typeof adminUserIdParamsSchema>;

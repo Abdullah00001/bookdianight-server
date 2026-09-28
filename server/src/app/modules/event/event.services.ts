@@ -6,7 +6,7 @@ import {
   IGetEventDetailService,
 } from '@/app/modules/event/event.types';
 import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
-import { Event } from '@prisma/client';
+import { Event, Prisma } from '@prisma/client';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
 import { getEmailQueue } from '@/app/queues/email/email.queue';
 import { QUEUE_JOBS } from '@/const';
@@ -215,9 +215,12 @@ export const getEventListService = async ({
   const { page, limit, eventStatus, isActive } = query;
   const skip = (page - 1) * limit;
 
-  const where: any = { userId };
+  const where: Prisma.EventWhereInput = { userId };
   if (eventStatus !== undefined) {
     where.eventStatus = eventStatus;
+  }
+  if (eventStatus === 'UPCOMING') {
+    where.endAt = { gt: new Date() };
   }
   if (isActive !== undefined) {
     where.deactivatedAt = isActive ? null : { not: null };

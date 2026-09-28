@@ -16,6 +16,7 @@ enum AccountStatus {
   ACTIVE
   INACTIVE
   BLOCKED
+  DELETED
 }
 
 enum AccountRole {

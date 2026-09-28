@@ -13,7 +13,7 @@ const corsConfiguration: CorsOptions = {
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'ngrok-skip-browser-warning'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'ngrok-skip-browser-warning', 'X-CSRF-Token'],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 200,

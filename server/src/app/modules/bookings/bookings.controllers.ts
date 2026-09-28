@@ -2,6 +2,7 @@ import { env } from '@/env';
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
+import { getPresignedUrlFromS3 } from '@/app/utils/s3.utils';
 import { User } from '@prisma/client';
 import {
   retrieveLoggedInUserBookingsService,
@@ -130,6 +131,9 @@ export const retrieveLoggedInUserTicketFileController = asyncHandler(
       return;
     }
 
-    res.redirect(302, `${env.S3_PUBLIC_URL}/${result.data.storageKey}`);
+    const presignedUrl = await getPresignedUrlFromS3({
+      key: result.data.storageKey,
+    });
+    res.redirect(302, presignedUrl);
   }
 );

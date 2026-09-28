@@ -26,6 +26,7 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@prisma/client": "^6.19.2",
     "bullmq": "^5.67.2",
     "dotenv": "^17.4.2",

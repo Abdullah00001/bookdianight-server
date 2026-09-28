@@ -1,6 +1,7 @@
 import { createReadStream, statSync } from 'fs';
 
 import { DeleteObjectCommand, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { lookup } from 'mime-types';
 
 import s3Client from '@/app/configs/s3Client.configs';
@@ -69,5 +70,20 @@ export async function singleReadStreamFromS3({ key }: { key: string }) {
   } catch (error) {
     if (error instanceof Error) throw error;
     throw new Error('Unknown Error Occurred In S3 Single File Read Utility');
+  }
+}
+
+export async function getPresignedUrlFromS3({ key }: { key: string }): Promise<string> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: bucketName,
+      Key: key,
+    });
+    // URL expires in 30 minutes
+    const signedUrl = await getSignedUrl(s3Client as any, command as any, { expiresIn: 1800 });
+    return signedUrl;
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error('Unknown Error Occurred While Presigning S3 URL');
   }
 }

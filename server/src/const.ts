@@ -27,6 +27,8 @@ export const corsWhiteList = [
   'https://jump-look-speech-cam.trycloudflare.com',
   'https://jump-look-speech-cam.trycloudflare.com',
   'https://bookdianight.localbox.online',
+  'http://localhost:5173',
+  'https://bookdianight-admin.localbox.online',
 ];
 export const saltRound = 10;
 export const emailRegex = /^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/;

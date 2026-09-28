@@ -25,6 +25,7 @@
     "create:endpoint": "node server/scripts/create-endpoint.js"
   },
   "dependencies": {
+    "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@prisma/client": "^6.19.2",
     "prisma": "^6.19.2"
   },

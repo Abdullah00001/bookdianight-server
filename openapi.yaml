@@ -41,6 +41,15 @@ tags:
     description: Public Legal endpoints
   - name: Notification
     description: Endpoints for user push and in-app notifications
+  - name: Reviews
+    description: Endpoints for user reviews and ratings for Clubs
+  - name: Owner
+    description: Endpoints for Owner management
+  - name: Bookings
+    description: Endpoints for user bookings management
+  - name: Webhook
+    description: Endpoints for webhook management (stripe)
+
 components:
   securitySchemes:
     adminAuth:

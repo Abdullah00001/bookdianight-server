@@ -18,7 +18,7 @@ import { IExpireClubBookingHold } from '@/app/queues/system/system.types';
  * Reads active Club packages that have capacity and no active overlapping
  * booking for an already-validated fixed-CST interval.
  * @param query Validated Club availability query.
- * @returns Persisted ClubPackage records available for the requested interval.
+ * @returns Available packages and the reason when no table can be offered.
  */
 export const getClubPurchaseAvailabilityService = async ({
   query,
@@ -30,7 +30,7 @@ export const getClubPurchaseAvailabilityService = async ({
     const endAt = parseFixedCstWallClock(query.endAt);
 
     const realNow = new Date();
-    return await prisma.clubPackage.findMany({
+    const availablePackages = await prisma.clubPackage.findMany({
       where: {
         clubId: query.clubId,
         isActive: true,
@@ -48,6 +48,21 @@ export const getClubPurchaseAvailabilityService = async ({
       },
       orderBy: { sortOrder: 'asc' },
     });
+    if (availablePackages.length > 0) {
+      return { availablePackages, reason: 'AVAILABLE' as const, maxCapacity: null };
+    }
+
+    const capacity = await prisma.clubPackage.aggregate({
+      where: { clubId: query.clubId, isActive: true },
+      _max: { capacity: true },
+    });
+    const maxCapacity = capacity._max.capacity;
+    const reason = maxCapacity === null
+      ? 'NO_ACTIVE_TABLES'
+      : query.guestCount > maxCapacity
+        ? 'CAPACITY_EXCEEDED'
+        : 'TIME_UNAVAILABLE';
+    return { availablePackages, reason, maxCapacity } as const;
   } catch (error) {
     throw error;
   }

@@ -24,11 +24,18 @@ export const getClubPurchaseAvailabilityController = asyncHandler(
     const query = req.validatedQuery as TClubAvailabilityQuery;
     const traceId = getTraceId();
 
-    const availablePackages = await getClubPurchaseAvailabilityService({ query });
+    const { availablePackages, reason, maxCapacity } =
+      await getClubPurchaseAvailabilityService({ query });
+    const messages = {
+      AVAILABLE: 'Club availability retrieved successfully',
+      NO_ACTIVE_TABLES: 'No table found. This club has no active tables.',
+      CAPACITY_EXCEEDED: `No table found for ${query.guestCount} guests. Maximum table capacity is ${maxCapacity}.`,
+      TIME_UNAVAILABLE: 'No table found for the requested time interval.',
+    };
 
     res.status(200).json({
       success: true,
-      message: 'Club availability retrieved successfully',
+      message: messages[reason],
       data: { availablePackages },
       traceId,
     });

@@ -641,6 +641,10 @@ components:
         - type: object
           required: [data]
           properties:
+            message:
+              type: string
+              description: Empty results remain successful (HTTP 200). The message starts with "No table found" and explains whether the requested guest count exceeds the maximum active table capacity, suitable tables are unavailable for the interval, or the club has no active tables.
+              example: No table found for 12 guests. Maximum table capacity is 10.
             data:
               type: object
               required: [availablePackages]

@@ -3,7 +3,7 @@ import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { COOKIE_NAMES, adminAccessTokenExpiresIn, refreshTokenExpiresInWithRememberMe, AuthErrorType } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
-import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService } from '@/app/modules/admin/admin.services';
+import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService, getAdminDashboardService } from '@/app/modules/admin/admin.services';
 import { TAdminLoginPayload, TChangeAdminPasswordPayload, TUpdateCommissionPayload } from '@/app/modules/admin/admin.schema';
 import { comparePassword } from '@/app/utils/password.utils';
 import { User } from '@prisma/client';
@@ -307,6 +307,22 @@ export const getCommissionController = asyncHandler(
       success: true,
       message: 'Commission configuration retrieved successfully',
       data: data.commission,
+      traceId
+    });
+    return;
+  }
+);
+
+export const getAdminDashboardController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const query = req.query as any;
+    const dashboardData = await getAdminDashboardService({ query });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Dashboard data retrieved successfully',
+      data: dashboardData,
       traceId
     });
     return;

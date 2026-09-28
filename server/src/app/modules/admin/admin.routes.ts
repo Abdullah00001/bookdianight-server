@@ -9,8 +9,9 @@ import {
   changeAdminPasswordController,
   updateCommissionController,
   getCommissionController,
+  getAdminDashboardController,
 } from '@/app/modules/admin/admin.controllers';
-import { validateReqBody } from '@/app/utils/system.utils';
+import { validateReqBody, validateReqQuery } from '@/app/utils/system.utils';
 import { adminLoginSchema } from '@/app/modules/admin/admin.schema';
 import {
   checkCsrfTokenMiddleware,
@@ -28,6 +29,7 @@ import {
   updateAdminProfileSchema,
   changeAdminPasswordSchema,
   updateCommissionSchema,
+  getDashboardQuerySchema,
 } from '@/app/modules/admin/admin.schema';
 
 const router = Router();
@@ -108,6 +110,16 @@ router
     checkAdminExistenceMiddleware,
     validateReqBody(updateCommissionSchema),
     updateCommissionController
+  );
+
+router
+  .route('/admin/dashboard')
+  .get(
+    checkCsrfTokenMiddleware,
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    validateReqQuery(getDashboardQuerySchema),
+    getAdminDashboardController
   );
 
 export default router;

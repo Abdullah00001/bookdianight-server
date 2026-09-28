@@ -347,3 +347,85 @@ export const getCommissionService = async (): Promise<Record<string, unknown>> =
     throw error;
   }
 };
+
+import { TGetDashboardQuery } from '@/app/modules/admin/admin.schema';
+
+export const getAdminDashboardService = async ({
+  query,
+}: {
+  query: TGetDashboardQuery;
+}) => {
+  try {
+    const currentYear = new Date().getFullYear();
+    const queryYear = query.year ? parseInt(query.year, 10) : currentYear;
+
+    // 1. Calculate Total Users & Club Owners (Independent of query)
+    const [totalUsers, totalClubOwners] = await Promise.all([
+      prisma.user.count({ where: { accountRole: 'USER' } }),
+      prisma.user.count({ where: { accountRole: 'CLUB_OWNER' } }),
+    ]);
+
+    // 2. Calculate Total Earnings (Independent of query)
+    const paidOrders = await prisma.order.aggregate({
+      where: { status: 'PAID' },
+      _sum: {
+        commissionAmount: true,
+        serviceChargeAmount: true,
+      },
+    });
+
+    const totalEarning =
+      (Number(paidOrders._sum.commissionAmount) || 0) +
+      (Number(paidOrders._sum.serviceChargeAmount) || 0);
+
+    // 3. Available Years (Extract distinct years from User creation dates)
+    // Prisma does not have DISTINCT YEAR easily, we'll fetch oldest user date
+    const oldestUser = await prisma.user.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    });
+    
+    const oldestYear = oldestUser ? oldestUser.createdAt.getFullYear() : currentYear;
+    const availableYears = [];
+    for (let y = currentYear; y >= oldestYear; y--) {
+      availableYears.push(y);
+    }
+
+    // 4. User Management Chart Data (Group by Month for the Given Year)
+    const roleFilter = query.role ? query.role : { in: ['USER' as any, 'CLUB_OWNER' as any] };
+    
+    const usersThisYear = await prisma.user.findMany({
+      where: {
+        accountRole: roleFilter,
+        createdAt: {
+          gte: new Date(`${queryYear}-01-01T00:00:00.000Z`),
+          lte: new Date(`${queryYear}-12-31T23:59:59.999Z`),
+        },
+      },
+      select: { createdAt: true },
+    });
+
+    // Initialize all 12 months with 0
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const chartData = Array.from({ length: 12 }, (_, i) => ({
+      name: monthNames[i],
+      users: 0,
+    }));
+
+    // Populate chart data
+    usersThisYear.forEach((user) => {
+      const monthIndex = user.createdAt.getMonth(); // 0 - 11
+      chartData[monthIndex].users += 1;
+    });
+
+    return {
+      availableYears,
+      totalEarning,
+      totalUsers,
+      totalClubOwners,
+      userManagementChart: chartData,
+    };
+  } catch (error) {
+    throw error;
+  }
+};

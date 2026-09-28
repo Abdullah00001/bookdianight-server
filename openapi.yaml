@@ -3603,6 +3603,95 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/admin/dashboard:
+    get:
+      tags:
+        - Admin Auth
+      summary: Get Admin Dashboard Data
+      operationId: getAdminDashboard
+      description: Retrieves high-level dashboard statistics and charting data (total earnings, total users, total club owners, user registration chart).
+      security:
+        - adminAuth: []
+      parameters:
+        - in: query
+          name: year
+          schema:
+            type: string
+            pattern: '^\d{4}$'
+          required: false
+          description: Year for chart data filtering (defaults to current year)
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [USER, CLUB_OWNER]
+          required: false
+          description: Role filter for chart data (defaults to both)
+      responses:
+        '200':
+          description: Dashboard data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Dashboard data retrieved successfully
+                  data:
+                    type: object
+                    properties:
+                      availableYears:
+                        type: array
+                        items:
+                          type: number
+                      totalEarning:
+                        type: number
+                      totalUsers:
+                        type: number
+                      totalClubOwners:
+                        type: number
+                      userManagementChart:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              example: Jan
+                            users:
+                              type: number
+                              example: 10
+                  traceId:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+        '400':
+          description: Bad request (Invalid query parameters)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/admin/commission:
     get:
       tags:

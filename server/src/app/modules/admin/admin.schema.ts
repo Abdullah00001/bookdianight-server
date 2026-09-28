@@ -64,3 +64,16 @@ export const updateCommissionSchema = z
  * Type for updating commission configuration.
  */
 export type TUpdateCommissionPayload = z.infer<typeof updateCommissionSchema>;
+
+/**
+ * Schema for dashboard query.
+ */
+export const getDashboardQuerySchema = z.object({
+  year: z.string().regex(/^\d{4}$/, 'Invalid year format').optional(),
+  role: z.enum(['USER', 'CLUB_OWNER']).optional(),
+});
+
+/**
+ * Type for dashboard query.
+ */
+export type TGetDashboardQuery = z.infer<typeof getDashboardQuerySchema>;

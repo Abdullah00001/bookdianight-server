@@ -3,8 +3,8 @@ import { z } from 'zod';
 export const clubOpeningHourSchema = z.object({
   dayOfWeek: z.number().int().min(0).max(6),
   isClosed: z.boolean(),
-  openTime: z.date().nullable().optional(),
-  closeTime: z.date().nullable().optional(),
+  openTime: z.coerce.date().nullable().optional(),
+  closeTime: z.coerce.date().nullable().optional(),
   closesNextDay: z.boolean(),
 }); 
 

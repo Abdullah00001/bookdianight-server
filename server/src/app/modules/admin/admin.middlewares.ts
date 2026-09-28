@@ -150,6 +150,13 @@ export const checkAdminExistenceMiddleware = asyncHandler(
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      include:{
+        profile:{
+          select:{
+            profileAvatar:true,
+          }
+        }
+      }
     });
 
     if (!user) {
@@ -191,7 +198,6 @@ export const checkAdminExistenceMiddleware = asyncHandler(
       });
       return;
     }
-
     req.user = user;
     next();
   }

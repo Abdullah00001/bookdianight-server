@@ -25,11 +25,13 @@ import {
   ICheckAccessTokenService,
   ILoginService,
   ILogoutService,
+  IOAuthLoginService,
   IResendOtpService,
   ISignupService,
   IVerifySignupUserService,
 } from '@/app/modules/auth/auth.types';
 import { JwtPayload } from 'jsonwebtoken';
+import { OAuthLoginServiceDTO } from './auth.dto';
 
 /**
  * Service for user signup.
@@ -364,7 +366,7 @@ export const loginService = async ({
         emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailQueueData),
       ]);
 
-      return { token };
+      return { token, role: user.accountRole, isUserVerified: user.isVerified };
     }
 
     // Update location for verified users too
@@ -415,7 +417,11 @@ export const loginService = async ({
       rememberMe: rememberMe ?? false,
     });
 
-    return { token: accessToken, role: user.accountRole };
+    return {
+      token: accessToken,
+      role: user.accountRole,
+      isUserVerified: user.isVerified,
+    };
   } catch (error) {
     throw error;
   }
@@ -463,6 +469,130 @@ export const logoutService = async ({
     }
 
     return;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const oAuthLoginService = async ({
+  user,
+  payload,
+}: IOAuthLoginService): Promise<OAuthLoginServiceDTO> => {
+  try {
+    const { deviceIdentifier, platform, fcmToken, provider, lat, lng } =
+      payload;
+
+    const redisClient = getRedisClient();
+
+    // 4. Handle Unverified Users
+    if (!user.isVerified) {
+      // Reuse existing OTP mechanism if not verified
+      const traceId = getTraceId();
+      const emailQueue = getEmailQueue();
+
+      const otp = generate(6, {
+        digits: true,
+        lowerCaseAlphabets: false,
+        specialChars: false,
+        upperCaseAlphabets: false,
+      });
+      const hashedOtp = hashOtp({ otp });
+
+      const token = generateOtpPageToken({
+        accountStatus: user.accountStatus,
+        role: user.accountRole,
+        isVerified: user.isVerified,
+        sub: user.id,
+        deviceId: 'pending',
+      });
+
+      const emailQueueData = {
+        name: user.name,
+        email: user.email,
+        otp,
+        otpExpireAt,
+        traceId,
+      };
+
+      await Promise.all([
+        redisClient.set(
+          createRedisKey(REDIS_PREFIXES.otp, user.id),
+          hashedOtp,
+          'EX',
+          calculateMilliseconds(otpExpireAt, 'minutes')
+        ),
+        redisClient.set(
+          createRedisKey(REDIS_PREFIXES.location, user.id),
+          JSON.stringify({ lat, lng }),
+          'EX',
+          calculateMilliseconds(locationExpireAt, 'days')
+        ),
+        redisClient.geoadd(
+          createRedisKey(REDIS_PREFIXES.locations),
+          lat,
+          lng,
+          user.id
+        ),
+        emailQueue.add(QUEUE_JOBS.RESEND_VERIFICATION_OTP, emailQueueData),
+      ]);
+
+      return { token, role: user.accountRole, isUserVerified: user.isVerified };
+    }
+
+    // Update location for verified users too
+    await Promise.all([
+      redisClient.set(
+        createRedisKey(REDIS_PREFIXES.location, user.id),
+        JSON.stringify({ lat, lng }),
+        'EX',
+        calculateMilliseconds(locationExpireAt, 'days')
+      ),
+      redisClient.geoadd(
+        createRedisKey(REDIS_PREFIXES.locations),
+        lat,
+        lng,
+        user.id
+      ),
+    ]);
+
+    // 5 & 6. Resolve and manage Device
+    // We upsert: if it doesn't exist, create it (CASE A).
+    // If it exists (CASE B or CASE C), update it and reassign userId.
+    const device = await prisma.device.upsert({
+      where: { deviceIdentifier },
+      create: {
+        deviceIdentifier,
+        fcmToken: fcmToken || null,
+        platform,
+        authProvider: provider,
+        userId: user.id,
+        isActive: true,
+      },
+      update: {
+        userId: user.id, // Handles CASE C (reassignment) silently, and is a no-op for CASE B
+        authProvider: provider,
+        platform,
+        lastSeenAt: new Date(),
+        isActive: true,
+        ...(fcmToken ? { fcmToken } : {}), // Update fcmToken only if provided
+      },
+    });
+
+    // 7. Generate access JWT with Device.id
+    const accessToken = generateAccessTokenForUser({
+      accountStatus: user.accountStatus,
+      role: user.accountRole,
+      isVerified: user.isVerified,
+      sub: user.id,
+      deviceId: device.id,
+      rememberMe: true,
+    });
+
+    return {
+      token: accessToken,
+      role: user.accountRole,
+      isUserVerified: user.isVerified,
+    };
   } catch (error) {
     throw error;
   }

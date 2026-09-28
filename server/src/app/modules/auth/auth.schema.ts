@@ -87,7 +87,6 @@ export const loginSchema = z
  */
 export type TLoginPayload = z.infer<typeof loginSchema>;
 
-
 /**
  * Schema for user logout.
  */
@@ -101,3 +100,23 @@ export const logoutSchema = z
  * Type for user logout.
  */
 export type TLogoutPayload = z.infer<typeof logoutSchema>;
+
+/**
+ * Schema for oAuth login.
+ */
+export const oAuthLoginSchema = z
+  .object({
+    email: z.email('Invalid email'),
+    deviceIdentifier: z.string().min(1, 'Device Identifier is required'),
+    platform: z.enum(['ANDROID', 'IOS']),
+    provider: z.enum(['GOOGLE', 'APPLE']),
+    fcmToken: z.string().optional(),
+    lat: z.number(),
+    lng: z.number(),
+  })
+  .strict();
+
+/** 
+ * Type for oAuth login.
+ */
+export type TOAuthLoginPayload = z.infer<typeof oAuthLoginSchema>;

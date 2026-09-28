@@ -4,6 +4,7 @@ import {
   TSignupPayload,
   TVerifySignupUserPayload,
   TLogoutPayload,
+  TOAuthLoginPayload,
 } from '@/app/modules/auth/auth.schema';
 import { User, Device } from '@prisma/client';
 import { ITokenPayload } from '@/app/@types/jwt.types';
@@ -51,4 +52,9 @@ export interface ILogoutService {
   jwtPayload: ITokenPayload;
   token: string;
   device: Device;
+}
+
+export interface IOAuthLoginService {
+  user: User;
+  payload: TOAuthLoginPayload;
 }

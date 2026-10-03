@@ -27,6 +27,7 @@
   "dependencies": {
     "@aws-sdk/s3-request-presigner": "^3.1141.0",
     "@prisma/client": "^6.19.2",
+    "geo-tz": "^8.1.9",
     "prisma": "^6.19.2"
   },
   "repository": {

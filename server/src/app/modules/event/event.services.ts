@@ -39,6 +39,27 @@ export const createEventService = async ({
 
     return event;
   });
+
+  // 3. Dispatch delayed jobs for status updates
+  const systemQueue = getSystemQueue();
+  
+  // Job to mark as ONGOING
+  const startDelay = new Date(event.startAt).getTime() - Date.now();
+  if (startDelay > 0) {
+    await systemQueue.add(QUEUE_JOBS.MAKE_EVENT_ONGOING, { eventId: event.id }, { delay: startDelay });
+  } else {
+    await systemQueue.add(QUEUE_JOBS.MAKE_EVENT_ONGOING, { eventId: event.id });
+  }
+
+  // Job to mark as COMPLETED
+  const endDelay = new Date(event.endAt).getTime() - Date.now();
+  if (endDelay > 0) {
+    await systemQueue.add(QUEUE_JOBS.MAKE_EVENT_COMPLETED, { eventId: event.id }, { delay: endDelay });
+  } else {
+    await systemQueue.add(QUEUE_JOBS.MAKE_EVENT_COMPLETED, { eventId: event.id });
+  }
+
+  return event;
 };
 
 /**

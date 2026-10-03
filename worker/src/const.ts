@@ -24,6 +24,8 @@ export const emailInformation = {
  */
 export const QUEUE_JOBS = {
   // AUTO-GENERATED-JOBS-START
+  MAKE_EVENT_COMPLETED: 'make-event-completed',
+  MAKE_EVENT_ONGOING: 'make-event-ongoing',
   SEND_FCM_NOTIFICATION: 'send-fcm-notification',
   EXPIRE_CLUB_BOOKING_HOLD: 'expire-club-booking-hold',
   RECOVER_USER_VERIFICATION_OTP_RESEND: 'recover-user-verification-otp-resend',

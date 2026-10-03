@@ -21,9 +21,9 @@ export const createEventService = async ({
   userId,
   payload,
 }: ICreateEventService): Promise<Event> => {
-  return await prisma.$transaction(async (tx) => {
+  const event = await prisma.$transaction(async (tx) => {
     // 1. Create the Event record
-    const event = await tx.event.create({
+    const newEvent = await tx.event.create({
       data: {
         ...payload,
         userId,
@@ -34,10 +34,10 @@ export const createEventService = async ({
     await tx.$executeRaw`
       UPDATE "Event" 
       SET geog = ST_SetSRID(ST_MakePoint(${payload.lng}, ${payload.lat}), 4326)::geography 
-      WHERE id = ${event.id}
+      WHERE id = ${newEvent.id}
     `;
 
-    return event;
+    return newEvent;
   });
 
   // 3. Dispatch delayed jobs for status updates

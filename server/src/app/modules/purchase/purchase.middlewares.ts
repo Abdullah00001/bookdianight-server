@@ -8,6 +8,7 @@ import {
   isWithinClubOpeningHours,
   parseFixedCstWallClock,
 } from '@/app/modules/purchase/purchase.helpers';
+import { Gender } from '@prisma/client';
 
 /**
  * This middleware validates and attaches the idempotency key to the request.
@@ -216,7 +217,7 @@ export const checkEventPurchaseIdempotencyMiddleware = asyncHandler(
       friends: Array<{
         name: string;
         phoneNumber: string;
-        gender: string;
+        gender: Gender;
         age: number;
         image?: string;
       }>;

@@ -1,3 +1,4 @@
+import { Gender } from '@prisma/client';
 import { z } from 'zod';
 
 const fixedCstDateTime = z
@@ -38,7 +39,7 @@ export const friendSchema = z
   .object({
     name: z.string().trim().min(1),
     phoneNumber: z.string().trim().min(1),
-    gender: z.enum(['MALE', 'FEMALE', 'OTHER']),
+    gender: z.nativeEnum(Gender),
     age: z.number().int().positive(),
     image: z.url().optional(),
   })

@@ -19,7 +19,7 @@ import {
 } from '@/app/modules/admin/admin.types';
 import crypto from 'crypto';
 import { ITokenPayload } from '@/app/@types/jwt.types';
-import { ApplicationCharge, Prisma } from '@prisma/client';
+import { ApplicationCharge, Prisma, AccountStatus } from '@prisma/client';
 
 const serializeCommission = (charge: ApplicationCharge) => ({
   ...charge,
@@ -610,7 +610,7 @@ export const deleteAdminUserService = async ({ params }: { params: TAdminUserIdP
     await prisma.user.update({
       where: { id: params.id },
       data: { 
-        accountStatus: 'DELETED',
+        accountStatus: AccountStatus.DELETED,
         email: deletedEmail
       }
     });

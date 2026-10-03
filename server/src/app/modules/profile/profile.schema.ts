@@ -8,7 +8,7 @@ export const updateProfileSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
   phoneNumber: z.string().min(1, 'Phone number is required').optional(),
   location: z.string().optional(),
-  gender: z.enum(Gender).optional(),
+  gender: z.nativeEnum(Gender).optional(),
   dateOfBirth: z.iso.datetime().optional(),
   profileAvatar: z.url('Invalid avatar URL').optional(),
   profileCover: z.url('Invalid cover URL').optional(),

@@ -4,6 +4,7 @@ import {
 } from '@/app/modules/bookings/bookings.schema';
 import { exploreDetailService } from '@/app/modules/explore/explore.services';
 import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
+import { Gender } from '@prisma/client';
 
 export type TBookingListItem = ILightweightExploreItem &
   { purchaseDate: Date } &
@@ -66,7 +67,7 @@ export interface IBookingDetailResponse {
       attendees: Array<{
         id: string;
         name: string;
-        gender: string;
+        gender: Gender | null;
         age: string;
         phoneNumber: string;
       }>;

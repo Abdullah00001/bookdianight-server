@@ -1,3 +1,4 @@
+import { Gender } from '@prisma/client';
 import { z } from 'zod';
 
 /**
@@ -16,7 +17,7 @@ export const signupSchema = z
     lat: z.number(),
     lng: z.number(),
     platform: z.enum(['ANDROID', 'IOS']),
-    gender: z.enum(['MALE', 'FEMALE', 'OTHER']).optional(),
+    gender: z.nativeEnum(Gender).optional(),
     dateOfBirth: z.coerce.date().optional(),
   })
   .strict();

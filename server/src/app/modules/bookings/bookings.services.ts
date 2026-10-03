@@ -350,7 +350,7 @@ export const retrieveLoggedInUserSingleBookingsService = async ({
           attendees: eventPurchase.attendees.map((a) => ({
             id: a.id,
             name: a.name,
-            gender: a.gender || '',
+            gender: a.gender,
             age: a.age ? String(a.age) : '',
             phoneNumber: a.phoneNumber,
           })),

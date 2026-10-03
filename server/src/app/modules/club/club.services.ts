@@ -8,6 +8,7 @@ import {
 import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { Club } from '@prisma/client';
 import { TAdminClubListQuery } from '@/app/modules/club/club.schema';
+import { sendPushNotification, getUsersNearby } from '@/app/modules/notification/notification.helpers';
 
 /**
  * Service for creating a Club.
@@ -34,9 +35,9 @@ export const createClubService = async ({
     }
   }
 
-  return await prisma.$transaction(async (tx) => {
+  const club = await prisma.$transaction(async (tx) => {
     // 1. Create the base Club record
-    const club = await tx.club.create({
+    const newClub = await tx.club.create({
       data: {
         ...clubData,
         userId,
@@ -47,14 +48,14 @@ export const createClubService = async ({
     await tx.$executeRaw`
       UPDATE "Club" 
       SET geog = ST_SetSRID(ST_MakePoint(${clubData.lng}, ${clubData.lat}), 4326)::geography 
-      WHERE id = ${club.id}
+      WHERE id = ${newClub.id}
     `;
 
     // 3. Create Opening Hours
     if (openingHours && openingHours.length > 0) {
       const hoursData = openingHours.map((hour) => ({
         ...hour,
-        clubId: club.id,
+        clubId: newClub.id,
       }));
       await tx.clubOpeningHour.createMany({
         data: hoursData,
@@ -65,15 +66,63 @@ export const createClubService = async ({
     if (packages && packages.length > 0) {
       const packageData = packages.map((pkg) => ({
         ...pkg,
-        clubId: club.id,
+        clubId: newClub.id,
       }));
       await tx.clubPackage.createMany({
         data: packageData,
       });
     }
 
-    return club;
+    return newClub;
   });
+
+  // 5. Notify users within 5 km — fire-and-forget, must not block the response
+  void notifyNearbyUsersOfNewClub({ club, creatorUserId: userId });
+
+  return club;
+};
+
+
+// --- Post-creation: notify nearby users ---
+const notifyNearbyUsersOfNewClub = async ({
+  club,
+  creatorUserId,
+}: {
+  club: Club;
+  creatorUserId: string;
+}) => {
+  try {
+    const nearbyUserIds = await getUsersNearby({
+      lat: club.lat,
+      lng: club.lng,
+      radiusKm: 5,
+      excludeUserId: creatorUserId,
+    });
+
+    if (nearbyUserIds.length === 0) return;
+
+    const CHUNK = 500;
+    for (let i = 0; i < nearbyUserIds.length; i += CHUNK) {
+      const chunk = nearbyUserIds.slice(i, i + CHUNK);
+      await sendPushNotification({
+        userIds: chunk,
+        notificationType: 'NEW_CLUB',
+        title: 'New Club Near You! 🎶',
+        description: `'${club.name}' just opened nearby. Check it out!`,
+        metaData: { clubId: club.id },
+      });
+      await sendPushNotification({
+        userIds: chunk,
+        notificationType: 'NEW_CLUB_NEARBY',
+        title: 'Club Nearby 📍',
+        description: `A new club '${club.name}' is now available within 5 km of you!`,
+        metaData: { clubId: club.id },
+      });
+    }
+  } catch (err) {
+    const { default: logger } = await import('@/app/configs/logger.configs');
+    logger.error('[createClubService] Failed to send nearby notifications', err);
+  }
 };
 
 /**

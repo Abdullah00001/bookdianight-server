@@ -11,7 +11,7 @@ import { Event, Prisma } from '@prisma/client';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
 import { getEmailQueue } from '@/app/queues/email/email.queue';
 import { QUEUE_JOBS } from '@/const';
-import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
+import { sendPushNotification, getUsersNearby } from '@/app/modules/notification/notification.helpers';
 
 /**
  * Service for creating an Event.
@@ -58,6 +58,42 @@ export const createEventService = async ({
     await systemQueue.add(QUEUE_JOBS.MAKE_EVENT_COMPLETED, { eventId: event.id }, { delay: endDelay });
   } else {
     await systemQueue.add(QUEUE_JOBS.MAKE_EVENT_COMPLETED, { eventId: event.id });
+  }
+
+  // 4. Notify nearby users (5 km radius)
+  try {
+    const nearbyUserIds = await getUsersNearby({
+      lat: event.lat,
+      lng: event.lng,
+      radiusKm: 5,
+      excludeUserId: userId, // Don't notify the creator
+    });
+
+    if (nearbyUserIds.length > 0) {
+      // Fan out in chunks of 500 to keep BullMQ payloads manageable
+      const CHUNK = 500;
+      for (let i = 0; i < nearbyUserIds.length; i += CHUNK) {
+        const chunk = nearbyUserIds.slice(i, i + CHUNK);
+        await sendPushNotification({
+          userIds: chunk,
+          notificationType: 'NEW_EVENT',
+          title: 'New Event Near You! 🎉',
+          description: `'${event.eventName}' is happening nearby on ${new Date(event.startAt).toLocaleDateString()}.`,
+          metaData: { eventId: event.id },
+        });
+        await sendPushNotification({
+          userIds: chunk,
+          notificationType: 'NEW_EVENT_NEARBY',
+          title: 'Event Nearby 📍',
+          description: `A new event '${event.eventName}' is taking place within 5 km of you!`,
+          metaData: { eventId: event.id },
+        });
+      }
+    }
+  } catch (notifyErr) {
+    // WHY: Notification failure must never break the event creation response.
+    const { default: logger } = await import('@/app/configs/logger.configs');
+    logger.error('[createEventService] Failed to send nearby notifications', notifyErr);
   }
 
   return event;

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import QRCode from 'qrcode';
 import Handlebars from 'handlebars';
 import clubTicketTemplate from '@/app/templates/clubTicket.template';
 import eventTicketTemplate from '@/app/templates/eventTicket.template';
@@ -116,6 +117,14 @@ const handler: IJobHandler = {
       };
       const ticketType = order.serviceType;
 
+      const qrCodeDataUri = await QRCode.toDataURL(order.id, {
+        margin: 1,
+        color: {
+          dark: '#000000',
+          light: '#ffffff',
+        },
+      });
+
       let renderedHtml = '';
 
       if (order.serviceType === 'CLUB' && order.clubBooking) {
@@ -133,6 +142,7 @@ const handler: IJobHandler = {
             totalGuests: cb.guestCount,
           },
           paymentInformation,
+          qrCodeDataUri,
         });
       } else if (order.serviceType === 'EVENT' && order.eventPurchase) {
         const ep = order.eventPurchase;
@@ -158,6 +168,7 @@ const handler: IJobHandler = {
           },
           attendees,
           paymentInformation,
+          qrCodeDataUri,
         });
       } else {
         throw new Error(

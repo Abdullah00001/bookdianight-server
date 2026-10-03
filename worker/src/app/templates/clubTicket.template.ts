@@ -227,6 +227,11 @@ const clubTicketTemplate = `
         <div class="ticket-tag">
           <div class="label">Order ID</div>
           <div class="order-id">#{{buyerInformation.orderId}}</div>
+          {{#if qrCodeDataUri}}
+          <div style="margin-top: 2mm; background: white; padding: 2px; border-radius: 4px;">
+            <img src="{{qrCodeDataUri}}" alt="QR Code" style="width: 25mm; height: 25mm; display: block;" />
+          </div>
+          {{/if}}
         </div>
       </div>
 

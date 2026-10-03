@@ -76,3 +76,17 @@ export interface IOwnerDashboardResult {
   thisMonthEarnings: number;
   recentBookings: ILightweightExploreItem[];
 }
+
+export interface IVerifyTicketService {
+  userId: string;
+  orderId: string;
+}
+
+export interface IVerifyTicketResult {
+  orderId: string;
+  checkedInAt: Date;
+  status: string;
+  buyerName: string;
+  serviceType: string;
+  details: any;
+}

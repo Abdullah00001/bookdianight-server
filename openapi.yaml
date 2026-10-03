@@ -6404,3 +6404,85 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: User not found
+  /api/v1/owner/verify-ticket:
+    post:
+      summary: Verify a ticket via QR Code
+      description: Verifies a ticket via the order ID scanned from a QR code. Returns the ticket details and marks it as checked in.
+      tags:
+        - Owner
+      operationId: verifyTicket
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+              properties:
+                orderId:
+                  type: string
+                  format: uuid
+                  description: The Order ID extracted from the QR code.
+      responses:
+        '200':
+          description: Ticket successfully verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+                        format: uuid
+                      checkedInAt:
+                        type: string
+                        format: date-time
+                      status:
+                        type: string
+                      buyerName:
+                        type: string
+                      serviceType:
+                        type: string
+                      details:
+                        type: object
+                        description: Contains ClubBooking or EventPurchase details depending on serviceType
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

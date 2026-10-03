@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { User } from '@prisma/client';
-import { getOwnerDashboardService, getOwnerEarningsService, getOwnerPaymentsService } from '@/app/modules/owner/owner.services';
+import { getOwnerDashboardService, getOwnerEarningsService, getOwnerPaymentsService, verifyTicketService } from '@/app/modules/owner/owner.services';
 import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 
 export const getOwnerDashboardController = asyncHandler(
@@ -65,6 +65,27 @@ export const getOwnerPaymentsController = asyncHandler(
         links,
       },
       data,
+      traceId,
+    });
+  }
+);
+
+export const verifyTicketController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const user = req.user as User;
+
+    const { orderId } = req.body as { orderId: string };
+
+    const result = await verifyTicketService({
+      userId: user.id,
+      orderId,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Ticket successfully verified.',
+      data: result,
       traceId,
     });
   }

@@ -409,6 +409,7 @@ model Order {
   sellerEarnings      Decimal     @db.Decimal(10, 2)
   currency            String
   idempotencyKey      String
+  checkedInAt         DateTime?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 

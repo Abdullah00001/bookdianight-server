@@ -337,3 +337,55 @@ export const getOwnerPaymentsService = async ({
     data,
   };
 };
+export const verifyTicketService = async ({
+  userId,
+  orderId,
+}: import('@/app/modules/owner/owner.types').IVerifyTicketService): Promise<import('@/app/modules/owner/owner.types').IVerifyTicketResult> => {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      clubBooking: true,
+      eventPurchase: {
+        include: {
+          attendees: true,
+        },
+      },
+    },
+  });
+
+  if (!order) {
+    throw new Error('Ticket not found');
+  }
+
+  if (order.sellerUserId !== userId) {
+    throw new Error('Unauthorized to verify this ticket');
+  }
+
+  if (order.status !== 'PAID' || order.refund) {
+    throw new Error('Ticket is not valid for entry (status: ' + (order.refund ? 'REFUNDED' : order.status) + ')');
+  }
+
+  if (order.checkedInAt) {
+    throw new Error('Ticket has already been used on ' + order.checkedInAt.toISOString());
+  }
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: orderId },
+    data: { checkedInAt: new Date() },
+    include: {
+      clubBooking: true,
+      eventPurchase: {
+        include: { attendees: true },
+      },
+    },
+  });
+
+  return {
+    orderId: updatedOrder.id,
+    checkedInAt: updatedOrder.checkedInAt!,
+    status: 'VERIFIED',
+    buyerName: updatedOrder.buyerName,
+    serviceType: updatedOrder.serviceType,
+    details: updatedOrder.serviceType === 'CLUB' ? updatedOrder.clubBooking : updatedOrder.eventPurchase,
+  };
+};

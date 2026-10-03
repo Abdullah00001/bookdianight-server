@@ -24,3 +24,7 @@ export const ownerPaymentsQuerySchema = z
       path: ['type'],
     }
   );
+
+export const verifyTicketSchema = z.object({
+  orderId: z.string().uuid(),
+});

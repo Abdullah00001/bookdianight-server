@@ -4,6 +4,7 @@ import {
   updateEventController,
   getEventListController,
   getEventDetailController,
+  retrieveEventsForAdminController,
 } from '@/app/modules/event/event.controllers';
 import {
   createEventSchema,
@@ -24,6 +25,12 @@ import {
 } from '@/app/modules/auth/auth.middlewares';
 import { checkConnectReadinessMiddleware } from '@/app/modules/connect/connect.middlewares';
 import { checkEventCancellationValidityMiddleware } from '@/app/modules/event/event.middlewares';
+import {
+  checkAdminAccessTokenMiddleware,
+  checkAdminExistenceMiddleware,
+  checkCsrfTokenMiddleware,
+} from '@/app/modules/admin/admin.middlewares';
+import { eventListQuerySchemaForAdmin } from '@/app/modules/event/event.schema';
 
 const router = Router();
 
@@ -72,5 +79,15 @@ router.get(
   validateReqParams(eventIdParamsSchema),
   getEventDetailController
 );
+
+router
+  .route('/admin/event')
+  .get(
+    checkCsrfTokenMiddleware,
+    checkAdminAccessTokenMiddleware,
+    checkAdminExistenceMiddleware,
+    validateReqQuery(eventListQuerySchemaForAdmin),
+    retrieveEventsForAdminController
+  );
 
 export default router;

@@ -80,3 +80,12 @@ export const eventListQuerySchema = z.object({
 });
 
 export type TEventListQuery = z.infer<typeof eventListQuerySchema>;
+
+export const eventListQuerySchemaForAdmin = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+  eventStatus: eventStatusEnum.optional(),
+});
+export type TEventListQueryForAdmin = z.infer<
+  typeof eventListQuerySchemaForAdmin
+>;

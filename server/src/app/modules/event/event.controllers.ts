@@ -2,16 +2,12 @@ import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { User } from '@prisma/client';
-import {
-  createEventService,
-  updateEventService,
-  getEventListService,
-  getEventDetailService,
-} from '@/app/modules/event/event.services';
+import { createEventService, updateEventService, getEventListService, getEventDetailService, retrieveEventsForAdminService } from '@/app/modules/event/event.services';
 import {
   TCreateEventPayload,
   TUpdateEventPayload,
   TEventListQuery,
+  TEventListQueryForAdmin,
 } from '@/app/modules/event/event.schema';
 import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 
@@ -122,5 +118,34 @@ export const getEventDetailController = asyncHandler(
       data: event,
       traceId,
     });
+  }
+);
+
+/**
+ * This controller is used by admin to retrieve all events.
+ * @param req
+ * @param res
+ */
+export const retrieveEventsForAdminController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const query = (req.validatedQuery || req.query) as unknown as TEventListQueryForAdmin;
+    const { data, total, page, limit } = await retrieveEventsForAdminService({ query });
+    
+    const totalPages = Math.ceil(total / limit);
+    const links = buildPaginationLinks(req, page, totalPages);
+
+    res.status(200).json({
+      success: true,
+      message: 'All event retrieve successful for admin',
+      meta: {
+        total,
+        totalPages,
+        links,
+      },
+      data,
+      traceId
+    });
+    return;
   }
 );

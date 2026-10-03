@@ -5,6 +5,7 @@ import {
   IGetEventListService,
   IGetEventDetailService,
 } from '@/app/modules/event/event.types';
+import { TEventListQueryForAdmin } from '@/app/modules/event/event.schema';
 import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { Event, Prisma } from '@prisma/client';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
@@ -269,4 +270,66 @@ export const getEventDetailService = async ({
   return await prisma.event.findUniqueOrThrow({
     where: { id: eventId, userId },
   });
+};
+
+/**
+ * This service is used by admin to retrieve all events.
+ * @returns 
+ */
+export const retrieveEventsForAdminService = async ({
+  query,
+}: {
+  query: TEventListQueryForAdmin;
+}) => {
+  try {
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 10);
+    const eventStatus = query.eventStatus;
+    const skip = (page - 1) * limit;
+
+    const whereCondition: Prisma.EventWhereInput = {};
+    if (eventStatus) {
+      whereCondition.eventStatus = eventStatus;
+    }
+
+    const [events, total] = await prisma.$transaction([
+      prisma.event.findMany({
+        where: whereCondition,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.event.count({ where: whereCondition }),
+    ]);
+
+    const data = events.map((event) => {
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      const d = event.startAt;
+      let hours = d.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const minutes = d.getMinutes().toString().padStart(2, '0');
+      const dateAndTime = `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}, ${hours}:${minutes} ${ampm}`;
+
+      return {
+        id: event.id,
+        name: event.eventName,
+        description: event.eventDescription,
+        thumbnail: event.thumbnail,
+        images: event.images,
+        dateAndTime,
+        table: event.dressCode || '-',
+        country: event.location,
+        price: Number(event.eventPrice) || 0,
+        currency: event.currency || 'USD',
+        eventStatus: event.eventStatus,
+        createdAt: event.createdAt,
+      };
+    });
+
+    return { data, total, page, limit };
+  } catch (error) {
+    throw error;
+  }
 };

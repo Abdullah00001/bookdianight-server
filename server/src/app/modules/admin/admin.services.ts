@@ -19,7 +19,7 @@ import {
 } from '@/app/modules/admin/admin.types';
 import crypto from 'crypto';
 import { ITokenPayload } from '@/app/@types/jwt.types';
-import { ApplicationCharge } from '@prisma/client';
+import { ApplicationCharge, Prisma } from '@prisma/client';
 
 const serializeCommission = (charge: ApplicationCharge) => ({
   ...charge,
@@ -430,7 +430,7 @@ export const getAdminDashboardService = async ({
   }
 };
 
-import { TGetAdminUsersQuery, TAdminUserIdParams } from '@/app/modules/admin/admin.schema';
+import { TGetAdminUsersQuery, TAdminUserIdParams, TEarningsQuery } from '@/app/modules/admin/admin.schema';
 
 export const getAdminUsersService = async ({ query }: { query: TGetAdminUsersQuery }) => {
   try {
@@ -619,4 +619,94 @@ export const deleteAdminUserService = async ({ params }: { params: TAdminUserIdP
   } catch (error) {
     throw error;
   }
+};
+
+export const earningsForAdminService = async (query: TEarningsQuery) => {
+  const page = parseInt(query.page || '1', 10);
+  const limit = parseInt(query.limit || '10', 10);
+  const skip = (page - 1) * limit;
+
+  // Filters
+  const whereClause: Prisma.OrderWhereInput = {
+    status: 'PAID' // Assuming only PAID orders count towards earnings
+  };
+
+  if (query.serviceType) {
+    whereClause.serviceType = query.serviceType as any;
+  }
+
+  // 1. Total Earning
+  const totalAgg = await prisma.order.aggregate({
+    where: { status: 'PAID' },
+    _sum: { commissionAmount: true },
+  });
+  const totalEarning = totalAgg._sum.commissionAmount || 0;
+
+  // 2. Today Earning
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayAgg = await prisma.order.aggregate({
+    where: {
+      status: 'PAID',
+      createdAt: { gte: startOfToday },
+    },
+    _sum: { commissionAmount: true },
+  });
+  const todayEarning = todayAgg._sum.commissionAmount || 0;
+
+  // 3. Overview Table Data
+  const [total, orders] = await Promise.all([
+    prisma.order.count({ where: whereClause }),
+    prisma.order.findMany({
+      where: whereClause,
+      include: {
+        seller: true,
+        clubBooking: true,
+        eventPurchase: true,
+        refund: true,
+      },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+
+  const data = orders.map((order) => {
+    let name = '';
+    let location = '';
+    let dateAndTime: Date | null = null;
+
+    if (order.serviceType === 'CLUB' && order.clubBooking) {
+      name = order.clubBooking.clubName;
+      location = order.clubBooking.clubLocation;
+      dateAndTime = order.clubBooking.startAt;
+    } else if (order.serviceType === 'EVENT' && order.eventPurchase) {
+      name = order.eventPurchase.eventName;
+      location = order.eventPurchase.eventLocation;
+      dateAndTime = order.eventPurchase.eventStartAt;
+    }
+
+    return {
+      id: order.id,
+      name,
+      createdBy: `${order.seller.firstName} ${order.seller.lastName}`,
+      dateAndTime,
+      location,
+      price: order.grossAmount,
+      commission: order.commissionRate,
+      earning: order.commissionAmount,
+      status: order.refund ? 'Canceled' : (order.status === 'PAID' ? 'Completed' : 'Pending'),
+      currency: order.currency,
+      serviceType: order.serviceType,
+    };
+  });
+
+  return {
+    totalEarning,
+    todayEarning,
+    data,
+    total,
+    page,
+    limit,
+  };
 };

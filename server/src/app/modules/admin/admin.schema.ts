@@ -92,3 +92,11 @@ export const adminUserIdParamsSchema = z.object({
 });
 
 export type TAdminUserIdParams = z.infer<typeof adminUserIdParamsSchema>;
+
+export const earningsQuerySchema = z.object({
+  page: z.string().optional().default('1'),
+  limit: z.string().optional().default('10'),
+  serviceType: z.enum(['EVENT', 'CLUB']).optional(),
+});
+
+export type TEarningsQuery = z.infer<typeof earningsQuerySchema>;

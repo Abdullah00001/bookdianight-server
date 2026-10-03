@@ -3,10 +3,11 @@ import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { COOKIE_NAMES, adminAccessTokenExpiresIn, refreshTokenExpiresInWithRememberMe, AuthErrorType } from '@/const';
 import { cookieOption } from '@/app/utils/cookie.utils';
-import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService, getAdminDashboardService, getAdminUsersService, suspendAdminUserService, deleteAdminUserService } from '@/app/modules/admin/admin.services';
-import { TAdminLoginPayload, TChangeAdminPasswordPayload, TUpdateCommissionPayload } from '@/app/modules/admin/admin.schema';
+import { loginAdminService, checkAdminService, refreshAdminService, logoutAdminService, getAdminProfileService, updateAdminProfileService, changeAdminPasswordService, updateCommissionService, getCommissionService, getAdminDashboardService, getAdminUsersService, suspendAdminUserService, deleteAdminUserService, earningsForAdminService } from '@/app/modules/admin/admin.services';
+import { TAdminLoginPayload, TChangeAdminPasswordPayload, TUpdateCommissionPayload, TEarningsQuery } from '@/app/modules/admin/admin.schema';
 import { comparePassword } from '@/app/utils/password.utils';
 import { User } from '@prisma/client';
+import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 
 /**
  * Controller for admin login.
@@ -368,6 +369,32 @@ export const deleteAdminUserController = asyncHandler(
     res.status(200).json({
       success: true,
       message: 'User deleted successfully',
+      traceId
+    });
+    return;
+  }
+);
+export const earningsForAdminController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const query = req.query as unknown as TEarningsQuery;
+
+    const { totalEarning, todayEarning, data, total, page, limit } = await earningsForAdminService(query);
+
+    const totalPages = Math.ceil(total / limit);
+    const links = buildPaginationLinks(req, page, totalPages);
+
+    res.status(200).json({
+      success: true,
+      message: 'All earnings retrieve successful for admin.',
+      meta: {
+        total,
+        totalPages,
+        links,
+        totalEarning,
+        todayEarning,
+      },
+      data,
       traceId
     });
     return;

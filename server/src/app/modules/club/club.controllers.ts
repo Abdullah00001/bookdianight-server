@@ -2,8 +2,8 @@ import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
 import { User } from '@prisma/client';
-import { createClubService, updateClubService, getClubListService, getClubDetailService } from '@/app/modules/club/club.services';
-import { TCreateClubPayload, TUpdateClubPayload, TClubListQuery } from '@/app/modules/club/club.schema';
+import { createClubService, updateClubService, getClubListService, getClubDetailService, retrieveClubsForAdminService } from '@/app/modules/club/club.services';
+import { TCreateClubPayload, TUpdateClubPayload, TClubListQuery, TAdminClubListQuery } from '@/app/modules/club/club.schema';
 import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 
 /**
@@ -103,5 +103,35 @@ export const getClubDetailController = asyncHandler(
       data: club,
       traceId,
     });
+  }
+);
+
+/**
+ * This controller for retrieve all club for admin. Only admin can access this controller.
+ * @param req
+ * @param res
+ * @returns {void} Returns a JSON response with the status of the operation.
+ */
+export const retrieveClubsForAdminController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const traceId = getTraceId();
+    const query = (req.validatedQuery || req.query) as unknown as TAdminClubListQuery;
+    const { data, total, page, limit } = await retrieveClubsForAdminService({ query });
+    
+    const totalPages = Math.ceil(total / limit);
+    const links = buildPaginationLinks(req, page, totalPages);
+
+    res.status(200).json({
+      success: true,
+      message: 'All club retrieve successful for admin.',
+      meta: {
+        total,
+        totalPages,
+        links
+      },
+      data,
+      traceId
+    });
+    return;
   }
 );

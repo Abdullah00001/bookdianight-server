@@ -1,7 +1,13 @@
 import prisma from '@/app/configs/db.configs';
-import { ICreateClubService, IUpdateClubService, IGetClubListService, IGetClubDetailService } from '@/app/modules/club/club.types';
+import {
+  ICreateClubService,
+  IUpdateClubService,
+  IGetClubListService,
+  IGetClubDetailService,
+} from '@/app/modules/club/club.types';
 import { ILightweightExploreItem } from '@/app/modules/explore/explore.types';
 import { Club } from '@prisma/client';
+import { TAdminClubListQuery } from '@/app/modules/club/club.schema';
 
 /**
  * Service for creating a Club.
@@ -9,14 +15,22 @@ import { Club } from '@prisma/client';
  * and populate nested relations for opening hours and packages.
  * @returns Promise<Club>
  */
-export const createClubService = async ({ userId, payload }: ICreateClubService): Promise<Club> => {
+export const createClubService = async ({
+  userId,
+  payload,
+}: ICreateClubService): Promise<Club> => {
   const { openingHours, packages, ...clubData } = payload;
 
   if (packages && packages.length > 1) {
     const firstCurrency = packages[0].currency;
-    const hasMixedCurrency = packages.some(pkg => pkg.currency !== firstCurrency);
+    const hasMixedCurrency = packages.some(
+      (pkg) => pkg.currency !== firstCurrency
+    );
     if (hasMixedCurrency) {
-      throw { status: 422, message: 'All packages within a club must have the same currency' };
+      throw {
+        status: 422,
+        message: 'All packages within a club must have the same currency',
+      };
     }
   }
 
@@ -68,14 +82,23 @@ export const createClubService = async ({ userId, payload }: ICreateClubService)
  * and recreates opening hours and packages within a transaction.
  * @returns Promise<Club>
  */
-export const updateClubService = async ({ clubId, userId, payload }: IUpdateClubService): Promise<Club> => {
+export const updateClubService = async ({
+  clubId,
+  userId,
+  payload,
+}: IUpdateClubService): Promise<Club> => {
   const { openingHours, packages, ...clubData } = payload;
 
   if (packages && packages.length > 1) {
     const firstCurrency = packages[0].currency;
-    const hasMixedCurrency = packages.some(pkg => pkg.currency !== firstCurrency);
+    const hasMixedCurrency = packages.some(
+      (pkg) => pkg.currency !== firstCurrency
+    );
     if (hasMixedCurrency) {
-      throw { status: 422, message: 'All packages within a club must have the same currency' };
+      throw {
+        status: 422,
+        message: 'All packages within a club must have the same currency',
+      };
     }
   }
 
@@ -135,7 +158,10 @@ export const updateClubService = async ({ clubId, userId, payload }: IUpdateClub
  * Service for fetching a paginated list of Clubs belonging to an owner.
  * @returns Promise<{ data: Club[], total: number }>
  */
-export const getClubListService = async ({ userId, query }: IGetClubListService) => {
+export const getClubListService = async ({
+  userId,
+  query,
+}: IGetClubListService) => {
   const { page, limit, isActive } = query;
   const skip = (page - 1) * limit;
 
@@ -163,8 +189,8 @@ export const getClubListService = async ({ userId, query }: IGetClubListService)
           where: { userId },
           select: { id: true },
         },
-      }
-    })
+      },
+    }),
   ]);
 
   const mappedData: ILightweightExploreItem[] = data.map((club) => {
@@ -209,14 +235,92 @@ export const getClubListService = async ({ userId, query }: IGetClubListService)
  * Service for fetching full details of a specific Club belonging to an owner.
  * @returns Promise<Club>
  */
-export const getClubDetailService = async ({ clubId, userId }: IGetClubDetailService) => {
+export const getClubDetailService = async ({
+  clubId,
+  userId,
+}: IGetClubDetailService) => {
   return await prisma.club.findUniqueOrThrow({
     where: { id: clubId, userId },
     include: {
       clubOpeningHours: true,
       clubPackages: {
-        orderBy: { sortOrder: 'asc' }
+        orderBy: { sortOrder: 'asc' },
+      },
+    },
+  });
+};
+
+/**
+ * This service function is used to retrieve all clubs for admin.
+ * @param query - Pagination parameters for filtering and sorting.
+ * @returns Promise<void>
+ */
+export const retrieveClubsForAdminService = async ({
+  query,
+}: {
+  query: TAdminClubListQuery;
+}) => {
+  try {
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 10);
+    const isActive = query.isActive;
+    const skip = (page - 1) * limit;
+
+    const whereCondition: any = {};
+    if (isActive !== undefined) {
+      if (isActive) {
+        whereCondition.deactivatedAt = null;
+      } else {
+        whereCondition.deactivatedAt = { not: null };
       }
     }
-  });
+
+    const [clubs, total] = await prisma.$transaction([
+      prisma.club.findMany({
+        where: whereCondition,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          clubPackages: {
+            take: 1,
+            orderBy: { price: 'asc' },
+          },
+        },
+      }),
+      prisma.club.count({ where: whereCondition }),
+    ]);
+
+    const data = clubs.map(club => {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const d = club.createdAt;
+      let hours = d.getHours();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const dateAndTime = `${d.getDate()} ${monthNames[d.getMonth()]}, ${hours} ${ampm}`;
+      
+      const firstPackage = club.clubPackages.length > 0 ? club.clubPackages[0] : null;
+
+      return {
+        id: club.id,
+        name: club.name,
+        description: club.description,
+        thumbnail: club.thumbnail,
+        images: club.images,
+        dateAndTime,
+        table: firstPackage ? firstPackage.name : '-',
+        country: club.location,
+        price: firstPackage ? Number(firstPackage.price) : 0,
+        currency: firstPackage ? firstPackage.currency : 'USD',
+        isActive: club.deactivatedAt === null,
+        deactivatedAt: club.deactivatedAt,
+        createdAt: club.createdAt,
+      };
+    });
+
+    return { data, total, page, limit };
+  } catch (error) {
+    throw error;
+  }
 };

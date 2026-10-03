@@ -689,7 +689,7 @@ export const earningsForAdminService = async (query: TEarningsQuery) => {
     return {
       id: order.id,
       name,
-      createdBy: `${order.seller.firstName} ${order.seller.lastName}`,
+      createdBy: order.seller.name,
       dateAndTime,
       location,
       price: order.grossAmount,

@@ -5,7 +5,7 @@ import {
   extractToken,
   verifyResetPasswordPageToken,
 } from '@/app/utils/jwt.utils';
-import { AuthErrorType, REDIS_PREFIXES } from '@/const';
+import { AuthErrorType, REDIS_PREFIXES, COOKIE_NAMES } from '@/const';
 import { JwtPayload } from 'jsonwebtoken';
 import { getRedisClient } from '@/app/configs/redis.configs';
 
@@ -21,7 +21,8 @@ import { getRedisClient } from '@/app/configs/redis.configs';
 export const checkResetPasswordPageTokenMiddleware = asyncHandler(
   async (req: Request, res: Response, next: NextFunction) => {
     const traceId = getTraceId();
-    const token = extractToken(req);
+    const token = req.cookies[COOKIE_NAMES.RECOVER_PAGE_TOKEN] || extractToken(req);
+    req.headers['x-recover-token'] = token as string;
     if (!token) {
       res.status(401).json({
         success: false,

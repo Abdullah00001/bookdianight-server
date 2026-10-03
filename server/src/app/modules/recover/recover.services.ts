@@ -12,7 +12,7 @@ import {
   createRedisKey,
   generate,
 } from '@/app/utils/system.utils';
-import { otpExpireAt, QUEUE_JOBS, REDIS_PREFIXES } from '@/const';
+import { otpExpireAt, QUEUE_JOBS, REDIS_PREFIXES, COOKIE_NAMES } from '@/const';
 import { User } from '@prisma/client';
 import { Request } from 'express';
 import { TResetRecoverUserOtpPayload } from '@/app/modules/recover/recover.schema';
@@ -34,8 +34,8 @@ export const findRecoverUserService = async ({
     const redisClient = getRedisClient();
     const emailQueue = getEmailQueue();
     const path = req.path;
-    const isAdmin = path.includes('/admin/recover');
     const user = req.user as User;
+    const isAdmin = user.accountRole === 'ADMIN';
     const traceId = getTraceId();
     const otp = generate(6, {
       digits: true,
@@ -103,13 +103,13 @@ export const recoverUserPasswordResetService = async ({
 }): Promise<{ isAdmin: boolean }> => {
   try {
     const user = req.user as User;
-    const token = extractToken(req) as string;
+    const token = req.headers['x-recover-token'] as string;
     const redisClient = getRedisClient();
     const emailQueue = getEmailQueue();
     const traceId = getTraceId();
     const { password } = req.body as TResetRecoverUserOtpPayload;
     const path = req.path;
-    const isAdmin = path.includes('/admin/recover');
+    const isAdmin = user.accountRole === 'ADMIN';
     const hashedPassword = await hashPassword(password);
     const decoded = verifyResetPasswordPageToken(token)?.data as JwtPayload;
     const expirationTime = decoded?.exp as number;

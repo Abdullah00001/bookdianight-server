@@ -4,6 +4,7 @@ import prisma from '@/app/configs/db.configs';
 import logger from '@/app/configs/logger.configs';
 import { stripe } from '@/app/configs/stripe.configs';
 import { IProcessSellerTransfer } from '@/app/queues/system/system.types';
+import { getNotificationQueue } from '@/app/queues/notification/notification.queue';
 
 const handler: IJobHandler<IProcessSellerTransfer> = {
   name: QUEUE_JOBS.PROCESS_SELLER_TRANSFER,
@@ -12,6 +13,7 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
     let transferRecord: Awaited<
       ReturnType<typeof prisma.sellerTransfer.findUnique>
     > = null;
+    let sellerUserId: string | null = null;
 
     try {
       // 1. Load CURRENT database state
@@ -34,6 +36,8 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
       if (order.status !== 'PAID') {
         throw new Error(`Order ${orderId} is not PAID`);
       }
+
+      sellerUserId = order.sellerUserId;
 
       transferRecord = await prisma.sellerTransfer.findUnique({
         where: { orderId },
@@ -142,6 +146,29 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
         },
       });
 
+      // Notify seller
+      try {
+        await getNotificationQueue().add(
+          QUEUE_JOBS.SEND_FCM_NOTIFICATION,
+          {
+            userIds: [order.sellerUserId],
+            notificationType: 'SELLER_TRANSFER_SUCCESS',
+            title: 'Payout Transfer Successful',
+            description: `Your payout of ${transferRecord.amount} ${transferRecord.currency.toUpperCase()} has been successfully transferred to your Stripe account.`,
+            metaData: { orderId: order.id, transferId: transferRecord.id },
+          },
+          {
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
+      } catch (pushErr) {
+        logger.error(
+          `[processSellerTransfer] Failed to enqueue SELLER_TRANSFER_SUCCESS`,
+          pushErr
+        );
+      }
+
       logger.info(
         `[processSellerTransfer] Successfully processed transfer for order ${orderId}`
       );
@@ -156,6 +183,31 @@ const handler: IJobHandler<IProcessSellerTransfer> = {
           where: { id: transferRecord.id },
           data: { status: 'FAILED' },
         });
+
+        // Notify seller of failure
+        if (sellerUserId) {
+          try {
+            await getNotificationQueue().add(
+              QUEUE_JOBS.SEND_FCM_NOTIFICATION,
+              {
+                userIds: [sellerUserId],
+                notificationType: 'SELLER_TRANSFER_FAILED',
+                title: 'Payout Transfer Failed',
+                description: `Your payout of ${transferRecord.amount} ${transferRecord.currency.toUpperCase()} failed to transfer to your Stripe account. We will retry.`,
+                metaData: { orderId: orderId, transferId: transferRecord.id },
+              },
+              {
+                removeOnComplete: true,
+                removeOnFail: false,
+              }
+            );
+          } catch (e) {
+            logger.error(
+              `[processSellerTransfer] Failed to enqueue SELLER_TRANSFER_FAILED`,
+              e
+            );
+          }
+        }
       }
 
       throw error;

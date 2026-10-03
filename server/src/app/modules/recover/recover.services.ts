@@ -18,6 +18,7 @@ import { TResetRecoverUserOtpPayload } from '@/app/modules/recover/recover.schem
 import { hashPassword } from '@/app/utils/password.utils';
 import { JwtPayload } from 'jsonwebtoken';
 import prisma from '@/app/configs/db.configs';
+import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
 
 /**
  * This service is used to find the user for the password reset.
@@ -128,6 +129,15 @@ export const recoverUserPasswordResetService = async ({
       QUEUE_JOBS.RECOVER_USER_PASSWORD_RESET_SUCCESSFUL,
       emailData
     );
+
+    // Push notification
+    await sendPushNotification({
+      userIds: [user.id],
+      notificationType: 'PASSWORD_RESET_SUCCESS',
+      title: 'Password Reset Successful',
+      description: 'Your account password has been successfully reset. If this was not you, please contact support immediately.',
+    });
+
     return { isAdmin };
   } catch (error) {
     throw error;

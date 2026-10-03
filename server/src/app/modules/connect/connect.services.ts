@@ -20,6 +20,7 @@ import {
   IRefreshConnectOnboardingService,
   IRetrieveConnectAccountService,
 } from '@/app/modules/connect/connect.types';
+import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
 
 const callbackTtl = 1800;
 const statusFor = (state: IConnectStatusResponse['state']) =>
@@ -57,10 +58,30 @@ const syncConnectAccount = async ({
     const onboardingCompletedAt =
       current.onboardingCompletedAt ??
       (stripeAccount.details_submitted ? new Date() : null);
+    const newStatus = statusFor(state);
     await prisma.stripeConnectAccount.update({
       where: { id: connectAccountId },
-      data: { status: statusFor(state), onboardingCompletedAt },
+      data: { status: newStatus, onboardingCompletedAt },
     });
+
+    if (current.status !== newStatus) {
+      if (newStatus === 'ACTIVE') {
+        await sendPushNotification({
+          userIds: [current.userId],
+          notificationType: 'STRIPE_CONNECT_SUCCESS',
+          title: 'Stripe Account Active',
+          description: 'Your Stripe Connect account is now fully active! You can receive payouts.',
+        });
+      } else if (newStatus === 'RESTRICTED') {
+        await sendPushNotification({
+          userIds: [current.userId],
+          notificationType: 'STRIPE_CONNECT_RESTRICTED',
+          title: 'Stripe Account Restricted',
+          description: 'Your Stripe Connect account requires attention. Payouts may be paused.',
+        });
+      }
+    }
+
     return formatConnectStatus({ state, onboardingCompletedAt });
   } catch (error) {
     throw error;

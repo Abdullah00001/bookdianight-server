@@ -1,6 +1,7 @@
 import prisma from '@/app/configs/db.configs';
 import { ICreateReviewService, IGetClubReviewsService, IGetClubReviewsResult } from '@/app/modules/reviews/reviews.types';
 import { ClubReview } from '@prisma/client';
+import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
 
 /**
  * This service is used to retrieve all reviews of a club
@@ -87,6 +88,21 @@ export const createReviewService = async ({
         review,
       },
     });
+
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: { userId: true, name: true }
+    });
+
+    if (club) {
+      await sendPushNotification({
+        userIds: [club.userId],
+        notificationType: 'NEW_CLUB_REVIEW',
+        title: 'New Club Review',
+        description: `Someone left a ${rating}-star review for your club '${club.name}'.`,
+        metaData: { clubId, reviewId: clubReview.id },
+      });
+    }
 
     return clubReview;
   } catch (error) {

@@ -3,6 +3,7 @@ import { QUEUE_JOBS } from '@/const';
 import prisma from '@/app/configs/db.configs';
 import logger from '@/app/configs/logger.configs';
 import { stripe } from '@/app/configs/stripe.configs';
+import { getNotificationQueue } from '@/app/queues/notification/notification.queue';
 
 /**
  * Worker for processing scheduled Refunds via Stripe.
@@ -134,6 +135,29 @@ const handler: IJobHandler = {
           completedAt: new Date(),
         },
       });
+
+      // 6. Push Notification
+      try {
+        await getNotificationQueue().add(
+          QUEUE_JOBS.SEND_FCM_NOTIFICATION,
+          {
+            userIds: [order.buyerUserId],
+            notificationType: 'REFUND_PROCESSED',
+            title: 'Refund Processed',
+            description: `Your refund of ${refund.amount} ${refund.currency.toUpperCase()} has been successfully processed to your original payment method.`,
+            metaData: { orderId: order.id, refundId: refund.id },
+          },
+          {
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
+      } catch (pushErr) {
+        logger.error(
+          `[processRefund] Failed to enqueue REFUND_PROCESSED push notification`,
+          pushErr
+        );
+      }
 
       logger.info(
         `[processRefund] Successfully executed refund ${refundId} for order ${order.id}`

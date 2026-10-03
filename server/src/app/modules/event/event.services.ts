@@ -11,6 +11,7 @@ import { Event, Prisma } from '@prisma/client';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
 import { getEmailQueue } from '@/app/queues/email/email.queue';
 import { QUEUE_JOBS } from '@/const';
+import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
 
 /**
  * Service for creating an Event.
@@ -167,6 +168,7 @@ export const updateEventService = async ({
 
           createdEmails.push({
             orderId: order.id,
+            buyerUserId: order.buyerUserId,
             buyerName: order.buyerName,
             buyerEmail: order.buyer.email,
             eventName: eventToReturn.eventName,
@@ -217,7 +219,24 @@ export const updateEventService = async ({
             removeOnFail: false,
           }
         );
+
+        await sendPushNotification({
+          userIds: [emailData.buyerUserId],
+          notificationType: 'EVENT_CANCELED',
+          title: 'Event Canceled',
+          description: `The event '${emailData.eventName}' has been canceled. Your refund of ${emailData.refundAmount} ${emailData.refundCurrency.toUpperCase()} is scheduled for ${emailData.refundScheduledFor}.`,
+          metaData: { eventId: updatedEvent.id, orderId: emailData.orderId }
+        });
       }
+
+      // Notify the owner
+      await sendPushNotification({
+        userIds: [userId],
+        notificationType: 'EVENT_CANCELED_SUCCESS',
+        title: 'Event Canceled Successfully',
+        description: `Your event '${updatedEvent.eventName}' was canceled and ${createdRefunds.length} refunds have been scheduled.`,
+        metaData: { eventId: updatedEvent.id }
+      });
     }
 
     return updatedEvent;

@@ -464,22 +464,58 @@ export const getAdminUsersService = async ({ query }: { query: TGetAdminUsersQue
         include: {
           profile: true,
           buyerOrders: {
-            take: 3,
+            take: 5,
             orderBy: { createdAt: 'desc' },
             include: {
               clubBooking: true,
               eventPurchase: true
             }
           },
+          clubs: {
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              name: true,
+              location: true,
+              clubPackages: {
+                take: 1,
+                orderBy: { price: 'asc' },
+                select: { price: true, currency: true }
+              },
+              reviews: {
+                select: { rating: true }
+              }
+            }
+          },
+          events: {
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              eventName: true,
+              location: true,
+              eventPrice: true,
+              currency: true,
+            }
+          },
           _count: {
             select: {
               buyerOrders: true,
+              clubs: true,
+              events: true,
             }
           }
         },
       }),
       prisma.user.count({ where: whereCondition }),
     ]);
+
+    const orderCounts = await prisma.order.groupBy({
+      by: ['buyerUserId', 'serviceType'],
+      where: { buyerUserId: { in: users.map(u => u.id) } },
+      _count: { _all: true },
+    });
 
     const mappedUsers = users.map(user => {
       const recentBookings = user.buyerOrders.map((order: any) => ({
@@ -490,11 +526,41 @@ export const getAdminUsersService = async ({ query }: { query: TGetAdminUsersQue
         date: order.createdAt
       }));
 
-      const { _count, buyerOrders, ...restUser } = user;
+      const recentClubs = user.clubs.map(club => {
+        const ratingSum = club.reviews.reduce((sum, review) => sum + Number(review.rating), 0);
+        const avgRating = club.reviews.length > 0 ? (ratingSum / club.reviews.length).toFixed(1) : '0.0';
+        return {
+          id: club.id,
+          name: club.name,
+          location: club.location,
+          rating: avgRating,
+          price: club.clubPackages.length > 0 ? Number(club.clubPackages[0].price) : 0,
+          currency: club.clubPackages.length > 0 ? club.clubPackages[0].currency : 'USD',
+        };
+      });
+
+      const recentEvents = user.events.map(event => ({
+        id: event.id,
+        name: event.eventName,
+        location: event.location,
+        price: Number(event.eventPrice),
+        currency: event.currency,
+      }));
+
+      const clubBookingsCount = orderCounts.find(oc => oc.buyerUserId === user.id && oc.serviceType === 'CLUB')?._count._all || 0;
+      const eventBookingsCount = orderCounts.find(oc => oc.buyerUserId === user.id && oc.serviceType === 'EVENT')?._count._all || 0;
+
+      const { _count, buyerOrders, clubs, events, ...restUser } = user;
       return {
         ...restUser,
         recentBookings,
-        totalBookings: _count.buyerOrders
+        recentClubs,
+        recentEvents,
+        totalBookings: _count.buyerOrders,
+        clubHostedCount: _count.clubs,
+        eventHostedCount: _count.events,
+        clubBookingsCount,
+        eventBookingsCount
       };
     });
 

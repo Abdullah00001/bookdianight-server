@@ -3,6 +3,7 @@ import { stripe } from '@/app/configs/stripe.configs';
 import prisma from '@/app/configs/db.configs';
 import { getSystemQueue } from '@/app/queues/system/system.queue';
 import { QUEUE_JOBS } from '@/const';
+import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
 
 export interface IProcessPaymentWebhookService {
   payload: any;
@@ -204,6 +205,37 @@ export const processPaymentWebhookService = async ({
               removeOnFail: false,
             }
           );
+          
+          // 6. Push Notifications
+          // Notify the buyer
+          await sendPushNotification({
+            userIds: [order.buyerUserId],
+            notificationType: order.serviceType === 'CLUB' ? 'CLUB_BOOKING_CONFIRMED' : 'BOOKING_CONFIRMED',
+            title: 'Booking Confirmed!',
+            description: `Your payment of ${order.buyerTotal} ${order.currency.toUpperCase()} was successful.`,
+            metaData: { orderId: order.id }
+          });
+          
+          // Notify the seller
+          await sendPushNotification({
+            userIds: [order.sellerUserId],
+            notificationType: order.serviceType === 'CLUB' ? 'NEW_CLUB_BOOKING' : 'NEW_TICKET_SALE',
+            title: 'New Booking Received!',
+            description: `You have received a new ${order.serviceType.toLowerCase()} booking from ${order.buyerName}.`,
+            metaData: { orderId: order.id }
+          });
+        } else if (
+          event.type === 'payment_intent.payment_failed' ||
+          event.type === 'payment_intent.canceled'
+        ) {
+          // Notify the buyer of payment failure
+          await sendPushNotification({
+            userIds: [order.buyerUserId],
+            notificationType: 'PAYMENT_FAILED',
+            title: 'Payment Failed',
+            description: `Your payment for the recent booking has failed. Please try again.`,
+            metaData: { orderId: order.id }
+          });
         }
       }
 

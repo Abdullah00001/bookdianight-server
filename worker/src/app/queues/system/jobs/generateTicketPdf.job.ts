@@ -12,6 +12,7 @@ import logger from '@/app/configs/logger.configs';
 import { QUEUE_JOBS } from '@/const';
 import { IJobHandler } from '@/app/@types/queue.types';
 import { singleUploadToS3 } from '@/app/utils/s3.utils';
+import { getNotificationQueue } from '@/app/queues/notification/notification.queue';
 import { find as geoTzFind } from 'geo-tz';
 
 const formatToVenueTime = (date: Date, timeZone: string) => {
@@ -207,6 +208,29 @@ const handler: IJobHandler = {
       logger.info(
         `[generateTicketPdf] Ticket PDF generated and uploaded successfully for order ${orderId}`
       );
+
+      // Notify buyer that their ticket is available
+      try {
+        await getNotificationQueue().add(
+          QUEUE_JOBS.SEND_FCM_NOTIFICATION,
+          {
+            userIds: [order.buyerUserId],
+            notificationType: 'TICKET_AVAILABLE',
+            title: 'Ticket Available!',
+            description: `Your ticket is now available to download and view.`,
+            metaData: { orderId: order.id },
+          },
+          {
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
+      } catch (pushErr) {
+        logger.error(
+          `[generateTicketPdf] Failed to enqueue TICKET_AVAILABLE push notification`,
+          pushErr
+        );
+      }
     } catch (error) {
       logger.error(
         `[generateTicketPdf] Failed to generate Ticket PDF for order ${orderId}`,

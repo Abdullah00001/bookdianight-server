@@ -337,6 +337,8 @@ export const getOwnerPaymentsService = async ({
     data,
   };
 };
+import { sendPushNotification } from '@/app/modules/notification/notification.helpers';
+
 export const verifyTicketService = async ({
   userId,
   orderId,
@@ -350,6 +352,7 @@ export const verifyTicketService = async ({
           attendees: true,
         },
       },
+      refund: true,
     },
   });
 
@@ -378,6 +381,15 @@ export const verifyTicketService = async ({
         include: { attendees: true },
       },
     },
+  });
+
+  // Send push notification to the buyer that their ticket was verified
+  await sendPushNotification({
+    userIds: [updatedOrder.buyerUserId],
+    notificationType: 'EVENT_REMINDER', // Note: Ideally TICKET_VERIFIED should be added to NotificationType
+    title: 'Ticket Verified',
+    description: `Your ${updatedOrder.serviceType.toLowerCase()} ticket has been successfully checked in! Enjoy!`,
+    metaData: { orderId: updatedOrder.id }
   });
 
   return {

@@ -1,4 +1,4 @@
-import { Job } from 'bullmq';
+import { Job, DelayedError } from 'bullmq';
 import { IJobHandler } from '@/app/@types/queue.types';
 import { IExpireClubBookingHold } from '@/app/queues/system/system.types';
 import { QUEUE_JOBS } from '@/const';
@@ -91,13 +91,12 @@ const handler: IJobHandler<IExpireClubBookingHold> = {
       return;
     }
 
-    // Grace period has not ended. Throw an error so BullMQ retries the job.
+    // Grace period has not ended. Move to delayed to retry cleanly without polluting error logs.
     logger.info(
-      `[expireClubBookingHold] Booking ${bookingId} payment PENDING, retrying within grace period`
+      `[expireClubBookingHold] Booking ${bookingId} payment PENDING, retrying in 60s within grace period`
     );
-    throw new Error(
-      'Payment is still PENDING within grace period, triggering retry'
-    );
+    await _job.moveToDelayed(Date.now() + 60 * 1000, _job.token);
+    throw new DelayedError();
   },
 };
 

@@ -160,7 +160,7 @@ export const retrieveLoggedInUserBookingsService = async ({
         type: 'EVENT',
         thumbnail: event.thumbnail,
         currency: order.currency,
-        price: 0, // In Explore list, Event price is fetched via raw SQL minPrice alias, substituting 0 as placeholder.
+        price: Number(eventPurchase.pricePerPerson),
       };
     }
 

@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { getTraceId } from '@/app/configs/requestContext.configs';
 import { asyncHandler } from '@/app/utils/system.utils';
-import { exploreListService, exploreDetailService } from '@/app/modules/explore/explore.services';
+import { exploreListService, exploreDetailService, getSharePreviewHtmlService } from '@/app/modules/explore/explore.services';
 import { TExploreQuery, TExploreDetailQuery } from '@/app/modules/explore/explore.schema';
 import { buildPaginationLinks } from '@/app/modules/explore/explore.helpers';
 import { JwtPayload } from 'jsonwebtoken';
@@ -69,5 +69,67 @@ export const exploreDetailController = asyncHandler(
       data,
       traceId,
     });
+  }
+);
+
+export const getAppleAppSiteAssociationController = asyncHandler(
+  async (_req: Request, res: Response): Promise<void> => {
+    res.status(200).json({
+      applinks: {
+        details: [
+          {
+            appIDs: ['3Z64Z2KU2S.com.bookdianightltd.bookdianightapp'],
+            components: [{ '/': '/club/*' }, { '/': '/event/*' }],
+          },
+        ],
+      },
+    });
+  }
+);
+
+export const getAndroidAssetLinksController = asyncHandler(
+  async (_req: Request, res: Response): Promise<void> => {
+    res.status(200).json([
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+          namespace: 'android_app',
+          package_name: 'com.bookdianightltd.bookdianightapp',
+          sha256_cert_fingerprints: [
+            '45:1C:1D:8D:B0:D3:AC:E9:32:D1:EC:77:31:D9:44:96:57:1E:0B:76:EF:E4:8E:64:82:D2:19:75:A4:F9:4D:87',
+          ],
+        },
+      },
+    ]);
+  }
+);
+
+export const getClubSharePreviewController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const html = await getSharePreviewHtmlService({ id, type: 'CLUB' });
+    
+    if (!html) {
+      res.status(404).send('<!DOCTYPE html><html><body><h1>404 - Club Not Found</h1></body></html>');
+      return;
+    }
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
+  }
+);
+
+export const getEventSharePreviewController = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id as string;
+    const html = await getSharePreviewHtmlService({ id, type: 'EVENT' });
+    
+    if (!html) {
+      res.status(404).send('<!DOCTYPE html><html><body><h1>404 - Event Not Found</h1></body></html>');
+      return;
+    }
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(html);
   }
 );

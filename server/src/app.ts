@@ -26,6 +26,13 @@ import {
 import v1Routes from '@/app/routes/v1';
 import prisma from '@/app/configs/db.configs';
 import { getRedisClient } from '@/app/configs/redis.configs';
+import {
+  getAppleAppSiteAssociationController,
+  getAndroidAssetLinksController,
+  getClubSharePreviewController,
+  getEventSharePreviewController,
+} from '@/app/modules/explore/explore.controllers';
+
 const app: Application = express();
 
 app.use(traceMiddleware);
@@ -152,6 +159,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // V1 ROUTES
 app.use(baseUrl.v1, v1Routes);
+
+// Root App Links & Deep Link Web Fallbacks
+app.get('/.well-known/apple-app-site-association', getAppleAppSiteAssociationController);
+app.get('/.well-known/assetlinks.json', getAndroidAssetLinksController);
+app.get('/explore/club/:id', getClubSharePreviewController);
+app.get('/explore/event/:id', getEventSharePreviewController);
 
 // Flutter App Link fallback — in production this URL is intercepted by the native OS
 // before the browser renders it. This HTML page is only visible in a plain browser

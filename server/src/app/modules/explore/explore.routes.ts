@@ -21,4 +21,6 @@ router.get(
   exploreDetailController
 );
 
+
+
 export default router;
